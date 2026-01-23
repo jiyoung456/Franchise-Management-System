@@ -241,7 +241,8 @@ export default function LoginPage() {
                     <div className="flex justify-center py-2 scale-90 origin-left">
                         <ReCAPTCHA
                             ref={recaptchaRef}
-                            sitekey="6LfPelIsAAAAACapytC9T-lAKpCbP0X1KgC-bfaq"
+                            // sitekey="6LfPelIsAAAAACapytC9T-lAKpCbP0X1KgC-bfaq"
+                            sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
                             onChange={(val) => setCaptchaValue(val)}
                         />
                     </div>
