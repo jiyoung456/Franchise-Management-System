@@ -1,7 +1,8 @@
 'use client';
 
 import { MOCK_STORES } from '@/lib/mock/mockData';
-import type { Store, StatusHistory } from '@/types';
+import type { Store, StatusHistory, User as UserType } from '@/types';
+import { AuthService } from '@/services/authService';
 import { StoreService } from '@/services/storeService';
 import { QscService } from '@/services/qscService';
 import { MOCK_EVENTS } from '@/lib/mock/mockEventData';
@@ -31,12 +32,16 @@ export default function StoreDetailContent() {
     const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'history' | 'risk' | 'qsc'>(
         (searchParams.get('tab') as any) || 'info'
     );
+    const [currentUser, setCurrentUser] = useState<UserType | null>(null);
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isReportOpen, setIsReportOpen] = useState(false);
 
     // Effect: Initial Data Fetch
     useEffect(() => {
+        const user = AuthService.getCurrentUser();
+        setCurrentUser(user);
+
         if (!storeId) return;
         const found = StoreService.getStore(storeId);
         if (found) {
@@ -75,7 +80,13 @@ export default function StoreDetailContent() {
             {/* Back Button Row */}
             <div className="flex items-center">
                 <button
-                    onClick={() => router.push('/stores/my')}
+                    onClick={() => {
+                        if (currentUser?.role === 'MANAGER') {
+                            router.push('/');
+                        } else {
+                            router.push('/stores/my');
+                        }
+                    }}
                     className="flex items-center text-gray-500 hover:text-gray-900 transition-colors"
                 >
                     <ArrowRight className="w-6 h-6 transform rotate-180 mr-2" />
@@ -214,7 +225,7 @@ export default function StoreDetailContent() {
                                 {tab === 'actions' && '조치 현황'}
                                 {tab === 'qsc' && 'QSC 점검'}
                                 {tab === 'history' && '상태변경 이력'}
-                                {tab === 'risk' && <span className="flex items-center justify-center gap-1"><Siren className="w-3 h-3" /> 위험 상세</span>}
+                                {tab === 'risk' && '위험 상세'}
                             </button>
                         ))}
                     </div>
@@ -299,7 +310,12 @@ export default function StoreDetailContent() {
                                                 </div>
                                                 <p className="text-sm text-gray-500 pl-4">담당자: {action.assignee} | 기한: {action.dueDate}</p>
                                             </div>
-                                            <button className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50">상세</button>
+                                            <button
+                                                onClick={() => router.push(`/actions/${action.id}`)}
+                                                className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50"
+                                            >
+                                                상세
+                                            </button>
                                         </div>
                                     ))}
                                 </div>

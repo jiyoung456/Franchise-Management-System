@@ -4,7 +4,7 @@ import { MOCK_TEMPLATES, MOCK_INSPECTIONS } from './mock/mockQscData';
 import { MOCK_EVENTS } from './mock/mockEventData';
 import { MOCK_ACTIONS } from './mock/mockActionData';
 
-export type { QSCTemplate, QSCItem };
+export type { QSCTemplate, QSCItem, User };
 
 export interface BaselineConfig {
     target: 'ALL' | 'REGION';
@@ -45,7 +45,7 @@ const STORAGE_KEYS = {
     ACTIONS: 'fms_actions'
 };
 
-const MOCK_NOTICES: Notice[] = [
+export const MOCK_NOTICES: Notice[] = [
     {
         id: '1',
         title: '[필독] 2026년 상반기 위생 점검 가이드라인 배포',
@@ -103,7 +103,6 @@ export const StorageService = {
                 department: '서울/경기',
                 role: 'ADMIN',
                 accountStatus: true,
-                createdAt: new Date().toISOString(),
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 passwordUpdatedAt: new Date().toISOString(),
@@ -164,6 +163,7 @@ export const StorageService = {
             id: `user-${Date.now()}`,
             accountStatus: true,
             createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             passwordUpdatedAt: new Date().toISOString(),
             loginAttempts: 0
         };

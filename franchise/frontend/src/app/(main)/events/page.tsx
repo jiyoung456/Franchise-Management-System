@@ -20,10 +20,12 @@ export default function EventManagementPage() {
         setEvents(data);
     }, []);
 
-    const filteredEvents = events.filter(evt =>
-        (filterStatus === 'ALL' || evt.status === filterStatus) &&
-        (evt.storeName.includes(searchTerm))
-    );
+    const filteredEvents = events
+        .filter(evt =>
+            (filterStatus === 'ALL' || evt.status === filterStatus) &&
+            (evt.storeName.includes(searchTerm))
+        )
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     const getSeverityBadge = (severity: string) => {
         switch (severity) {

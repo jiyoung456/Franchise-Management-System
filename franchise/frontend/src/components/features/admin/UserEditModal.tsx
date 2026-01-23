@@ -65,7 +65,7 @@ export function UserEditModal({ isOpen, onClose, user, onSave, onDelete }: Props
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="SUPERVISOR">슈퍼바이저 (SV)</option>
-                            <option value="MANAGER">SV팀장 (Manager)</option>
+                            <option value="MANAGER">팀장 (Manager)</option>
                             <option value="ADMIN">본사 관리자 (Admin)</option>
                         </select>
                         <p className="text-xs text-gray-500 mt-1 ml-1">

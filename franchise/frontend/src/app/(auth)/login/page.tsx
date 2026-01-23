@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import ReCAPTCHA from 'react-google-recaptcha';
 
+
 type RoleOption = '관리자' | '팀장' | 'SV';
 
 export default function LoginPage() {
@@ -15,12 +16,11 @@ export default function LoginPage() {
     const [id, setId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [selectedRole, setSelectedRole] = useState<RoleOption>('팀장'); // Default
+    const [selectedRole, setSelectedRole] = useState<RoleOption>('팀장');
     const [captchaValue, setCaptchaValue] = useState<string | null>(null);
     const recaptchaRef = useRef<ReCAPTCHA>(null);
-
-    // Tab State: 'STAFF' | 'ADMIN'
-    const [activeTab, setActiveTab] = useState<'STAFF' | 'ADMIN'>('STAFF');
+    // Tab State: 'MANAGER' | 'SUPERVISOR' | 'ADMIN'
+    const [activeTab, setActiveTab] = useState<'MANAGER' | 'SUPERVISOR' | 'ADMIN'>('MANAGER');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,57 +40,18 @@ export default function LoginPage() {
             }
 
             // 2. Validate Role based on Active Tab
+            // 2. Validate Role based on Active Tab
             const userRole = result.user.role;
-            let isValidTab = false;
 
-            if (activeTab === 'STAFF') {
-                // Staff tab allows SUPERVISOR and MANAGER
-                if (userRole === 'SUPERVISOR' || userRole === 'MANAGER') {
-                    isValidTab = true;
-                }
-            } else {
-                // Admin tab allows ADMIN
-                if (userRole === 'ADMIN') {
-                    isValidTab = true;
-                }
-            }
+            if (userRole !== activeTab) {
+                let tabName = '팀장';
+                if (activeTab === 'SUPERVISOR') tabName = 'SV';
+                if (activeTab === 'ADMIN') tabName = '관리자';
 
-            if (!isValidTab) {
-                alert(activeTab === 'STAFF' ? '관리자 계정은 관리자 탭을 이용해주세요.' : '팀장, SV 계정은 팀장, SV 탭을 이용해주세요.');
+                alert(`해당 계정은 ${tabName} 탭에서 로그인할 수 없습니다.`);
                 recaptchaRef.current?.reset();
                 setCaptchaValue(null);
                 return;
-            }
-
-            // 2.1 Validate Checkbox Role if needed (Optional for UX but good for consistency)
-            // Existing logic checked checkbox vs actual role.
-            // We can keep it or rely on Tab + LoginId.
-            // Let's rely on LoginId + Tab for simplicity as 'Role Selection' on Login might be redundant if Tab exists?
-            // User request image shows Tabs. Usually Tabs imply separate entry points.
-            // Let's keep the Role selection visible ONLY for Staff tab if needed?
-            // Actually, for Admin, usually no role selection needed.
-            // The prompt says "Separate Login Page", but we use Tabs.
-            // Let's check logic:
-            if (activeTab === 'STAFF') {
-                // Check selectedRole matches actual role
-                const roleMap: Record<RoleOption, string> = {
-                    '관리자': 'ADMIN',
-                    '팀장': 'MANAGER',
-                    'SV': 'SUPERVISOR'
-                };
-                // Admin shouldn't select '관리자' in Staff tab anyway.
-                if (selectedRole === '관리자') {
-                    alert('관리자는 관리자 탭을 이용해주세요.');
-                    recaptchaRef.current?.reset();
-                    setCaptchaValue(null);
-                    return;
-                }
-                const expectedRole = roleMap[selectedRole];
-                if (userRole !== expectedRole) {
-                    // alert('선택한 직책과 실제 직책이 다릅니다.');
-                    // Just warn? Or allow. Let's allowing matching by ID is better UX.
-                    // But let's stick to requirement "Discriminate".
-                }
             }
 
             router.push('/');
@@ -135,7 +96,9 @@ export default function LoginPage() {
                             href={`/signup?type=${activeTab}`}
                             className="w-full py-3 bg-[#E0F2FE] text-[#0284C7] font-bold rounded-lg hover:bg-[#D0EBFD] transition-colors text-center"
                         >
-                            회원가입
+                            {activeTab === 'MANAGER' && '팀장 회원가입'}
+                            {activeTab === 'SUPERVISOR' && 'SV 회원가입'}
+                            {activeTab === 'ADMIN' && '관리자 회원가입'}
                         </Link>
                     </div>
                 </div>
@@ -153,10 +116,17 @@ export default function LoginPage() {
                 <div className="flex border-b-2 border-gray-100 mb-8 w-full">
                     <button
                         type="button"
-                        className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'STAFF' ? 'text-[#2CA4D9] border-b-2 border-[#2CA4D9] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
-                        onClick={() => setActiveTab('STAFF')}
+                        className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'MANAGER' ? 'text-[#2CA4D9] border-b-2 border-[#2CA4D9] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
+                        onClick={() => setActiveTab('MANAGER')}
                     >
-                        팀장, SV
+                        팀장
+                    </button>
+                    <button
+                        type="button"
+                        className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'SUPERVISOR' ? 'text-[#2CA4D9] border-b-2 border-[#2CA4D9] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
+                        onClick={() => setActiveTab('SUPERVISOR')}
+                    >
+                        SV
                     </button>
                     <button
                         type="button"
@@ -213,30 +183,7 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {/* Role Selection (Checkboxes) - Show ONLY for STAFF */}
-                    {activeTab === 'STAFF' && (
-                        <div className="flex gap-6 py-2">
-                            {(['팀장', 'SV'] as RoleOption[]).map((role) => (
-                                <label key={role} className="flex items-center cursor-pointer group hover:bg-gray-50 p-2 rounded-md -ml-2 transition-colors">
-                                    <div className={`w-5 h-5 border-2 flex items-center justify-center rounded-[4px] mr-2.5 transition-all ${selectedRole === role
-                                        ? 'bg-[#2CA4D9] border-[#2CA4D9]'
-                                        : 'border-gray-300 bg-white group-hover:border-[#2CA4D9]'
-                                        }`}>
-                                        {selectedRole === role && <div className="w-2.5 h-2.5 text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>}
-                                    </div>
-                                    <input
-                                        type="checkbox"
-                                        className="hidden"
-                                        checked={selectedRole === role}
-                                        onChange={() => setSelectedRole(role)}
-                                    />
-                                    <span className={`text-base ${selectedRole === role ? 'text-gray-900 font-bold' : 'text-gray-500 font-medium'}`}>
-                                        {role}
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-                    )}
+
 
                     <div className="flex justify-center py-2 scale-90 origin-left">
                         <ReCAPTCHA

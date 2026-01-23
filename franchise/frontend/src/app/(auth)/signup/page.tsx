@@ -22,15 +22,15 @@ function SignupContent() {
         phone: '',
         department: '서울/경기' as Department
     });
-    const [selectedRole, setSelectedRole] = useState<RoleOption>('SV');
 
-    // Tab State: 'STAFF' | 'ADMIN'
-    const [activeTab, setActiveTab] = useState<'STAFF' | 'ADMIN'>('STAFF');
+
+    // Tab State: 'MANAGER' | 'SUPERVISOR' | 'ADMIN'
+    const [activeTab, setActiveTab] = useState<'MANAGER' | 'SUPERVISOR' | 'ADMIN'>('MANAGER');
     const searchParams = useSearchParams();
-    const typeParam = searchParams.get('type') as 'STAFF' | 'ADMIN' | null;
+    const typeParam = searchParams.get('type') as 'MANAGER' | 'SUPERVISOR' | 'ADMIN' | null;
 
     useEffect(() => {
-        if (typeParam === 'STAFF' || typeParam === 'ADMIN') {
+        if (typeParam === 'MANAGER' || typeParam === 'SUPERVISOR' || typeParam === 'ADMIN') {
             setActiveTab(typeParam);
         }
     }, [typeParam]);
@@ -150,15 +150,7 @@ function SignupContent() {
         }
 
         // Map UI Role based on Tab
-        let role: 'ADMIN' | 'MANAGER' | 'SUPERVISOR' = 'SUPERVISOR';
-
-        if (activeTab === 'ADMIN') {
-            role = 'ADMIN';
-        } else {
-            // Staff Tab
-            if (selectedRole === '팀장') role = 'MANAGER';
-            // Default SV
-        }
+        const role = activeTab;
 
         // Register
         const result = AuthService.register({
@@ -198,11 +190,19 @@ function SignupContent() {
                 <div className="flex border-b border-gray-200 mb-6">
                     <button
                         type="button"
-                        className={`flex-1 pb-3 text-lg font-bold text-center transition-colors relative ${activeTab === 'STAFF' ? 'text-[#3E4CB5]' : 'text-gray-400'}`}
-                        onClick={() => setActiveTab('STAFF')}
+                        className={`flex-1 pb-3 text-lg font-bold text-center transition-colors relative ${activeTab === 'MANAGER' ? 'text-[#3E4CB5]' : 'text-gray-400'}`}
+                        onClick={() => setActiveTab('MANAGER')}
                     >
-                        팀장, SV
-                        {activeTab === 'STAFF' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[#3E4CB5]" />}
+                        팀장
+                        {activeTab === 'MANAGER' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[#3E4CB5]" />}
+                    </button>
+                    <button
+                        type="button"
+                        className={`flex-1 pb-3 text-lg font-bold text-center transition-colors relative ${activeTab === 'SUPERVISOR' ? 'text-[#3E4CB5]' : 'text-gray-400'}`}
+                        onClick={() => setActiveTab('SUPERVISOR')}
+                    >
+                        SV
+                        {activeTab === 'SUPERVISOR' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[#3E4CB5]" />}
                     </button>
                     <button
                         type="button"
@@ -219,7 +219,9 @@ function SignupContent() {
             {typeParam && (
                 <div className="mb-6 text-center border-b border-gray-200 pb-3">
                     <h3 className="text-lg font-bold text-[#3E4CB5]">
-
+                        {activeTab === 'MANAGER' && '팀장 회원가입'}
+                        {activeTab === 'SUPERVISOR' && 'SV 회원가입'}
+                        {activeTab === 'ADMIN' && '관리자 회원가입'}
                     </h3>
                 </div>
             )}
@@ -320,8 +322,8 @@ function SignupContent() {
                     />
                 </div>
 
-                {/* Department (Region) - Only for STAFF */}
-                {activeTab === 'STAFF' && (
+                {/* Department (Region) - Only for STAFF equivalent (Manager/Supervisor) */}
+                {(activeTab === 'MANAGER' || activeTab === 'SUPERVISOR') && (
                     <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-600">담당 지역 (부서)</label>
                         <select
@@ -337,30 +339,7 @@ function SignupContent() {
                     </div>
                 )}
 
-                {/* Role Selection (Checkboxes) - Only for STAFF */}
-                {activeTab === 'STAFF' && (
-                    <div className="flex justify-center gap-8 py-4">
-                        {(['팀장', 'SV'] as RoleOption[]).map((role) => (
-                            <label key={role} className="flex items-center cursor-pointer group">
-                                <div className={`w-4 h-4 border flex items-center justify-center rounded-[2px] mr-2 transition-colors ${selectedRole === role
-                                    ? 'bg-gray-500 border-gray-500'
-                                    : 'border-gray-300 bg-white'
-                                    }`}>
-                                    {selectedRole === role && <div className="w-2 h-2 text-white"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>}
-                                </div>
-                                <input
-                                    type="checkbox"
-                                    className="hidden"
-                                    checked={selectedRole === role}
-                                    onChange={() => setSelectedRole(role)}
-                                />
-                                <span className={`text-sm ${selectedRole === role ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                                    {role}
-                                </span>
-                            </label>
-                        ))}
-                    </div>
-                )}
+
 
                 {/* Terms and Agreements */}
                 <div className="space-y-3 pt-2 border-t border-gray-100">

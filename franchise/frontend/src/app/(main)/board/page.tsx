@@ -64,11 +64,11 @@ export default function BoardListPage() {
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-4 w-[60px] text-center">번호</th>
-                            <th className="px-6 py-4">제목</th>
-                            <th className="px-6 py-4 w-[120px]">작성자</th>
-                            <th className="px-6 py-4 w-[120px]">작성일</th>
-                            <th className="px-6 py-4 w-[100px] text-center">조회</th>
+                            <th className="px-6 py-4 w-[80px] text-center whitespace-nowrap">번호</th>
+                            <th className="px-6 py-4 whitespace-nowrap">제목</th>
+                            <th className="px-6 py-4 w-[180px] whitespace-nowrap">작성자</th>
+                            <th className="px-6 py-4 w-[120px] whitespace-nowrap">작성일</th>
+                            <th className="px-6 py-4 w-[100px] text-center whitespace-nowrap">조회</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -122,6 +122,6 @@ export default function BoardListPage() {
                     </tbody>
                 </table>
             </div>
-        </div>
+        </div >
     );
 }

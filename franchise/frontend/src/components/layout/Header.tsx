@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 
 const ROLE_LABELS: Record<string, string> = {
     'ADMIN': '본사관리자',
-    'MANAGER': 'SV팀장',
+    'MANAGER': '팀장',
     'SUPERVISOR': '슈퍼바이저'
 };
 

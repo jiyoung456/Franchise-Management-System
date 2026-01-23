@@ -299,7 +299,7 @@ function TeamLeaderDashboard({ user }: { user: User }) {
                 </span>
               </th>
               <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[200px] cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => handleSort('updatedAt')}>
-                최근 수정일
+                최근 점검일
                 <span className="block text-xs font-normal text-blue-500 mt-1">
                   {sortConfig.key === 'updatedAt' ? (sortConfig.direction === 'desc' ? '▼ 최신순' : '▲ 오래된순') : '정렬 필터'}
                 </span>
