@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16
+    container_name: franchise-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: franchise
+      POSTGRES_USER: franchise_user
+      POSTGRES_PASSWORD: franchise_pass
+      TZ: Asia/Seoul
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U franchise_user -d franchise"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
