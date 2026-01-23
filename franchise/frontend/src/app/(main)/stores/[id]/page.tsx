@@ -14,14 +14,14 @@ import {
     MapPin, Calendar, User, FileText, Activity, AlertTriangle,
     CheckCircle, History, ArrowRight, Settings, BarChart2, Bell, Siren, ClipboardList, TrendingUp, TrendingDown, ChevronRight
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Bar } from 'recharts';
 import { ScoreBar } from '@/components/common/ScoreBar';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { DiagnosisReportModal } from '@/components/features/ai-insight/DiagnosisReportModal';
 import { StoreEditModal } from '@/components/features/stores/StoreEditModal';
 
-export default function StoreDetailPage() {
+function StoreDetailContent() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -522,8 +522,6 @@ export default function StoreDetailPage() {
                             </button>
                         </div>
                     </div>
-
-
                 </div>
             </div>
 
@@ -544,11 +542,18 @@ export default function StoreDetailPage() {
                     onSave={handleSaveStore}
                 />
             )}
-
-            {/* Keeping the Status Change Modal & Edit Modal logic implied or implemented if needed explicitly. 
-                For brevity, I will include their closing tags in the main return if they were part of the component.
-                (They were in previous code, so I should probably verify I didn't lose them.)
-            */}
         </div>
     );
+}
+
+export default function StoreDetailPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <StoreDetailContent />
+        </Suspense>
+    );
+}
+
+export async function generateStaticParams() {
+    return [{ id: '1' }, { id: '2' }, { id: '3' }];
 }

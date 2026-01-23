@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { AuthService } from '@/services/authService';
 import { Department } from '@/types';
 import { Logo } from '@/components/common/Logo';
@@ -11,7 +11,7 @@ import { Logo } from '@/components/common/Logo';
 const DEPARTMENTS: Department[] = ['서울/경기', '부산/경남', '강원/충청', '전라/광주', '대구/울산/경북', '제주'];
 type RoleOption = '관리자' | '팀장' | 'SV';
 
-export default function SignupPage() {
+function SignupContent() {
     const router = useRouter();
     const [formData, setFormData] = useState({
         loginId: '',
@@ -477,6 +477,14 @@ export default function SignupPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function SignupPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <SignupContent />
+        </Suspense>
     );
 }
 

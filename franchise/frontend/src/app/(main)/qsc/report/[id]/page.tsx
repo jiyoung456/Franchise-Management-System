@@ -318,3 +318,9 @@ export default function InspectionReportPage() {
         </div>
     );
 }
+
+export async function generateStaticParams() {
+    return MOCK_INSPECTIONS.map((inspection) => ({
+        id: inspection.id,
+    }));
+}
