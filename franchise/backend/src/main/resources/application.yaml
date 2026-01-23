@@ -1,3 +1,13 @@
 spring:
-  application:
-    name: backend
+  datasource:
+    url: jdbc:postgresql://localhost:5433/franchise
+    username: franchise_user
+    password: franchise_pass
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
