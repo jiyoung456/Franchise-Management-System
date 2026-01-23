@@ -1,4 +1,3 @@
 package com.franchise.backend.store.entity;
 
-public class StoreOperationStatus {
-}
+public enum StoreOperationStatus { OPEN, CLOSED }

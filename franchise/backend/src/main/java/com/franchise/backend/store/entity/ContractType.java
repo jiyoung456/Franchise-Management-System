@@ -1,4 +1,3 @@
 package com.franchise.backend.store.entity;
 
-public class ContractType {
-}
+public enum ContractType { FRANCHISE, DIRECT }

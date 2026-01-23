@@ -1,4 +1,3 @@
 package com.franchise.backend.store.entity;
 
-public class TradeAreaType {
-}
+public enum TradeAreaType { OFFICE, RESIDENTIAL, STATION, UNIVERSITY, TOURISM, MIXED }
