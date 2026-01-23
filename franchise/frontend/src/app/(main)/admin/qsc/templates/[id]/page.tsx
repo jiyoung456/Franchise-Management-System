@@ -443,3 +443,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
         </div>
     );
 }
+
+export async function generateStaticParams() {
+    return [{ id: 'new' }];
+}

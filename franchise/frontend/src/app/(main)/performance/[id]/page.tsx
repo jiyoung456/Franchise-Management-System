@@ -257,3 +257,9 @@ export default function PerformanceDetailPage() {
         </div>
     );
 }
+
+export async function generateStaticParams() {
+    return MOCK_STORES.map((store) => ({
+        id: store.id,
+    }));
+}
