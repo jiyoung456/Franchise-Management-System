@@ -24,17 +24,27 @@ public class StoreController {
     private final StoreService storeService;
     private final EventQueryService eventQueryService;
 
-    // 점포 목록 조회
-    // 팀장 홈 : 키워드 검색 (점포명 / 담당 SV)
-    // 팀장 홈 : qsc 점수 및 최근 점검일은 qsc 테이블 연동 후 수정 예정
+    // 점포 목록 조회 (팀장 홈)
+    // - state: NORMAL/WATCHLIST/RISK (없으면 전체)
+    // - keyword: 점포명 / 담당 SV(login_id)
+    // - sort:
+    //   - QSC_SCORE_DESC (높은순)
+    //   - QSC_SCORE_ASC (낮은순)
+    //   - INSPECTED_AT_DESC (최근 점검 최신순)
+    //   - INSPECTED_AT_ASC (최근 점검 오래된순)
+    // - limit: 기본 50, 최대 200
     @GetMapping
     public ApiResponse<List<StoreListResponse>> list(
             @RequestParam(required = false) StoreState state,
-            @RequestParam(required = false) String keyword
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "50") int limit
     ) {
         StoreSearchRequest condition = new StoreSearchRequest();
         condition.setState(state);
         condition.setKeyword(keyword);
+        condition.setSort(sort);
+        condition.setLimit(limit);
 
         return ApiResponse.ok(dashboardService.getStores(condition));
     }

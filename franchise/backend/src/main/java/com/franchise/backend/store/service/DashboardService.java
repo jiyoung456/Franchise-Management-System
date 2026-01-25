@@ -15,8 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,26 +39,32 @@ public class DashboardService {
         return new DashboardSummaryResponse(riskCount, newEventCount, managementGapCount);
     }
 
-    // 팀장 홈 점포 검색 / 필터 (리스트)
+    // 팀장 홈 점포 검색 / 필터 / 정렬
     public List<StoreListResponse> getStores(StoreSearchRequest condition) {
 
+        // 안전한 limit
+        int safeLimit = normalizeLimit(condition.getLimit());
+
+        // DB에서 상태/키워드로 후보 조회
         List<Store> stores = storeRepository.searchStores(
                 condition.getState(),
                 normalizeKeyword(condition.getKeyword())
         );
 
+        // storeIds
         List<Long> storeIds = stores.stream()
                 .map(Store::getId)
                 .toList();
 
-        // storeIds가 비면 그냥 QSC 조회 안 함
+        // 점포별 최신 COMPLETED QSC 가져오기 (없으면 map 비어있음)
         Map<Long, QscMaster> latestQscMap = storeIds.isEmpty()
                 ? Map.of()
                 : qscMasterRepository.findLatestCompletedByStoreIds(storeIds)
                 .stream()
                 .collect(Collectors.toMap(QscMaster::getStoreId, q -> q));
 
-        return stores.stream()
+        // StoreListResponse로 변환(여기서 qscScore / lastInspectionDate 채움)
+        List<StoreListResponse> rows = stores.stream()
                 .map(s -> {
                     QscMaster q = latestQscMap.get(s.getId());
 
@@ -79,11 +84,67 @@ public class DashboardService {
                             lastInspectionDate
                     );
                 })
-                .toList();
+                .collect(Collectors.toList());
+
+        // 정렬
+        StoreSort sort = normalizeSort(condition.getSort());
+        rows.sort(sort.getComparator());
+
+        // limit 적용
+        if (rows.size() > safeLimit) {
+            return rows.subList(0, safeLimit);
+        }
+        return rows;
     }
 
+    // normalize utils
     private String normalizeKeyword(String keyword) {
         if (keyword == null || keyword.isBlank()) return null;
         return keyword.trim();
+    }
+
+    private int normalizeLimit(Integer limit) {
+        int v = (limit == null ? 50 : limit);
+        return Math.max(1, Math.min(v, 200));
+    }
+
+    private StoreSort normalizeSort(String sort) {
+        if (sort == null || sort.isBlank()) return StoreSort.INSPECTED_AT_DESC;
+        try {
+            return StoreSort.valueOf(sort.trim().toUpperCase());
+        } catch (Exception e) {
+            return StoreSort.INSPECTED_AT_DESC;
+        }
+    }
+
+    // Sort enum (서버에서 강제)
+    private enum StoreSort {
+        QSC_SCORE_DESC(Comparator
+                .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed()
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+
+        QSC_SCORE_ASC(Comparator
+                .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+
+        INSPECTED_AT_DESC(Comparator
+                .comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed()
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+
+        INSPECTED_AT_ASC(Comparator
+                .comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        private final Comparator<StoreListResponse> comparator;
+
+        StoreSort(Comparator<StoreListResponse> comparator) {
+            this.comparator = comparator;
+        }
+
+        public Comparator<StoreListResponse> getComparator() {
+            return comparator;
+        }
     }
 }
