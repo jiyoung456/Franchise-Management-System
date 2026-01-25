@@ -1,0 +1,37 @@
+package com.franchise.backend.qsc.repository;
+
+import com.franchise.backend.qsc.entity.QscMaster;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+
+public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
+
+    // 점포별 "최신 COMPLETED 점검"을 storeIds 여러 개에 대해 한 번에 조회
+    // (store_id별 max(inspected_at) 1건씩)
+    @Query("""
+        SELECT q
+        FROM QscMaster q
+        WHERE q.status = 'COMPLETED'
+          AND q.storeId IN :storeIds
+          AND q.inspectedAt = (
+              SELECT MAX(q2.inspectedAt)
+              FROM QscMaster q2
+              WHERE q2.storeId = q.storeId
+                AND q2.status = 'COMPLETED'
+          )
+    """)
+    List<QscMaster> findLatestCompletedByStoreIds(@Param("storeIds") List<Long> storeIds);
+
+    // 특정 점포의 COMPLETED 점검 최신순 목록 (상세 탭에서 사용)
+    @Query("""
+        SELECT q
+        FROM QscMaster q
+        WHERE q.storeId = :storeId
+          AND q.status = 'COMPLETED'
+        ORDER BY q.inspectedAt DESC
+    """)
+    List<QscMaster> findCompletedListByStoreId(@Param("storeId") Long storeId);
+}

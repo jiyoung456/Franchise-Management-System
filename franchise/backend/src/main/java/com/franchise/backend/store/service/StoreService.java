@@ -141,7 +141,7 @@ public class StoreService {
 
                 store.getStoreOperationStatus(),
                 (store.getCurrentState() != null ? store.getCurrentState().name() : null),
-                store.getCurrentStateScore(), // ✅ 종합 위험 점수 = stores.current_state_score
+                store.getCurrentStateScore(), // 종합 위험 점수 = stores.current_state_score
 
                 openedDate,
                 lastStateChangedDate,
