@@ -15,16 +15,36 @@ export default function EventManagementPage() {
     const [events, setEvents] = useState<EventLog[]>([]);
 
     useEffect(() => {
-        // EventService.init(); // Optional if initialized elsewhere or auto-init
+        EventService.init(); // Initialize checks and sync with latest data
         const data = EventService.getEvents();
         setEvents(data);
     }, []);
 
     const filteredEvents = events
-        .filter(evt =>
-            (filterStatus === 'ALL' || evt.status === filterStatus) &&
-            (evt.storeName.includes(searchTerm))
-        )
+        .filter(evt => {
+            const matchesSearch = evt.storeName.includes(searchTerm);
+            if (filterStatus === 'ALL') return matchesSearch;
+
+            let matchesFilter = false;
+            switch (filterStatus) {
+                case '미처리':
+                    matchesFilter = evt.status === 'OPEN';
+                    break;
+                case '위험':
+                    matchesFilter = evt.severity === 'CRITICAL';
+                    break;
+                case '조치필요':
+                    matchesFilter = evt.status === 'ACKNOWLEDGED'; // Assuming '조치필요' aligns with 'Action Required/Processing'
+                    break;
+                case '완료': // Adding for completeness if needed, though not in screenshot
+                    matchesFilter = evt.status === 'RESOLVED';
+                    break;
+                default:
+                    matchesFilter = true;
+            }
+
+            return matchesFilter && matchesSearch;
+        })
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     const getSeverityBadge = (severity: string) => {

@@ -16,31 +16,32 @@ function generateMockEvents(): EventLog[] {
     const events: EventLog[] = [];
     const now = new Date();
 
-    MOCK_STORES.forEach(store => {
-        // A. Random QSC Events
-        if (Math.random() > 0.7) {
+    MOCK_STORES.forEach((store, index) => {
+        // A. QSC Events (Deterministic)
+        // Simulate "Randomness" by using store id or index modulo
+        if (index % 3 !== 0) { // Some condition to not have it everywhere
             events.push({
-                id: `evt_qsc_${store.id}_${Math.floor(Math.random() * 1000)}`,
+                id: `evt_qsc_${store.id}_101`,
                 type: 'QSC',
                 storeId: store.id,
                 storeName: store.name,
-                timestamp: new Date(now.getTime() - Math.random() * 86400000 * 7).toISOString(),
-                severity: Math.random() > 0.5 ? 'WARNING' : 'CRITICAL',
-                message: Math.random() > 0.5 ? '정기 점검 결과 "C" 등급 (불합격)' : '주방 위생 카테고리 점수 급락 (-15점)',
+                timestamp: new Date(now.getTime() - (index * 1000000)).toISOString(),
+                severity: index % 2 === 0 ? 'WARNING' : 'CRITICAL',
+                message: index % 2 === 0 ? '정기 점검 결과 "C" 등급 (불합격)' : '주방 위생 카테고리 점수 급락 (-15점)',
                 status: 'OPEN',
                 relatedData: { metricLabel: 'Grade', value: 'C', linkUrl: `/qsc/report/mock` },
                 ruleId: 'rule_qsc_fail'
             });
         }
 
-        // B. Random POS Events
-        if (Math.random() > 0.6) {
+        // B. POS Events (Deterministic)
+        if (index % 2 === 0) {
             events.push({
-                id: `evt_pos_${store.id}_${Math.floor(Math.random() * 1000)}`,
+                id: `evt_pos_${store.id}_202`,
                 type: 'POS',
                 storeId: store.id,
                 storeName: store.name,
-                timestamp: new Date(now.getTime() - Math.random() * 86400000 * 3).toISOString(),
+                timestamp: new Date(now.getTime() - (index * 2000000)).toISOString(),
                 severity: 'WARNING',
                 message: '지난 주 대비 매출 15% 하락 감지',
                 status: 'ACKNOWLEDGED',
@@ -56,7 +57,7 @@ function generateMockEvents(): EventLog[] {
                 type: 'RISK',
                 storeId: store.id,
                 storeName: store.name,
-                timestamp: new Date(now.getTime() - Math.random() * 86400000 * 2).toISOString(),
+                timestamp: new Date(now.getTime() - (index * 3000000)).toISOString(),
                 severity: 'CRITICAL',
                 message: 'AI 위험 탐지: 운영 리스크 점수 82점 (Critical)',
                 status: 'OPEN',

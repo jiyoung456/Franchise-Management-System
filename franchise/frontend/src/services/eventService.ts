@@ -6,9 +6,11 @@ const STORAGE_KEY = 'fms_events';
 export const EventService = {
     init: () => {
         if (typeof window === 'undefined') return;
-        if (!localStorage.getItem(STORAGE_KEY)) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_EVENTS));
-        }
+
+        // [강제 초기화] 항상 최신 MOCK 데이터로 덮어씁니다.
+        // 개발 중 데이터 불일치(random IDs vs static params) 문제를 해결하기 위함입니다.
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_EVENTS));
     },
 
     getEvents: (): EventLog[] => {
