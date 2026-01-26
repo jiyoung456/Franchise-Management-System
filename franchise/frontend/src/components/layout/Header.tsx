@@ -40,6 +40,21 @@ export function Header() {
 
     const hasUnread = notifications.length > 0;
 
+    const handleNotificationClick = (evt: EventLog) => {
+        // 1. Update Status
+        const updatedEvent = { ...evt, status: 'ACKNOWLEDGED' as const };
+        EventService.saveEvent(updatedEvent);
+
+        // 2. Remove from local list immediately
+        setNotifications(prev => prev.filter(e => e.id !== evt.id));
+
+        // 3. Close Dropdown
+        setIsNotiOpen(false);
+
+        // 4. Navigate
+        router.push(`/events/${evt.id}`);
+    };
+
     return (
         <header className="h-16 bg-[#46B3E6] border-b border-[#3AA0D0] fixed w-full top-0 right-0 z-10 pl-64">
             <div className="h-full px-6 flex items-center justify-end">
@@ -69,11 +84,10 @@ export function Header() {
                                 {notifications.length > 0 ? (
                                     <div className="max-h-64 overflow-y-auto">
                                         {notifications.map(evt => (
-                                            <Link
+                                            <div
                                                 key={evt.id}
-                                                href={`/stores/${evt.storeId}`}
-                                                className="block px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
-                                                onClick={() => setIsNotiOpen(false)}
+                                                onClick={() => handleNotificationClick(evt)}
+                                                className="block px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
                                             >
                                                 <div className="flex items-start gap-3">
                                                     <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
@@ -83,7 +97,7 @@ export function Header() {
                                                         <p className="text-[10px] text-gray-400 mt-1">{evt.timestamp.slice(5, 16).replace('T', ' ')}</p>
                                                     </div>
                                                 </div>
-                                            </Link>
+                                            </div>
                                         ))}
                                     </div>
                                 ) : (
