@@ -12,7 +12,7 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     long countByCurrentState(StoreState currentState);
 
-    // qsc 테이블과 조인해서 qsc 점수와 최근 점검일 변경 예정
+    // qsc 점수와 최근 점검일
     @Query("""
         SELECT s
         FROM Store s
