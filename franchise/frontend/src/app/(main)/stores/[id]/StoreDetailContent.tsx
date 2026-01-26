@@ -20,6 +20,7 @@ import { ScoreBar } from '@/components/common/ScoreBar';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { DiagnosisReportModal } from '@/components/features/ai-insight/DiagnosisReportModal';
 import { StoreEditModal } from '@/components/features/stores/StoreEditModal';
+import { StoreKPIModal } from '@/components/features/stores/StoreKPICard';
 
 export default function StoreDetailContent() {
     const params = useParams();
@@ -36,6 +37,7 @@ export default function StoreDetailContent() {
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isReportOpen, setIsReportOpen] = useState(false);
+    const [isKPIModalOpen, setIsKPIModalOpen] = useState(false);
 
     // Effect: Initial Data Fetch
     useEffect(() => {
@@ -372,7 +374,7 @@ export default function StoreDetailContent() {
                     <div className="bg-white border border-gray-200 shadow-sm p-6 rounded-lg">
                         <h3 className="text-base font-bold text-gray-900 mb-4">관리 메뉴</h3>
                         <div className="space-y-3">
-                            <button className="w-full py-2 border rounded hover:bg-gray-50">KPI 대시보드</button>
+                            <button onClick={() => setIsKPIModalOpen(true)} className="w-full py-2 border rounded hover:bg-gray-50">KPI 대시보드</button>
                             <button onClick={() => setIsEditModalOpen(true)} className="w-full py-2 border rounded hover:bg-gray-50">점포 정보 수정</button>
                         </div>
                     </div>
@@ -393,6 +395,14 @@ export default function StoreDetailContent() {
                     onClose={() => setIsEditModalOpen(false)}
                     store={store}
                     onSave={handleSaveStore}
+                />
+            )}
+
+            {isKPIModalOpen && store && (
+                <StoreKPIModal
+                    isOpen={isKPIModalOpen}
+                    onClose={() => setIsKPIModalOpen(false)}
+                    store={store}
                 />
             )}
         </div>

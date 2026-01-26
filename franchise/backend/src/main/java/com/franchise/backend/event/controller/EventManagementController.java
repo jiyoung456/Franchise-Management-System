@@ -2,7 +2,9 @@ package com.franchise.backend.event.controller;
 
 import com.franchise.backend.common.response.ApiResponse;
 import com.franchise.backend.event.dto.EventDashboardSummaryResponse;
+import com.franchise.backend.event.dto.EventDetailResponse;
 import com.franchise.backend.event.dto.EventListItemResponse;
+import com.franchise.backend.event.service.EventDetailService;
 import com.franchise.backend.event.service.EventManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,7 @@ import java.util.List;
 public class EventManagementController {
 
     private final EventManagementService eventManagementService;
+    private final EventDetailService eventDetailService;
 
     // 이벤트 관리 - 상단 카드 요약
     @GetMapping("/summary")
@@ -33,5 +36,11 @@ public class EventManagementController {
             @RequestParam(defaultValue = "50") int limit
     ) {
         return ApiResponse.ok(eventManagementService.getEvents(keyword, status, limit));
+    }
+
+    // 이벤트 상세 조회
+    @GetMapping("/{eventId}")
+    public ApiResponse<EventDetailResponse> detail(@PathVariable Long eventId) {
+        return ApiResponse.ok(eventDetailService.getEventDetail(eventId));
     }
 }

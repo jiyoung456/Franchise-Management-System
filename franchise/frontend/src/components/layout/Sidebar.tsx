@@ -8,24 +8,25 @@ import { AuthService } from '@/services/authService';
 import { Logo } from '@/components/common/Logo';
 
 const navigation = [
-    { name: '홈', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'] },
-    { name: '오늘의 할 일', href: '/briefing', icon: BrainCircuit, roles: ['SUPERVISOR'] }, // Dedicated Page (Team Leader sees via override)
-    { name: '점포 관리', href: '/stores', icon: Store, roles: ['ADMIN', 'SUPERVISOR'] },
-    { name: 'QSC 관리', href: '/qsc', icon: ClipboardCheck, roles: ['ADMIN', 'SUPERVISOR'] },
-    { name: 'POS 성과 분석', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'SUPERVISOR'] },
-    { name: '이벤트 관리', href: '/events', icon: Calendar, roles: ['ADMIN', 'SUPERVISOR'] },
+    { name: '홈', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'], section: 1 },
+    { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, roles: ['SUPERVISOR'], section: 1 },
+    { name: '점포관리', href: '/stores', icon: Store, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
+    { name: 'QSC 관리', href: '/qsc', icon: ClipboardCheck, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
+    { name: 'POS 관리', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
+    { name: '위험현황', href: '/ai-insight', icon: AlertTriangle, roles: ['ADMIN'], section: 3 },
+    { name: '이벤트관리', href: '/events', icon: Calendar, roles: ['ADMIN', 'SUPERVISOR'], section: 3 },
     {
-        name: '조치/권한 관리',
+        name: '조치/권한관리',
         href: '#',
         icon: Hammer,
         roles: ['ADMIN', 'SUPERVISOR'],
+        section: 3,
         children: [
             { name: '조치 관리', href: '/actions', roles: ['ADMIN', 'SUPERVISOR'] },
             { name: '권한 관리', href: '/admin/users', roles: ['ADMIN'] }
         ]
     },
-    { name: '위험 현황', href: '/ai-insight', icon: AlertTriangle, roles: ['ADMIN'] }, // Admin Only
-    { name: '게시판', href: '/board', icon: Megaphone, roles: ['ADMIN', 'SUPERVISOR'] },
+    { name: '게시판', href: '/board', icon: Megaphone, roles: ['ADMIN', 'SUPERVISOR'], section: 4 },
 ];
 
 export function Sidebar() {
@@ -49,11 +50,11 @@ export function Sidebar() {
 
     // Custom Navigation for Team Leader
     const teamLeaderNav = [
-        { name: '홈', href: '/', icon: LayoutDashboard },
-        { name: '오늘의 할 일', href: '/briefing', icon: BrainCircuit },
-        { name: '이벤트 관리', href: '/events', icon: Calendar }, // Using Calendar for Event as per mock
-        { name: '조치 관리', href: '/actions', icon: Hammer },
-        { name: '게시판', href: '/board', icon: Megaphone },
+        { name: '홈', href: '/', icon: LayoutDashboard, section: 1 },
+        { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, section: 1 },
+        { name: '이벤트관리', href: '/events', icon: Calendar, section: 3 }, // Using Calendar for Event as per mock
+        { name: '조치 관리', href: '/actions', icon: Hammer, section: 3 },
+        { name: '게시판', href: '/board', icon: Megaphone, section: 4 },
     ];
 
     // Filter navigation based on Role
@@ -104,7 +105,7 @@ export function Sidebar() {
     }
 
     // State for Accordion
-    const [expandedMenus, setExpandedMenus] = useState<string[]>(['QSC 관리', '조치/권한 관리']); // Default open for QSC/Action for demo
+    const [expandedMenus, setExpandedMenus] = useState<string[]>(['QSC 관리', '조치/권한관리']); // Default open for QSC/Action for demo
 
     const toggleMenu = (name: string) => {
         setExpandedMenus(prev =>
@@ -124,24 +125,18 @@ export function Sidebar() {
 
             <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 <div className="space-y-1">
-                    {filteredNav.map((item) => {
+                    {filteredNav.map((item, index) => {
                         const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href) && item.href !== '#' && item.href !== '/ai-insight');
                         const hasChildren = (item as any).children && (item as any).children.length > 0;
                         const isExpanded = expandedMenus.includes(item.name);
                         const isChildActive = hasChildren && (item as any).children.some((child: any) => pathname === child.href || pathname.startsWith(child.href));
 
-                        // Auto-expand if child is active (optional, but good UX)
-                        /* 
-                        useEffect(() => {
-                            if (isChildActive && !isExpanded) {
-                                setExpandedMenus(prev => [...prev, item.name]);
-                            }
-                        }, [pathname]); 
-                        // Skipping auto-expand complexity for now to keep it simple manual toggle as requested
-                        */
+                        // Check for section separator
+                        const showSeparator = index > 0 && (item as any).section !== (filteredNav[index - 1] as any).section;
 
                         return (
                             <div key={item.name}>
+                                {showSeparator && <div className="my-2 border-t border-[#3AA0D0]/50 mx-2" />}
                                 {hasChildren ? (
                                     <button
                                         onClick={() => toggleMenu(item.name)}

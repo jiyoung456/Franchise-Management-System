@@ -120,6 +120,7 @@ export default function ActionsListPage() {
                                     <th className="px-6 py-3">기한</th>
                                     <th className="px-6 py-3">담당자</th>
                                     <th className="px-6 py-3 text-right">연관 이벤트</th>
+                                    <th className="px-6 py-3 text-center">관리</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -165,6 +166,19 @@ export default function ActionsListPage() {
                                                 <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">
                                                     {getRelatedEventInfo(action)}
                                                 </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                            {action.status === 'COMPLETED' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        router.push(`/actions/${action.id}/effect`);
+                                                    }}
+                                                    className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold border border-green-200 rounded hover:bg-green-100 transition-colors"
+                                                >
+                                                    효과보기
+                                                </button>
                                             )}
                                         </td>
                                     </tr>

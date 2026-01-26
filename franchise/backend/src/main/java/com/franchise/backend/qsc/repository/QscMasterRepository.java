@@ -1,6 +1,7 @@
 package com.franchise.backend.qsc.repository;
 
 import com.franchise.backend.qsc.entity.QscMaster;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,4 +35,7 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
         ORDER BY q.inspectedAt DESC
     """)
     List<QscMaster> findCompletedListByStoreId(@Param("storeId") Long storeId);
+
+    // 최근 COMPLETED 점검 N개만 가져오기 (이벤트 상세에서 직전 대비 계산)
+    List<QscMaster> findByStoreIdAndStatusOrderByInspectedAtDesc(Long storeId, String status, Pageable pageable);
 }

@@ -30,7 +30,7 @@ public class StoreEventService {
 
         return events.stream()
                 .map(e -> new StoreEventResponse(
-                        e.getEventId(),          // ✅ 여기!
+                        e.getEventId(),
                         e.getRuleId(),
                         e.getStoreId(),
                         e.getEventType(),
