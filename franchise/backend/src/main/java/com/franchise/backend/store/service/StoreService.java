@@ -1,5 +1,6 @@
 package com.franchise.backend.store.service;
 
+import com.franchise.backend.pos.repository.PosDailyRepository;
 import com.franchise.backend.store.dto.StoreDetailResponse;
 import com.franchise.backend.store.dto.StoreUpdateRequest;
 import com.franchise.backend.store.entity.Store;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -20,6 +22,7 @@ public class StoreService {
 
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
+    private final PosDailyRepository posDailyRepository;
 
     // 점포 상세(가게 정보 탭 포함)
     @Transactional(readOnly = true)
@@ -28,12 +31,20 @@ public class StoreService {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 점포입니다. storeId=" + storeId));
 
-        return toDetailResponse(store);
+        // 최근 7일 매출 계산
+        LocalDate today = LocalDate.now();
+        LocalDate from = today.minusDays(6);
+
+        BigDecimal recent7dBd =
+                posDailyRepository.sumSalesBetween(storeId, from, today);
+
+        Long recent7dSales =
+                (recent7dBd == null ? 0L : recent7dBd.longValue());
+
+        return toDetailResponse(store, recent7dSales);
     }
 
     // 점포 정보 수정
-    // - 임의값 넣지 않음: request에 없는 값은 DB 값 그대로 유지
-    // - 구현 못한 항목은 null/0 정책 유지 (여기서는 건드리지 않음)
     @Transactional
     public StoreDetailResponse updateStore(Long storeId, StoreUpdateRequest request) {
 
@@ -41,11 +52,9 @@ public class StoreService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 점포입니다. storeId=" + storeId));
 
         if (request == null) {
-            // 아무 것도 수정 안 함
             return getStoreDetail(storeId);
         }
 
-        // 1) 운영 상태 (OPEN/CLOSED)
         if (request.getStoreOperationStatus() != null) {
             String status = request.getStoreOperationStatus().trim().toUpperCase();
             if (!status.equals("OPEN") && !status.equals("CLOSED")) {
@@ -54,7 +63,6 @@ public class StoreService {
             store.changeOperationStatus(status);
         }
 
-        // 2) 점포명
         if (request.getStoreName() != null) {
             String name = request.getStoreName().trim();
             if (name.isBlank()) {
@@ -63,8 +71,6 @@ public class StoreService {
             store.changeStoreName(name);
         }
 
-        // 3) 점주명/연락처
-        // - 둘 중 하나라도 들어오면, 들어온 값만 업데이트 / 나머지는 기존 값 유지
         if (request.getOwnerName() != null || request.getOwnerPhone() != null) {
             String ownerName = (request.getOwnerName() != null)
                     ? request.getOwnerName().trim()
@@ -77,9 +83,6 @@ public class StoreService {
             store.changeOwnerInfo(ownerName, ownerPhone);
         }
 
-        // 4) 담당 SV (users.login_id로 매핑)
-        // - null이면 유지
-        // - 빈 문자열이면 미지정(null)로 변경
         if (request.getSupervisorLoginId() != null) {
             String loginId = request.getSupervisorLoginId().trim();
 
@@ -94,7 +97,6 @@ public class StoreService {
             }
         }
 
-        // 5) 리스크 등급 수동 조정 (NORMAL/WATCHLIST/RISK)
         if (request.getCurrentState() != null) {
             String stateStr = request.getCurrentState().trim().toUpperCase();
             StoreState newState;
@@ -106,31 +108,18 @@ public class StoreService {
             store.changeCurrentState(newState);
         }
 
-        // updated_at 갱신
         store.touchUpdatedAt(LocalDateTime.now());
 
-        // 저장
-        Store saved = storeRepository.save(store);
+        storeRepository.save(store);
 
-        // 저장 후 최신 상세 반환
-        return toDetailResponse(saved);
+        return getStoreDetail(storeId);
     }
 
-    // 내부 변환 메서드
-    private StoreDetailResponse toDetailResponse(Store store) {
+    // DTO 변환 (생성자 시그니처 정확히 맞춤)
+    private StoreDetailResponse toDetailResponse(Store store, Long weeklyAvgSalesAmount) {
 
-        // supervisorLoginId: 요청대로 임의값 "-" 넣지 않고 null로 반환
         String supervisorLoginId = (store.getSupervisor() != null)
                 ? store.getSupervisor().getLoginId()
-                : null;
-
-        LocalDate openedDate = (store.getOpenedAt() != null)
-                ? store.getOpenedAt().toLocalDate()
-                : null;
-
-        // 상태변경이력 테이블이 없으므로 updated_at을 마지막 상태 변경일로 사용(현재 구현 범위)
-        LocalDate lastStateChangedDate = (store.getUpdatedAt() != null)
-                ? store.getUpdatedAt().toLocalDate()
                 : null;
 
         return new StoreDetailResponse(
@@ -140,15 +129,17 @@ public class StoreService {
                 supervisorLoginId,
 
                 store.getStoreOperationStatus(),
-                (store.getCurrentState() != null ? store.getCurrentState().name() : null),
-                store.getCurrentStateScore(), // 종합 위험 점수 = stores.current_state_score
+                store.getCurrentState().name(),
+                store.getCurrentStateScore(),
 
-                openedDate,
-                lastStateChangedDate,
+                null,                   // qscScore (아직 점포 상세에 안 쓰면 null)
+                weeklyAvgSalesAmount,
+
+                store.getOpenedAt() != null ? store.getOpenedAt().toLocalDate() : null,
+                store.getUpdatedAt() != null ? store.getUpdatedAt().toLocalDate() : null,
 
                 store.getOwnerName(),
                 store.getOwnerPhone(),
-
                 store.getAddress(),
 
                 store.getContractType(),

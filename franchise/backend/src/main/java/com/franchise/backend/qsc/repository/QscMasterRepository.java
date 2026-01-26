@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
 
@@ -35,6 +36,22 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
         ORDER BY q.inspectedAt DESC
     """)
     List<QscMaster> findCompletedListByStoreId(@Param("storeId") Long storeId);
+
+    // 특정 점포의 "최신 COMPLETED 점검 1건" 단건 조회 (상세 상단 QSC 점수용)
+    // JPQL에서 LIMIT을 직접 못 쓰니까 서브쿼리로 max(inspectedAt) 1건을 가져온다.
+    @Query("""
+        SELECT q
+        FROM QscMaster q
+        WHERE q.storeId = :storeId
+          AND q.status = 'COMPLETED'
+          AND q.inspectedAt = (
+              SELECT MAX(q2.inspectedAt)
+              FROM QscMaster q2
+              WHERE q2.storeId = :storeId
+                AND q2.status = 'COMPLETED'
+          )
+    """)
+    Optional<QscMaster> findLatestCompletedByStoreId(@Param("storeId") Long storeId);
 
     // 최근 COMPLETED 점검 N개만 가져오기 (이벤트 상세에서 직전 대비 계산)
     List<QscMaster> findByStoreIdAndStatusOrderByInspectedAtDesc(Long storeId, String status, Pageable pageable);

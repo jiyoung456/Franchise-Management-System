@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,12 +58,22 @@ public class DashboardService {
                 .map(Store::getId)
                 .toList();
 
-        // 점포별 최신 COMPLETED QSC 가져오기 (없으면 map 비어있음)
+        // 점포별 최신 COMPLETED QSC 가져오기
+        // toMap 중복키 방지(혹시 동일 store_id가 중복으로 들어오는 상황 대비)
         Map<Long, QscMaster> latestQscMap = storeIds.isEmpty()
                 ? Map.of()
                 : qscMasterRepository.findLatestCompletedByStoreIds(storeIds)
                 .stream()
-                .collect(Collectors.toMap(QscMaster::getStoreId, q -> q));
+                .collect(Collectors.toMap(
+                        QscMaster::getStoreId,
+                        q -> q,
+                        (a, b) -> {
+                            // inspectedAt이 더 최신인 걸 남김(동일하면 a 유지)
+                            if (a.getInspectedAt() == null) return b;
+                            if (b.getInspectedAt() == null) return a;
+                            return a.getInspectedAt().isAfter(b.getInspectedAt()) ? a : b;
+                        }
+                ));
 
         // StoreListResponse로 변환(여기서 qscScore / lastInspectionDate 채움)
         List<StoreListResponse> rows = stores.stream()

@@ -32,6 +32,11 @@ public class EventDetailResponse {
     @AllArgsConstructor
     public static class AnalysisResponse {
 
+        // [POS] 매출 지표
+        private Long recentWeekSales;     // 최근 7일 매출 합계 (원)
+        private Long salesChangeAmount;   // (최근 7일 - 직전 7일) 매출 변화액 (원)
+        private String rootCategoryLabel; // ex) "매출 - 하락"
+
         // [QSC] 최근 점검 점수/등급
         private Integer qscTotalScore;     // ex) 70
         private String qscGrade;          // ex) "C"
