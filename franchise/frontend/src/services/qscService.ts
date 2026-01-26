@@ -1,5 +1,5 @@
 import { QSCTemplate, Inspection } from '@/types';
-import { MOCK_TEMPLATES, MOCK_INSPECTIONS } from '@/lib/mock/mockQscData';
+import { MOCK_TEMPLATES, MOCK_INSPECTIONS, getMockInspectionDetails } from '@/lib/mock/mockQscData';
 import { StoreService } from './storeService'; // Use other service if needed
 
 const KEY_TEMPLATES = 'fms_qsc_templates';
@@ -53,9 +53,36 @@ export const QscService = {
         return json ? JSON.parse(json) : MOCK_INSPECTIONS;
     },
 
-    getInspection: (id: string): Inspection | undefined => {
+    getInspection: (id: string): any | undefined => {
         const inspections = QscService.getInspections();
-        return inspections.find(i => i.id === id);
+        const found = inspections.find(i => i.id === id);
+
+        if (found) {
+            // Merge with details if available (for demo consistency)
+            const details = getMockInspectionDetails(id);
+            return { ...found, ...details };
+        }
+
+        // Fallback for new/unknown IDs (Demo Mode)
+        // If ID looks like a timestamp or just unknown, generate a mock result
+        const details = getMockInspectionDetails(id);
+        return {
+            id,
+            date: new Date().toISOString().split('T')[0],
+            storeId: '1',
+            storeName: '강남역점 (Demo)',
+            region: '서울/경기',
+            sv: '김관리',
+            type: '정기',
+            inspector: '김관리',
+            status: '완료',
+            score: 85,
+            grade: 'A',
+            isPassed: true,
+            isReinspectionNeeded: false,
+            templateId: '1',
+            ...details
+        };
     },
 
     saveInspection: (inspection: Inspection) => {

@@ -10,9 +10,9 @@ export const MOCK_BRIEFING: DailyBriefing = {
         { id: '4', text: '부산 지역 신규 매장 방문 일정 조율', isCompleted: true, type: 'CHECK', priority: 'LOW' }
     ],
     priorityStores: [
-        { storeId: 'store-1', storeName: '강남역점', reason: '위생 리스크 급증 (85점)', riskScore: 85, eventId: 'evt-1' },
-        { storeId: 'store-3', storeName: '부산서면점', reason: '식자재 품질 클레임 발생', riskScore: 72, eventId: 'evt-3' },
-        { storeId: 'store-5', storeName: '홍대입구점', reason: '3일 연속 매출 하락', riskScore: 68 }
+        { storeId: '1', storeName: '강남역점', reason: '위생 리스크 급증 (85점)', riskScore: 85, eventId: '1' },
+        { storeId: '3', storeName: '부산서면점', reason: '식자재 품질 클레임 발생', riskScore: 72, eventId: '3' },
+        { storeId: '5', storeName: '광주수완점', reason: '3일 연속 매출 하락', riskScore: 68, eventId: '5' }
     ],
     keyMetrics: {
         totalIssues: 5,

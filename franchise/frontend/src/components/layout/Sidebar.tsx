@@ -9,7 +9,7 @@ import { Logo } from '@/components/common/Logo';
 
 const navigation = [
     { name: '홈', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'] },
-    { name: '오늘의 할 일', href: '/briefing', icon: BrainCircuit, roles: ['ADMIN', 'SUPERVISOR'] }, // Dedicated Page
+    { name: '오늘의 할 일', href: '/briefing', icon: BrainCircuit, roles: ['SUPERVISOR'] }, // Dedicated Page (Team Leader sees via override)
     { name: '점포 관리', href: '/stores', icon: Store, roles: ['ADMIN', 'SUPERVISOR'] },
     { name: 'QSC 관리', href: '/qsc', icon: ClipboardCheck, roles: ['ADMIN', 'SUPERVISOR'] },
     { name: 'POS 성과 분석', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'SUPERVISOR'] },
@@ -20,8 +20,8 @@ const navigation = [
         icon: Hammer,
         roles: ['ADMIN', 'SUPERVISOR'],
         children: [
-            { name: '조치 관리', href: '/actions' },
-            { name: '권한 관리', href: '/admin/users' }
+            { name: '조치 관리', href: '/actions', roles: ['ADMIN', 'SUPERVISOR'] },
+            { name: '권한 관리', href: '/admin/users', roles: ['ADMIN'] }
         ]
     },
     { name: '위험 현황', href: '/ai-insight', icon: AlertTriangle, roles: ['ADMIN'] }, // Admin Only
@@ -59,12 +59,23 @@ export function Sidebar() {
     // Filter navigation based on Role
     let filteredNav = navigation.filter(item => {
         if (!role) return false;
-        // ADMIN can see everything ADMIN marks
-        // SUPERVISOR can see SUPERVISOR marks
-        // MANAGER (Team Leader) is treated as SUPERVISOR for basic nav but has override
         const targetRoles = item.roles as string[];
-        if (role === 'MANAGER') return targetRoles.includes('SUPERVISOR');
-        return targetRoles.includes(role);
+        const hasAccess = role === 'MANAGER' ? targetRoles.includes('SUPERVISOR') : targetRoles.includes(role);
+        return hasAccess;
+    }).map(item => {
+        // Filter children if they exist
+        if ((item as any).children) {
+            const children = (item as any).children as any[];
+            const filteredChildren = children.filter(child => {
+                if (!child.roles) return true; // Default allow if no roles definition
+                const childRoles = child.roles as string[];
+                if (!role) return false;
+                if (role === 'MANAGER') return childRoles.includes('SUPERVISOR');
+                return childRoles.includes(role);
+            });
+            return { ...item, children: filteredChildren };
+        }
+        return item;
     });
 
     // Override for Team Leader (MANAGER)

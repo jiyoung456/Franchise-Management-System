@@ -45,7 +45,17 @@ export default function NewStorePage() {
                 svTeam: selectedSv ? selectedSv.department : '' // Map department to team
             }));
         } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
+            if (name === 'regionCode') {
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: value,
+                    currentSupervisorId: '', // Reset SV selection on region change
+                    svName: '',
+                    svTeam: ''
+                }));
+            } else {
+                setFormData(prev => ({ ...prev, [name]: value }));
+            }
         }
     };
 
@@ -228,9 +238,11 @@ export default function NewStorePage() {
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                             >
                                 <option value="">담당 SV 선택</option>
-                                {svs.map(sv => (
-                                    <option key={sv.id} value={sv.id}>{sv.name} ({sv.department})</option>
-                                ))}
+                                {svs
+                                    .filter(sv => sv.department === formData.regionCode)
+                                    .map(sv => (
+                                        <option key={sv.id} value={sv.id}>{sv.userName}</option>
+                                    ))}
                             </select>
                         </div>
                         <div>

@@ -20,7 +20,7 @@ export default function LoginPage() {
     const [captchaValue, setCaptchaValue] = useState<string | null>(null);
     const recaptchaRef = useRef<ReCAPTCHA>(null);
     // Tab State: 'MANAGER' | 'SUPERVISOR' | 'ADMIN'
-    const [activeTab, setActiveTab] = useState<'MANAGER' | 'SUPERVISOR' | 'ADMIN'>('MANAGER');
+    const [activeTab, setActiveTab] = useState<'MANAGER' | 'SUPERVISOR' | 'ADMIN'>('SUPERVISOR');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -116,17 +116,17 @@ export default function LoginPage() {
                 <div className="flex border-b-2 border-gray-100 mb-8 w-full">
                     <button
                         type="button"
-                        className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'MANAGER' ? 'text-[#2CA4D9] border-b-2 border-[#2CA4D9] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
-                        onClick={() => setActiveTab('MANAGER')}
-                    >
-                        팀장
-                    </button>
-                    <button
-                        type="button"
                         className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'SUPERVISOR' ? 'text-[#2CA4D9] border-b-2 border-[#2CA4D9] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
                         onClick={() => setActiveTab('SUPERVISOR')}
                     >
                         SV
+                    </button>
+                    <button
+                        type="button"
+                        className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'MANAGER' ? 'text-[#2CA4D9] border-b-2 border-[#2CA4D9] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
+                        onClick={() => setActiveTab('MANAGER')}
+                    >
+                        팀장
                     </button>
                     <button
                         type="button"
