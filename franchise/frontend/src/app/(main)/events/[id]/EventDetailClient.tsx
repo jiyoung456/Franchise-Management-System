@@ -21,6 +21,8 @@ export default function EventDetailClient({ id }: { id: string }) {
     const [event, setEvent] = useState<any>(null); // Using any temporarily for mock data transition
     const [role, setRole] = useState<'ADMIN' | 'MANAGER' | 'SUPERVISOR' | null>(null);
 
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
         AuthService.init();
         const user = AuthService.getCurrentUser();
@@ -65,9 +67,23 @@ export default function EventDetailClient({ id }: { id: string }) {
             };
             setEvent(detailedEvent);
         }
+        setIsLoading(false);
     }, [id]);
 
-    if (!event) return <div className="p-10 text-center">Loading...</div>;
+    if (isLoading) return <div className="p-10 text-center">Loading...</div>;
+    if (!event) return (
+        <div className="p-20 text-center">
+            <AlertTriangle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900">이벤트를 찾을 수 없습니다.</h2>
+            <p className="text-gray-500 mt-2">요청하신 이벤트 ID ({id})가 존재하지 않거나 삭제되었습니다.</p>
+            <button
+                onClick={() => router.back()}
+                className="mt-6 px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 font-bold"
+            >
+                뒤로 가기
+            </button>
+        </div>
+    );
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-20">

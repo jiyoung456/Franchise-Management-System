@@ -4,7 +4,7 @@ console.log("LOADING NEXT.CONFIG.JS");
 console.log("-----------------------------------------");
 
 const nextConfig = {
-    output: 'export',
+
     images: {
         unoptimized: true,
     },
