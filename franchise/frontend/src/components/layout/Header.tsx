@@ -38,21 +38,28 @@ export function Header() {
         AuthService.logout();
     };
 
-    const hasUnread = notifications.length > 0;
+    const hasUnread = notifications.some(n => n.status === 'OPEN'); // Update unread logic
 
     const handleNotificationClick = (evt: EventLog) => {
-        // 1. Update Status
-        const updatedEvent = { ...evt, status: 'ACKNOWLEDGED' as const };
-        EventService.saveEvent(updatedEvent);
+        // 1. Update Status to ACKNOWLEDGED if it was OPEN
+        if (evt.status === 'OPEN') {
+            const updatedEvent = { ...evt, status: 'ACKNOWLEDGED' as const };
+            EventService.saveEvent(updatedEvent);
+            setNotifications(prev => prev.map(e => e.id === evt.id ? updatedEvent : e));
+        }
 
-        // 2. Remove from local list immediately
-        setNotifications(prev => prev.filter(e => e.id !== evt.id));
-
-        // 3. Close Dropdown
+        // 2. Do NOT remove from list
+        // 3. Close Dropdown (Optional: user might want to keep it open? usually close is better)
         setIsNotiOpen(false);
 
         // 4. Navigate
         router.push(`/events/${evt.id}`);
+    };
+
+    const handleDeleteNotification = (id: string) => {
+        // Remove from local list
+        setNotifications(prev => prev.filter(e => e.id !== id));
+        // Optional: Call service to mark as deleted/archived if persistence is needed
     };
 
     return (
@@ -86,17 +93,39 @@ export function Header() {
                                         {notifications.map(evt => (
                                             <div
                                                 key={evt.id}
-                                                onClick={() => handleNotificationClick(evt)}
-                                                className="block px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 cursor-pointer"
+                                                className={`group relative block px-4 py-3 border-b border-gray-50 last:border-0 transition-colors ${evt.status === 'OPEN' ? 'bg-blue-50/30 hover:bg-blue-50' : 'bg-white hover:bg-gray-50'}`}
                                             >
-                                                <div className="flex items-start gap-3">
-                                                    <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                                                <div
+                                                    className="flex items-start gap-3 cursor-pointer pr-6" // Add padding right for delete button
+                                                    onClick={() => handleNotificationClick(evt)}
+                                                >
+                                                    <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${evt.status === 'OPEN' ? 'text-red-500' : 'text-gray-400'}`} />
                                                     <div>
-                                                        <p className="text-xs font-bold text-gray-900 mb-0.5">{evt.storeName}</p>
-                                                        <p className="text-xs text-gray-600 line-clamp-2">{evt.message}</p>
+                                                        <p className={`text-xs mb-0.5 ${evt.status === 'OPEN' ? 'font-bold text-gray-900' : 'font-medium text-gray-500'}`}>
+                                                            {evt.storeName}
+                                                        </p>
+                                                        <p className={`text-xs line-clamp-2 ${evt.status === 'OPEN' ? 'text-gray-700' : 'text-gray-400'}`}>
+                                                            {evt.message}
+                                                        </p>
                                                         <p className="text-[10px] text-gray-400 mt-1">{evt.timestamp.slice(5, 16).replace('T', ' ')}</p>
                                                     </div>
                                                 </div>
+
+                                                {/* Delete Button - Only show if ACKNOWLEDGED */}
+                                                {evt.status === 'ACKNOWLEDGED' && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation(); // Prevent navigation
+                                                            handleDeleteNotification(evt.id);
+                                                        }}
+                                                        className="absolute top-3 right-3 text-gray-300 hover:text-red-500 transition-colors"
+                                                        title="알림 삭제"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                        </svg>
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -132,16 +161,7 @@ export function Header() {
 
                         {isProfileOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50">
-                                <Link
-                                    href="/mypage"
-                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                                    onClick={() => setIsProfileOpen(false)}
-                                >
-                                    <div className="flex items-center">
-                                        <User className="w-4 h-4 mr-2" />
-                                        마이페이지
-                                    </div>
-                                </Link>
+
                                 <button
                                     onClick={handleLogout}
                                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"

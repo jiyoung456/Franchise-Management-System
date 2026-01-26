@@ -138,9 +138,24 @@ export const StorageService = {
     },
 
     // --- USER / AUTH ---
-    checkDuplicateId: (loginId: string): boolean => {
+    checkDuplicateId: (loginId: string, role?: string): boolean => {
         const users = StorageService.getUsers();
+        // If role is provided, check for duplicates ONLY within that role
+        if (role) {
+            return users.some(u => u.loginId === loginId && u.role === role);
+        }
+        // Fallback (should not be used ideally, but for safety)
         return users.some(u => u.loginId === loginId);
+    },
+
+    checkDuplicateEmail: (email: string): boolean => {
+        const users = StorageService.getUsers();
+        return users.some(u => u.email === email);
+    },
+
+    checkDuplicatePhone: (phone: string): boolean => {
+        const users = StorageService.getUsers();
+        return users.some(u => u.phone === phone);
     },
 
     // Helper to save users
@@ -154,8 +169,19 @@ export const StorageService = {
         const usersStr = localStorage.getItem(STORAGE_KEYS.USERS);
         const users: User[] = usersStr ? JSON.parse(usersStr) : [];
 
-        if (users.find(u => u.loginId === user.loginId)) {
-            return { success: false, message: '이미 존재하는 아이디입니다.' };
+        // 1. Check ID Duplicate (Per Role) - The UI should have checked this, but double check
+        if (users.find(u => u.loginId === user.loginId && u.role === user.role)) {
+            return { success: false, message: '이미 해당 직군에 사용 중인 아이디입니다.' };
+        }
+
+        // 2. Check Email Duplicate (Global)
+        if (users.find(u => u.email === user.email)) {
+            return { success: false, message: '이미 사용 중인 이메일입니다.' };
+        }
+
+        // 3. Check Phone Duplicate (Global)
+        if (users.find(u => u.phone === user.phone)) {
+            return { success: false, message: '이미 사용 중인 전화번호입니다.' };
         }
 
         const newUser: User = {
@@ -172,15 +198,27 @@ export const StorageService = {
         return { success: true };
     },
 
-    login: (id: string, password?: string): { success: boolean, user?: User, message?: string, code?: 'LOCKED' | 'EXPIRED' } => {
+    login: (id: string, password?: string, role?: string): { success: boolean, user?: User, message?: string, code?: 'LOCKED' | 'EXPIRED' } => {
         const usersStr = localStorage.getItem(STORAGE_KEYS.USERS);
         const users: User[] = usersStr ? JSON.parse(usersStr) : [];
 
-        // Match by loginId (ID) instead of email
-        const userIndex = users.findIndex(u => u.loginId === id);
+        // Match by loginId (ID) AND Role
+        // If role is NOT provided (legacy call), finding ANY user with that ID might be ambiguous
+        // But for safety, we prioritize exact match if role is given.
+
+        let userIndex = -1;
+
+        if (role) {
+            userIndex = users.findIndex(u => u.loginId === id && u.role === role);
+        } else {
+            // Fallback: This effectively picks the first one found if duplicates exist, 
+            // which is why passing role is critical.
+            userIndex = users.findIndex(u => u.loginId === id);
+        }
+
         if (userIndex === -1) {
             // Fallback for demo SV
-            if (id === 'sv') {
+            if (id === 'sv' && (!role || role === 'SUPERVISOR')) {
                 // ... existing demo sv logic ...
                 const demoSv: User = {
                     id: 'sv-uuid-1',

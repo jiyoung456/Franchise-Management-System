@@ -36,8 +36,10 @@ function SignupContent() {
     }, [typeParam]);
 
     const [isIdChecked, setIsIdChecked] = useState(false);
+    const [idMessage, setIdMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' });
     const [passwordError, setPasswordError] = useState('');
-    const [emailError, setEmailError] = useState('');
+    const [emailMessage, setEmailMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' });
+    const [phoneMessage, setPhoneMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' });
 
     const validatePassword = (pwd: string) => {
         if (!pwd) {
@@ -55,15 +57,34 @@ function SignupContent() {
 
     const validateEmail = (addr: string) => {
         if (!addr) {
-            setEmailError('');
+            setEmailMessage({ text: '', type: '' });
             return false;
         }
         const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!regex.test(addr)) {
-            setEmailError('올바른 이메일 형식이 아닙니다.');
+            setEmailMessage({ text: '올바른 이메일 형식이 아닙니다.', type: 'error' });
             return false;
         }
-        setEmailError('');
+        // Check Duplicate
+        if (AuthService.checkDuplicateEmail(addr)) {
+            setEmailMessage({ text: '이미 사용 중인 이메일입니다.', type: 'error' });
+            return false;
+        }
+        setEmailMessage({ text: '사용 가능한 이메일입니다.', type: 'success' });
+        return true;
+    };
+
+    const validatePhone = (num: string) => {
+        if (!num) {
+            setPhoneMessage({ text: '', type: '' });
+            return false;
+        }
+        // Simple check or regex if needed
+        if (AuthService.checkDuplicatePhone(num)) {
+            setPhoneMessage({ text: '이미 사용 중인 휴대전화 번호입니다.', type: 'error' });
+            return false;
+        }
+        setPhoneMessage({ text: '사용 가능한 휴대전화 번호입니다.', type: 'success' });
         return true;
     };
 
@@ -94,24 +115,29 @@ function SignupContent() {
         setFormData(prev => ({ ...prev, [name]: value }));
 
         // Reset ID check if loginId changes
-        if (name === 'loginId') setIsIdChecked(false);
+        if (name === 'loginId') {
+            setIsIdChecked(false);
+            setIdMessage({ text: '', type: '' });
+        }
         if (name === 'password') validatePassword(value);
-        if (name === 'email') validateEmail(value);
+        if (name === 'email') setEmailMessage({ text: '', type: '' }); // Reset on type, check on blur
+        if (name === 'phone') setPhoneMessage({ text: '', type: '' }); // Reset on type, check on blur
     };
+
 
     const handleIdCheck = () => {
         if (!formData.loginId.trim()) {
-            alert('아이디를 입력해주세요.');
+            setIdMessage({ text: '아이디를 입력해주세요.', type: 'error' });
             return;
         }
 
-        const isDuplicate = AuthService.checkDuplicateId(formData.loginId);
+        const isDuplicate = AuthService.checkDuplicateId(formData.loginId, activeTab);
 
         if (isDuplicate) {
-            alert('이미 사용 중인 아이디입니다.');
+            setIdMessage({ text: '사용 불가능합니다. 다른 아이디로 바꿔주십시오.', type: 'error' });
             setIsIdChecked(false);
         } else {
-            alert('사용 가능한 아이디입니다.');
+            setIdMessage({ text: '사용 가능합니다.', type: 'success' });
             setIsIdChecked(true);
         }
     };
@@ -130,7 +156,10 @@ function SignupContent() {
         }
 
         if (!validateEmail(formData.email)) {
-            alert('이메일 형식이 올바르지 않습니다.');
+            // validateEmail sets message
+            return;
+        }
+        if (!validatePhone(formData.phone)) {
             return;
         }
 
@@ -248,6 +277,11 @@ function SignupContent() {
                             중복 확인
                         </button>
                     </div>
+                    {idMessage.text && (
+                        <p className={`text-xs mt-1 ${idMessage.type === 'success' ? 'text-blue-500' : 'text-red-500'}`}>
+                            {idMessage.text}
+                        </p>
+                    )}
                 </div>
 
                 {/* Password */}
@@ -303,9 +337,14 @@ function SignupContent() {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="이메일을 입력해주세요."
-                        className={`w-full px-4 py-3 border rounded-sm focus:outline-none focus:border-[#2CA4D9] text-gray-900 placeholder-gray-300 ${emailError ? 'border-red-500' : 'border-gray-200'}`}
+                        className={`w-full px-4 py-3 border rounded-sm focus:outline-none focus:border-[#2CA4D9] text-gray-900 placeholder-gray-300 ${emailMessage.type === 'error' ? 'border-red-500' : 'border-gray-200'}`}
+                        onBlur={() => validateEmail(formData.email)}
                     />
-                    {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
+                    {emailMessage.text && (
+                        <p className={`text-xs mt-1 ${emailMessage.type === 'success' ? 'text-blue-500' : 'text-red-500'}`}>
+                            {emailMessage.text}
+                        </p>
+                    )}
                 </div>
 
                 {/* Phone */}
@@ -319,7 +358,13 @@ function SignupContent() {
                         onChange={handleChange}
                         placeholder="휴대전화 번호를 입력해주세요."
                         className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-[#2CA4D9] text-gray-900 placeholder-gray-300"
+                        onBlur={() => validatePhone(formData.phone)}
                     />
+                    {phoneMessage.text && (
+                        <p className={`text-xs mt-1 ${phoneMessage.type === 'success' ? 'text-blue-500' : 'text-red-500'}`}>
+                            {phoneMessage.text}
+                        </p>
+                    )}
                 </div>
 
                 {/* Department (Region) - Only for STAFF equivalent (Manager/Supervisor) */}

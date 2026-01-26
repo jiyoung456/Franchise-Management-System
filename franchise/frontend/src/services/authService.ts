@@ -14,16 +14,24 @@ export const AuthService = {
         return StorageService.getCurrentUser();
     },
 
-    checkDuplicateId: (loginId: string): boolean => {
-        return StorageService.checkDuplicateId(loginId);
+    checkDuplicateId: (loginId: string, role?: string): boolean => {
+        return StorageService.checkDuplicateId(loginId, role);
+    },
+
+    checkDuplicateEmail: (email: string): boolean => {
+        return StorageService.checkDuplicateEmail(email);
+    },
+
+    checkDuplicatePhone: (phone: string): boolean => {
+        return StorageService.checkDuplicatePhone(phone);
     },
 
     register: (user: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'accountStatus'>): { success: boolean, message?: string } => {
         return StorageService.register(user);
     },
 
-    login: (id: string, password?: string): { success: boolean, user?: User, message?: string } => {
-        return StorageService.login(id, password);
+    login: (id: string, password?: string, role?: string): { success: boolean, user?: User, message?: string } => {
+        return StorageService.login(id, password, role);
     },
 
     logout: () => {

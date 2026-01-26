@@ -31,7 +31,7 @@ export default function LoginPage() {
         }
 
         // 1. Login attempt
-        const result = StorageService.login(id, password);
+        const result = StorageService.login(id, password, activeTab);
 
         if (result.success && result.user) {
             // Check for Warnings (Expired Password)
@@ -203,11 +203,7 @@ export default function LoginPage() {
                     </button>
 
                     {/* Footer Links */}
-                    <div className="flex items-center justify-center gap-4 mt-6 text-sm text-gray-500">
-                        <button type="button" className="hover:text-[#2CA4D9] hover:underline">아이디 찾기</button>
-                        <span className="text-gray-300">|</span>
-                        <button type="button" className="hover:text-[#2CA4D9] hover:underline">비밀번호 찾기</button>
-                    </div>
+
                 </form>
             </div>
         </div>
