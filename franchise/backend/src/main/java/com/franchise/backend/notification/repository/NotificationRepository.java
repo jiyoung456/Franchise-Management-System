@@ -8,5 +8,6 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     // 종 아이콘용: 특정 유저 최신 알림 10개
+    //test
     List<Notification> findTop10ByUserIdOrderByCreatedAtDesc(Long userId);
 }
