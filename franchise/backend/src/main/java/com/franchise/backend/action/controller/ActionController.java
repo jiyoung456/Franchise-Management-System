@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/leader/actions")
-public class LeaderActionController {
+@RequestMapping("/api/actions")
+public class ActionController {
 
     private final LeaderActionService leaderActionService;
 
-    public LeaderActionController(LeaderActionService leaderActionService) {
+    public ActionController(LeaderActionService leaderActionService) {
         this.leaderActionService = leaderActionService;
     }
 

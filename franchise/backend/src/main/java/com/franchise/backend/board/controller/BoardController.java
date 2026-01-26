@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/leader/board")
-public class LeaderBoardController {
+@RequestMapping("/api/board")
+public class BoardController {
 
     private final LeaderBoardService leaderBoardService;
 
-    public LeaderBoardController(LeaderBoardService leaderBoardService) {
+    public BoardController(LeaderBoardService leaderBoardService) {
         this.leaderBoardService = leaderBoardService;
     }
 

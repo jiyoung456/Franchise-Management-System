@@ -8,3 +8,4 @@ WHERE grade IS NOT NULL;
 ALTER TABLE qsc_master
     ADD CONSTRAINT ck_qsc_master_grade
     CHECK (grade IN ('S','A','B','C','D'));
+
