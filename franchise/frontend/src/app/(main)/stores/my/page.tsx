@@ -1,29 +1,46 @@
-'use client';
-
-import { MOCK_STORES } from '@/lib/mock/mockData';
+// ... imports
 import { useRouter } from 'next/navigation';
 import { Search, Filter } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ScoreBar } from '@/components/common/ScoreBar';
+import { StoreService } from '@/services/storeService';
+import { Store } from '@/types';
+import { AuthService } from '@/services/authService';
 
 export default function MyStoresPage() {
     const router = useRouter();
+    const [myStores, setMyStores] = useState<Store[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
 
-    const filteredStores = MOCK_STORES.filter(store => {
+    useEffect(() => {
+        const fetchStores = async () => {
+            const user = AuthService.getCurrentUser();
+            if (user) {
+                try {
+                    const data = await StoreService.getStoresBySv(user.loginId);
+                    setMyStores(data);
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setLoading(false);
+            }
+        };
+        fetchStores();
+    }, []);
+
+    const filteredStores = myStores.filter(store => {
         const matchesSearch = store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            store.regionCode.includes(searchTerm);
-        const matchesStatus = filterStatus === 'ALL' || store.currentState === filterStatus;
+            store.region.includes(searchTerm);
+        const matchesStatus = filterStatus === 'ALL' || store.state === filterStatus;
         return matchesSearch && matchesStatus;
     });
 
-    // Calc days since open
-    const getDaysOpen = (dateStr: string) => {
-        const start = new Date(dateStr).getTime();
-        const now = new Date().getTime();
-        return Math.floor((now - start) / (1000 * 3600 * 24));
-    };
+    if (loading) return <div className="p-12 text-center">Loading...</div>;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-20">
@@ -72,23 +89,21 @@ export default function MyStoresPage() {
                             <div className="flex flex-col gap-1">
                                 <span className="font-bold text-gray-900 text-lg">
                                     {store.name}
-                                    <span className="text-sm font-normal text-gray-500 ml-2">{store.regionCode}</span>
+                                    <span className="text-sm font-normal text-gray-500 ml-2">{store.region}</span>
                                 </span>
                                 <div className="text-sm text-gray-600">
-                                    {store.openedAt?.split('T')[0]} <span className="text-gray-400">({getDaysOpen(store.openedAt || new Date().toISOString())}일)</span>
-                                    <span className="mx-2 text-gray-300">|</span>
-                                    {store.ownerName} <span className="text-gray-400">, 010-1234-5678</span>
+                                    {store.lastInspectionDate ? `최근 점검: ${store.lastInspectionDate}` : '점검 이력 없음'}
                                 </div>
                             </div>
 
                             {/* Right Info: Risk & Button */}
                             <div className="flex items-center gap-6">
                                 <div className="flex items-center gap-2">
-                                    <span className="font-bold text-gray-700 w-12 text-right">위험도</span>
+                                    <span className="font-bold text-gray-700 w-12 text-right">QSC</span>
                                     <div className="w-32">
-                                        <ScoreBar value={store.currentStateScore} />
+                                        <ScoreBar value={store.qscScore} />
                                     </div>
-                                    <span className="font-bold text-gray-500 w-8 text-right">{store.currentStateScore}</span>
+                                    <span className="font-bold text-gray-500 w-8 text-right">{store.qscScore}</span>
                                 </div>
 
                                 <button

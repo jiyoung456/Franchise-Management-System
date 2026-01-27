@@ -122,7 +122,7 @@ export default function EventDetailClient({ id }: { id: string }) {
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                 <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
                     <TrendingDown className="w-5 h-5 mr-2 text-red-500" />
-                    발생 원인 지표 분석 ({event.category})
+                    발생 원인 지표 분석
                 </h3>
 
                 {/* Case A: QSC Metrics */}

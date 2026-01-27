@@ -2,14 +2,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Store } from '@/types';
+import { StoreDetail } from '@/types';
 import { X, ChevronRight, TrendingUp, TrendingDown, Info, ArrowLeft } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart, Line, Bar } from 'recharts';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { useRouter } from 'next/navigation';
 
 interface StoreKPICardProps {
-    store: Store;
+    store: StoreDetail;
     onBack?: () => void; // Changed from onClose to onBack (optional)
     isModal?: boolean;
 }
@@ -283,7 +283,7 @@ export function StoreKPICard({ store, onBack, isModal = false }: StoreKPICardPro
 interface StoreKPIModalProps {
     isOpen: boolean;
     onClose: () => void;
-    store: Store;
+    store: StoreDetail;
 }
 
 export function StoreKPIModal({ isOpen, onClose, store }: StoreKPIModalProps) {

@@ -25,7 +25,7 @@ export default function KpiDashboardPage() {
     ];
 
     // Mock performance data merging with store list for the table
-    const storesWithPerf = MOCK_STORES.filter(s => s.operationStatus === 'OPEN').map(s => ({
+    const storesWithPerf = MOCK_STORES.filter(s => s.state !== 'RISK').map(s => ({ // Simplified filter
         ...s,
         sales: Math.floor(Math.random() * 50000000) + 10000000,
         growth: (Math.random() * 20) - 10,
@@ -37,6 +37,7 @@ export default function KpiDashboardPage() {
 
     return (
         <div className="space-y-6">
+            {/* ... Header and Cards (unchanged) ... */}
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold tracking-tight text-gray-900">성과 분석 대시보드 (전사)</h1>
@@ -108,7 +109,7 @@ export default function KpiDashboardPage() {
                         {sortedStores.map((store) => (
                             <tr key={store.id} className="hover:bg-gray-50 transition-colors group">
                                 <td className="px-6 py-4 font-medium text-gray-900">{store.name}</td>
-                                <td className="px-6 py-4 text-gray-500">{store.regionCode}</td>
+                                <td className="px-6 py-4 text-gray-500">{store.region}</td>
                                 <td className="px-6 py-4 font-bold">₩{store.sales.toLocaleString()}</td>
                                 <td className="px-6 py-4">
                                     <div className={`flex items-center ${store.growth >= 0 ? 'text-blue-600' : 'text-red-500'}`}>

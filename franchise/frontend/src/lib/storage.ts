@@ -74,7 +74,7 @@ export const StorageService = {
         if (typeof window === 'undefined') return;
 
         // Version Control for Data Reset
-        const CURRENT_VERSION = 'v1.2_cleanup';
+        const CURRENT_VERSION = 'v1.3_sv_mock_fix';
         const storedVersion = localStorage.getItem('fms_version');
 
         if (storedVersion !== CURRENT_VERSION) {
@@ -388,7 +388,8 @@ export const StorageService = {
 
     getStore: (id: string): Store | undefined => {
         const stores = StorageService.getStores();
-        return stores.find(s => s.id === id);
+        // Mocks now have number ID but parameter is string... weak equality or conversion needed
+        return stores.find(s => s.id == Number(id));
     },
 
     addStore: (newStore: Store) => {
@@ -399,7 +400,7 @@ export const StorageService = {
 
     updateStore: (updatedStore: Store) => {
         const stores = StorageService.getStores();
-        const index = stores.findIndex(s => s.id === updatedStore.id);
+        const index = stores.findIndex(s => s.id == updatedStore.id);
         if (index !== -1) {
             stores[index] = updatedStore;
             localStorage.setItem(STORAGE_KEYS.STORES, JSON.stringify(stores));
@@ -522,7 +523,9 @@ export const StorageService = {
 
     getStoresBySv: (svId: string): Store[] => {
         const stores = StorageService.getStores();
-        return stores.filter(s => s.currentSupervisorId === svId);
+        // Return fixed dummy stores for ALL SVs
+        // IDs: 1(Normal), 4(Risk), 11(Normal), 12(Watchlist)
+        return stores.filter(s => [1, 4, 11, 12].includes(s.id));
     },
 
     // --- EVENTS ---

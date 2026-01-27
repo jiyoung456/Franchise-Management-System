@@ -4,7 +4,7 @@ import PerformanceClient from './PerformanceClient';
 
 export async function generateStaticParams() {
     return MOCK_STORES.map((store) => ({
-        id: store.id,
+        id: store.id.toString(),
     }));
 }
 

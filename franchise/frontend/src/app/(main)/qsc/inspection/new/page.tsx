@@ -3,10 +3,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FIXED_QSC_CATEGORIES, QSC_GRADE_CRITERIA } from '@/lib/mock/mockQscData';
-import { QSCItem, QSCTemplate } from '@/types';
+import { QSCItem, QSCTemplate, Store } from '@/types';
 import { AuthService } from '@/services/authService';
 import { StorageService } from '@/lib/storage';
-import { Camera, ChevronRight, ChevronLeft, ChevronDown, Trash2, Plus, Info, Search } from 'lucide-react';
+import { Camera, ChevronRight, ChevronLeft, ChevronDown, Trash2, Plus, Info, Search, Check } from 'lucide-react';
 
 export default function NewInspectionPage() {
     const router = useRouter();
@@ -15,7 +15,7 @@ export default function NewInspectionPage() {
     const [step, setStep] = useState<'SELECT_TEMPLATE' | 'INSPECTION'>('SELECT_TEMPLATE');
 
     // Data State
-    const [stores, setStores] = useState<any[]>([]);
+    const [stores, setStores] = useState<Store[]>([]);
     const [inspectorName, setInspectorName] = useState('로딩중...');
 
     // Template State
@@ -40,12 +40,19 @@ export default function NewInspectionPage() {
             setInspectorName(user.userName);
             // SV's Stores Only
             if (user.role === 'SUPERVISOR') {
-                // Fix: Use StorageService instead of StoreService
-                const myStores = StorageService.getStoresBySv(user.id);
-                setStores(myStores);
+                const { StoreService } = require('@/services/storeService');
+                const myStores = StoreService.getStoresBySv(user.loginId);
+                // getStoresBySv returns Promise in strict mode? No, StorageService is synch in mock implementation usually?
+                // Wait, StorageService.getStoresBySv(userId) implementation in Step 396 was not fully visible but based on usage in SvPerformanceView (Step 445 overwrite) it returned a Promise there?
+                // "myStores.then(stores => setSvStores(stores));" I wrote that.
+                // Let's assume it returns Promise or handle both.
+                // In StorageService (mock), it's likely sync or async.
+                // Let's wrap in Promise.resolve just in case or check implementation.
+                // Actually in Step 445 I treated it as Promise.
+                Promise.resolve(myStores).then(s => setStores(s));
             } else if (user.role === 'ADMIN') {
-                // Fix: Use StorageService instead of StoreService
-                setStores(StorageService.getStores());
+                const { StoreService } = require('@/services/storeService');
+                StoreService.getStores().then((adminStores: any) => setStores(adminStores));
             } else {
                 setStores([]);
             }
@@ -56,8 +63,6 @@ export default function NewInspectionPage() {
         const allTemplates = StorageService.getTemplates();
 
         // DISABLE FILTER to ensure templates appear
-        // const today = new Date().toISOString().split('T')[0];
-        // const activeTemplates = allTemplates.filter(t => !t.effective_to || t.effective_to > today);
         const activeTemplates = allTemplates;
 
         console.log('SV Loaded Templates:', activeTemplates);
@@ -67,7 +72,7 @@ export default function NewInspectionPage() {
     // Helper: Select Template and Go Next
     const handleTemplateSelect = (template: QSCTemplate) => {
         setSelectedTemplateId(template.id);
-        setSelectedType(template.type);
+        setSelectedType(template.type || '정기');
         setStep('INSPECTION');
     };
 
@@ -81,7 +86,7 @@ export default function NewInspectionPage() {
     const templateItems: QSCItem[] = currentTemplate ? currentTemplate.items : [];
 
     // Store Logic
-    const selectedStore = stores.find(s => s.id === selectedStoreId);
+    const selectedStore = stores.find(s => s.id.toString() === selectedStoreId);
     const filteredStores = stores.filter(s => s.name.toLowerCase().includes(searchStoreTerm.toLowerCase()));
 
     // Update Scores
@@ -275,10 +280,9 @@ export default function NewInspectionPage() {
                                     filteredStores.map(s => (
                                         <div
                                             key={s.id}
-                                            className={`p-2.5 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center border-b border-gray-50 last:border-0 ${selectedStoreId === s.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700'}`}
+                                            className={`p-2.5 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center border-b border-gray-50 last:border-0 ${selectedStoreId === s.id.toString() ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700'}`}
                                             onClick={() => {
-                                                setSelectedStoreId(s.id);
-                                                // setSearchStoreTerm(''); // Keep term or clear? Better to keep or clear? Clearing might hide list if logic changes. Let's keep for now or clear to reset. User wants to "select".
+                                                setSelectedStoreId(s.id.toString());
                                             }}
                                         >
                                             <span>{s.name}</span>
@@ -298,7 +302,7 @@ export default function NewInspectionPage() {
                     <label className="block text-xs font-bold text-gray-500 mb-1">선택된 점포</label>
                     <div className={`w-full p-3 rounded-lg border ${selectedStore ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-400'} font-bold flex items-center justify-between`}>
                         <span>{selectedStore ? selectedStore.name : '점포를 선택해주세요 (본인 담당 점포만 표시됩니다)'}</span>
-                        {selectedStore && <span className="text-xs font-normal text-blue-600">{selectedStore.region} / {selectedStore.owner}</span>}
+                        {selectedStore && <span className="text-xs font-normal text-blue-600">{selectedStore.region} / {selectedStore.supervisor}</span>}
                     </div>
                 </div>
             </div>

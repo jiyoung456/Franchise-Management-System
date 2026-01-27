@@ -23,7 +23,7 @@ function generateMockEvents(): EventLog[] {
             events.push({
                 id: `evt_qsc_${store.id}_101`,
                 type: 'QSC',
-                storeId: store.id,
+                storeId: store.id.toString(),
                 storeName: store.name,
                 timestamp: new Date(now.getTime() - (index * 1000000)).toISOString(),
                 severity: index % 2 === 0 ? 'WARNING' : 'CRITICAL',
@@ -39,7 +39,7 @@ function generateMockEvents(): EventLog[] {
             events.push({
                 id: `evt_pos_${store.id}_202`,
                 type: 'POS',
-                storeId: store.id,
+                storeId: store.id.toString(),
                 storeName: store.name,
                 timestamp: new Date(now.getTime() - (index * 2000000)).toISOString(),
                 severity: 'WARNING',
@@ -51,11 +51,11 @@ function generateMockEvents(): EventLog[] {
         }
 
         // C. Store Status Events
-        if (store.currentState === 'RISK') {
+        if (store.state === 'RISK') {
             events.push({
                 id: `evt_risk_${store.id}_999`,
                 type: 'RISK',
-                storeId: store.id,
+                storeId: store.id.toString(),
                 storeName: store.name,
                 timestamp: new Date(now.getTime() - (index * 3000000)).toISOString(),
                 severity: 'CRITICAL',

@@ -48,7 +48,8 @@ function SvPerformanceView() {
         if (user) {
             // Updated to use user.id for SV lookup as per new schema
             const myStores = StoreService.getStoresBySv(user.id);
-            setSvStores(myStores);
+            // Async handling
+            myStores.then(stores => setSvStores(stores));
         }
     }, []);
 
@@ -56,7 +57,7 @@ function SvPerformanceView() {
     const filteredStores = useMemo(() => {
         return svStores.filter(store => {
             const matchesSearch = store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                store.regionCode.includes(searchTerm);
+                store.region.includes(searchTerm);
 
             // Logic for status filter could be added here if 'status' or 'grade' was part of store obj or performance mock.
             // For now, assuming just search.
@@ -126,7 +127,8 @@ function SvPerformanceView() {
                 {/* Table Body */}
                 <div className="bg-white">
                     {filteredStores.map(store => {
-                        const perf = MOCK_PERFORMANCE[store.id] || MOCK_PERFORMANCE['1'];
+                        const storeIdStr = store.id.toString();
+                        const perf = MOCK_PERFORMANCE[storeIdStr] || MOCK_PERFORMANCE['1'];
                         const summary = perf.monthlySummary || {
                             totalSales: 0, salesGrowth: 0, orderGrowth: 0, aovGrowth: 0
                         };
@@ -136,7 +138,7 @@ function SvPerformanceView() {
                                 {/* Store Name & Region */}
                                 <div className="col-span-2 flex flex-col pl-2">
                                     <span className="font-bold text-gray-900 text-base">{store.name}</span>
-                                    <span className="text-sm text-gray-500">{store.regionCode}</span>
+                                    <span className="text-sm text-gray-500">{store.region}</span>
                                 </div>
 
                                 {/* Monthly Sales */}
@@ -204,7 +206,7 @@ function AdminPerformanceDashboard() {
     // 1. Filter Stores
     const filteredStores = useMemo(() => {
         if (selectedRegion === 'all') return MOCK_STORES;
-        return MOCK_STORES.filter(s => s.regionCode === selectedRegion);
+        return MOCK_STORES.filter(s => s.region === selectedRegion);
     }, [selectedRegion]);
 
     // 2. Aggregate Data
@@ -219,7 +221,11 @@ function AdminPerformanceDashboard() {
         const chartMap = new Map<string, { date: string, revenue: number, margin: number, orders: number }>();
 
         filteredStores.forEach(store => {
-            const history = MOCK_POS_DATA[store.id].dailySales;
+            const storeIdStr = store.id.toString();
+            // Fallback to '1' if mock data missing for specific store
+            const posData = MOCK_POS_DATA[storeIdStr] || MOCK_POS_DATA['1'];
+            const history = posData.dailySales;
+
             const targetData = history.slice(-daysToLookBack);
             const prevData = history.slice(-daysToLookBack * 2, -daysToLookBack);
 
@@ -260,7 +266,10 @@ function AdminPerformanceDashboard() {
     // 3. Store Ranking Logic
     const storeMetrics = useMemo(() => {
         return filteredStores.map(store => {
-            const history = MOCK_POS_DATA[store.id].dailySales.slice(-daysToLookBack);
+            const storeIdStr = store.id.toString();
+            const posData = MOCK_POS_DATA[storeIdStr] || MOCK_POS_DATA['1'];
+            const history = posData.dailySales.slice(-daysToLookBack);
+
             const revenue = history.reduce((sum, d) => sum + d.revenue, 0);
             const cost = history.reduce((sum, d) => sum + d.cost, 0);
             const margin = revenue - cost;
@@ -271,7 +280,7 @@ function AdminPerformanceDashboard() {
             return {
                 id: store.id,
                 name: store.name,
-                region: store.regionCode,
+                region: store.region,
                 revenue,
                 margin,
                 marginRate,

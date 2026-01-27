@@ -1,4 +1,9 @@
 // User & Auth
+export interface ApiResponse<T> {
+    success: boolean;
+    data: T;
+}
+
 export type Department = '서울/경기' | '부산/경남' | '강원/충청' | '전라/광주' | '대구/울산/경북' | '제주';
 export type Rank = 'HQ_ADMIN' | 'SV_TEAM_LEADER' | 'SV_SUPERVISOR';
 
@@ -31,56 +36,74 @@ export interface StatusHistory {
     changer: string;
 }
 
-// Stores
-export interface StatusHistory {
-    date: string;
-    reason: string;
-    oldStatus: string;
-    newStatus: string;
-    changer: string;
+export interface Store {
+    id: number;
+    name: string;
+    state: 'NORMAL' | 'WATCHLIST' | 'RISK'; // Kept for list page compatibility
+    region: string;
+    description: string;
+    manager: string;
+    storePhone: string;
+    supervisor: string; // Legacy SV name
+    qscScore: number;
+    lastInspectionDate: string | null;
+
+    // Added for StoreDetailContent compatibility
+    regionCode: string;
+    currentSupervisorId: string;
+    operationStatus: 'OPEN' | 'CLOSED' | 'CLOSED_TEMPORARY';
+    currentState: 'NORMAL' | 'WATCHLIST' | 'RISK';
+    currentStateScore: number;
+    openedAt: string; // ISO Date
+    statusHistory: StatusHistory[];
+    ownerName: string;
+    ownerPhone: string;
+    address: string;
+    contractType: string;
+    contractEndAt: string;
 }
 
-export interface Store {
-    id: string; // store_id (PK)
-    name: string; // store_name
-    address: string; // address
-    regionCode: string; // region_code
+// StoreDetail is now effectively same as Store, but we keep it if imported elsewhere
+export interface StoreDetail extends Store { }
 
-    // IDs (Foreign Keys)
-    currentSupervisorId?: string; // current_supervisor_id (FK -> User.id)
-    createdById?: string; // created_by_user_id
-    updatedById?: string; // updated_by_user_id
+// API DTOs
+export interface StoreSearchRequest {
+    state?: 'NORMAL' | 'WATCHLIST' | 'RISK';
+    keyword?: string;
+    sort?: 'QSC_SCORE_DESC' | 'QSC_SCORE_ASC' | 'INSPECTED_AT_DESC' | 'INSPECTED_AT_ASC';
+    limit?: number;
+}
 
-    // Enums & Types
-    tradeAreaType: 'OFFICE' | 'RESIDENTIAL' | 'STATION' | 'UNIVERSITY' | 'TOURISM' | 'MIXED'; // trade_area_type
-    operationStatus: 'OPEN' | 'CLOSED' | 'CLOSED_TEMPORARY'; // store_operation_status
-    contractType: 'FRANCHISE' | 'DIRECT'; // contract_type
-    currentState: 'NORMAL' | 'WATCHLIST' | 'RISK'; // current_state
+export interface StoreListResponse {
+    storeId: number;
+    storeName: string;
+    state: string; // 'NORMAL' | 'WATCHLIST' | 'RISK' (Backend returns string, probably enum name)
+    region: string;
+    supervisor: string;
+    qscScore: number;
+    lastInspectionDate: string; // LocalDate -> string (YYYY-MM-DD)
+}
 
-    // Scores
-    currentStateScore: number; // current_state_score (Integrated score)
-    qscScore: number; // Keep for now as it seems useful, though ERD only shows current_state_score (maybe mapped?)
+// Removed Mock/Old Interfaces
 
-    // Info
-    ownerName: string; // owner_name
-    ownerPhone: string; // owner_phone
+export interface StoreEventResponse {
+    id: number;
+    type: 'QSC' | 'POS' | 'RISK' | 'STORE';
+    severity: 'CRITICAL' | 'WARNING' | 'INFO';
+    title: string;
+    message: string;
+    occurredAt: string;
+    status: 'OPEN' | 'RESOLVED';
+}
 
-    // Timestamps
-    openPlannedAt?: string; // open_planned_at
-    openedAt?: string; // opened_at
-    closedAt?: string; // closed_at
-    deletedAt?: string; // deleted_at
-    contractEndAt?: string; // contract_end_at
-    createdAt: string; // created_at
-    updatedAt: string; // updated_at
-
-    // Legacy fields to be verified/mapped or kept for UI convenience if not in ERD explicitly but needed
-    // statusHistory: StatusHistory[]; // Not in ERD image but highly likely needed for 'audit'. keeping it.
-    // monthlyRevenue: number; // Not in ERD Store table, usually in Sales table. Keeping for mock/dashboard convenience.
-    // growthRate: number; // Same.
-    statusHistory: StatusHistory[];
-    monthlyRevenue: number;
-    growthRate: number;
+export interface StoreUpdateRequest {
+    storeOperationStatus?: string; // 'OPEN' | 'CLOSED'
+    storeName?: string;
+    ownerName?: string;
+    ownerPhone?: string;
+    currentSupervisorId?: string; // Was supervisorLoginId
+    currentState?: string; // 'NORMAL' | 'WATCHLIST' | 'RISK'
+    adminMemo?: string; // Kept just in case, though not in Java DTO shown
 }
 
 // QSC
@@ -104,6 +127,7 @@ export interface QSCTemplate {
     scope: '브랜드 공통' | '서울/경기' | '직영점' | '전체 매장';
     effective_from: string; // Start Date (NOT NULL)
     effective_to: string | null; // End Date (NULL = Active)
+    isActive?: boolean;
     createdAt: string;
     updatedAt: string;
     createdBy: string;

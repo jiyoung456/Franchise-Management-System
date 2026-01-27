@@ -5,7 +5,7 @@ import { StorageService } from '@/lib/storage';
 import { MOCK_BRIEFING } from '@/lib/mock/mockBriefingData';
 import BriefingWidget from '@/components/dashboard/BriefingWidget';
 import {
-  AlertTriangle, TrendingUp, Users, Store,
+  AlertTriangle, TrendingUp, Users, Store as StoreIcon,
   ClipboardList, Siren, Bell, ArrowRight, Activity, Calendar, CheckSquare, MapPin,
   ClipboardCheck, AlertCircle, TrendingDown, CheckCircle2, BarChart3
 } from 'lucide-react';
@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AuthService } from '@/services/authService';
 import { StoreService } from '@/services/storeService';
-import { User } from '@/types';
+import { User, Store } from '@/types';
 
 // --- MOCK DATA FOR SV DASHBOARD ---
 const MOCK_VISIT_STATUS = {
@@ -44,9 +44,25 @@ const GRADE_DISTRIBUTION_DATA = [
 
 // --- ADMIN DASHBOARD ---
 function AdminDashboard() {
-  const allStores = StoreService.getStores();
+  const [allStores, setAllStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const data = await StoreService.getStores();
+        setAllStores(data);
+      } catch (error) {
+        console.error("Failed to load stores", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStores();
+  }, []);
+
   const totalStores = allStores.length;
-  const riskStores = allStores.filter(s => s.currentState === 'RISK').length;
+  const riskStores = allStores.filter(s => s.state === 'RISK').length;
   const oneDayAgo = new Date();
   oneDayAgo.setDate(oneDayAgo.getDate() - 2);
   const newEvents = MOCK_EVENTS.filter(e => new Date(e.timestamp) > oneDayAgo).length;
@@ -62,6 +78,8 @@ function AdminDashboard() {
     { month: '10월', sales: 4800 }, { month: '11월', sales: 4600 }, { month: '12월', sales: 5100 },
   ];
   const topRiskStores = Object.values(MOCK_RISK_PROFILES).sort((a, b) => b.totalRiskScore - a.totalRiskScore).slice(0, 5);
+
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
 
   return (
     <div className="space-y-8">
@@ -91,7 +109,7 @@ function AdminDashboard() {
               <p className="text-sm font-medium text-gray-500 group-hover:text-red-600">위험(Risk) 점포</p>
               <h3 className="text-2xl font-bold text-red-600 mt-1">{riskStores}개</h3>
               <span className="text-xs text-red-500 font-medium mt-2 inline-block">
-                전체의 {((riskStores / totalStores) * 100).toFixed(1)}%
+                전체의 {totalStores > 0 ? ((riskStores / totalStores) * 100).toFixed(1) : 0}%
               </span>
             </div>
             <div className="p-3 bg-red-50 rounded-lg text-red-600 group-hover:bg-red-100">
@@ -159,47 +177,56 @@ function AdminDashboard() {
 // --- TEAM LEADER DASHBOARD ---
 function TeamLeaderDashboard({ user }: { user: User }) {
   const router = useRouter();
+  const [myStores, setMyStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RISK' | 'WATCHLIST' | 'NORMAL'>('ALL');
-  const [sortConfig, setSortConfig] = useState<{ key: 'qscScore' | 'updatedAt' | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState<{ key: 'qscScore' | 'lastInspectionDate' | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'desc' });
 
-  // Mock Logic for Metrics
-  // In a real app, these would be filtered by the Team Leader's team ID
-  const myStores = StoreService.getStores();
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const data = await StoreService.getStores();
+        setMyStores(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStores();
+  }, []);
 
-  const riskStoresCount = myStores.filter(s => s.currentState === 'RISK').length;
+  const riskStoresCount = myStores.filter(s => s.state === 'RISK').length;
 
   // Mock 'New Events' (last 48h)
   const oneDayAgo = new Date();
   oneDayAgo.setDate(oneDayAgo.getDate() - 2);
   const newEventsCount = MOCK_EVENTS.filter(e => new Date(e.timestamp) > oneDayAgo).length;
 
-  // Mock 'Management Gap' (> 1 month since last check)
-  const today = new Date();
-  const gapStoresCount = myStores.filter(s => {
-    // if (s.lastCheckDate === '-') return true; // Removed lastCheckDate
-    // const checkDate = new Date(s.lastCheckDate);
-    // ... logic needs Inspection data
-    return false;
-  }).length;
+  // Mock 'Management Gap'
+  const gapStoresCount = 0; // Placeholder logic as lastCheckDate is removed
 
   // Filter & Sort Logic
   const filteredStores = myStores
     .filter(s => {
-      const matchesSearch = s.name.includes(searchTerm) || (s.currentSupervisorId || '').includes(searchTerm);
-      const matchesStatus = statusFilter === 'ALL' || s.currentState === statusFilter;
+      const matchesSearch = s.name.includes(searchTerm) || (s.supervisor || '').includes(searchTerm);
+      const matchesStatus = statusFilter === 'ALL' || s.state === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       if (!sortConfig.key) return 0;
 
+      // Handle nulls safely
       let valA: any = a[sortConfig.key];
       let valB: any = b[sortConfig.key];
 
-      // Date comparison
-      if (sortConfig.key === 'updatedAt') {
-        valA = new Date(valA).getTime();
-        valB = new Date(valB).getTime();
+      if (sortConfig.key === 'lastInspectionDate') {
+        const dateA = valA ? new Date(valA).getTime() : 0;
+        const dateB = valB ? new Date(valB).getTime() : 0;
+        return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
       }
 
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -207,7 +234,7 @@ function TeamLeaderDashboard({ user }: { user: User }) {
       return 0;
     });
 
-  const handleSort = (key: 'qscScore' | 'updatedAt') => {
+  const handleSort = (key: 'qscScore' | 'lastInspectionDate') => {
     setSortConfig(current => ({
       key,
       direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
@@ -217,6 +244,8 @@ function TeamLeaderDashboard({ user }: { user: User }) {
   const handleStatusFilter = (status: 'ALL' | 'RISK' | 'WATCHLIST' | 'NORMAL') => {
     setStatusFilter(status);
   };
+
+  if (loading) return <div className="p-12 text-center text-gray-500">Loading Dashboard...</div>;
 
   return (
     <div className="space-y-8">
@@ -232,14 +261,12 @@ function TeamLeaderDashboard({ user }: { user: User }) {
 
       {/* Top Metric Cards */}
       <div className="grid gap-6 md:grid-cols-3">
-        {/* Card 1: Risk Stores */}
         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center h-[180px]">
           <h3 className="text-xl font-bold text-gray-900 mb-2">위험 점포 수</h3>
           <p className="text-sm text-gray-500 mb-4">현재 상태가 위험 등급인 점포 개수</p>
           <span className="text-5xl font-extrabold text-red-600">{riskStoresCount}</span>
         </div>
 
-        {/* Card 2: New Events */}
         <Link href="/events" className="group">
           <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center h-[180px] hover:border-blue-300 transition-colors cursor-pointer group-hover:bg-blue-50/10">
             <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600">신규 이벤트 수</h3>
@@ -247,8 +274,6 @@ function TeamLeaderDashboard({ user }: { user: User }) {
             <span className="text-5xl font-extrabold text-gray-900 group-hover:text-blue-600">{newEventsCount}</span>
           </div>
         </Link>
-
-        {/* Card 3: Management Gap */}
         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center h-[180px]">
           <h3 className="text-xl font-bold text-gray-900 mb-2">관리 공백 점포 수</h3>
           <p className="text-sm text-gray-500 mb-4">SV 방문 공백이 한 달 넘는 점포 수</p>
@@ -298,10 +323,10 @@ function TeamLeaderDashboard({ user }: { user: User }) {
                   {sortConfig.key === 'qscScore' ? (sortConfig.direction === 'desc' ? '▼ 높은순' : '▲ 낮은순') : '정렬 필터'}
                 </span>
               </th>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[200px] cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => handleSort('updatedAt')}>
+              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[200px] cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => handleSort('lastInspectionDate')}>
                 최근 점검일
                 <span className="block text-xs font-normal text-blue-500 mt-1">
-                  {sortConfig.key === 'updatedAt' ? (sortConfig.direction === 'desc' ? '▼ 최신순' : '▲ 오래된순') : '정렬 필터'}
+                  {sortConfig.key === 'lastInspectionDate' ? (sortConfig.direction === 'desc' ? '▼ 최신순' : '▲ 오래된순') : '정렬 필터'}
                 </span>
               </th>
             </tr>
@@ -315,14 +340,14 @@ function TeamLeaderDashboard({ user }: { user: User }) {
               >
                 <td className="px-6 py-6 font-bold text-gray-900 border-r border-gray-200 group-hover:text-blue-600 transition-colors">{store.name}</td>
                 <td className="px-6 py-6 border-r border-gray-200">
-                  <span className={`font-bold px-2 py-1 rounded ${store.currentState === 'RISK' ? 'bg-red-50 text-red-600' :
-                    store.currentState === 'WATCHLIST' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'
+                  <span className={`font-bold px-2 py-1 rounded ${store.state === 'RISK' ? 'bg-red-50 text-red-600' :
+                    store.state === 'WATCHLIST' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'
                     }`}>
-                    {store.currentState === 'RISK' ? '위험' : store.currentState === 'WATCHLIST' ? '주의' : '정상'}
+                    {store.state === 'RISK' ? '위험' : store.state === 'WATCHLIST' ? '주의' : '정상'}
                   </span>
                 </td>
-                <td className="px-6 py-6 text-gray-900 border-r border-gray-200">{store.regionCode}</td>
-                <td className="px-6 py-6 text-gray-900 border-r border-gray-200">{store.currentSupervisorId}</td>
+                <td className="px-6 py-6 text-gray-900 border-r border-gray-200">{store.region}</td>
+                <td className="px-6 py-6 text-gray-900 border-r border-gray-200">{store.supervisor}</td>
                 <td className="px-6 py-6 border-r border-gray-200">
                   <div className="flex items-center gap-3">
                     <div className="flex-1 bg-gray-100 rounded h-2 overflow-hidden">
@@ -336,7 +361,7 @@ function TeamLeaderDashboard({ user }: { user: User }) {
                     <span className="font-bold text-gray-900 w-12 text-right">{store.qscScore}점</span>
                   </div>
                 </td>
-                <td className="px-6 py-6 text-gray-900">{store.updatedAt.split('T')[0]}</td>
+                <td className="px-6 py-6 text-gray-900">{store.lastInspectionDate || '-'}</td>
               </tr>
             ))}
             {filteredStores.length === 0 && (
@@ -358,27 +383,46 @@ function TeamLeaderDashboard({ user }: { user: User }) {
 
 // --- SV DASHBOARD (Original) ---
 function SvDashboard({ user }: { user: User }) {
-  // --- CALCULATE DATA ---
-  const myStores = StoreService.getStoresBySv(user.id);
+  const [myStores, setMyStores] = useState<Store[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMyStores = async () => {
+      try {
+        // For mock purposes user.id might be generic, but assuming user.loginId matches supervisor name in SV mock
+        // or just get all stores and filter by name if SV ID not in store list properties?
+        // List has 'supervisor' name. 
+        // We can use getStoresBySv(user.loginId) if backend supports it or just get all.
+        // Let's use getStoresBySv assuming it works
+        const data = await StoreService.getStoresBySv(user.loginId);
+        setMyStores(data);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    fetchMyStores();
+  }, [user]);
 
   // 1. Grade Distribution
   const gradeCounts = {
-    NORMAL: myStores.filter(s => s.currentState === 'NORMAL').length,
-    WATCHLIST: myStores.filter(s => s.currentState === 'WATCHLIST').length,
-    RISK: myStores.filter(s => s.currentState === 'RISK').length,
+    NORMAL: myStores.filter(s => s.state === 'NORMAL').length,
+    WATCHLIST: myStores.filter(s => s.state === 'WATCHLIST').length,
+    RISK: myStores.filter(s => s.state === 'RISK').length,
   };
 
   // 2. Visit Status (This Month)
-  // Mocking 0 for now as lastCheckDate is removed
   const visitedThisMonth = 0;
   const visitRate = 0;
 
   // 3. Recent Visits
   const recentVisits = [...myStores]
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .sort((a, b) => {
+      const dA = a.lastInspectionDate ? new Date(a.lastInspectionDate).getTime() : 0;
+      const dB = b.lastInspectionDate ? new Date(b.lastInspectionDate).getTime() : 0;
+      return dB - dA;
+    })
     .slice(0, 4);
 
-  // Mock Trend Data (Static for now, but could be dynamic)
+  // Mock Trend Data
   const riskTrendData = [
     { label: '1주', score: 12 }, { label: '2주', score: 15 }, { label: '3주', score: 8 }, { label: '4주', score: 10 }
   ];
@@ -386,13 +430,15 @@ function SvDashboard({ user }: { user: User }) {
     { label: '7월', val: 5 }, { label: '8월', val: 8 }, { label: '9월', val: 12 }, { label: '10월', val: 15 }
   ];
 
-  // Mock Top Card Data (using real calculated values where possible)
+  // Mock Top Card Data
   const topCardData = {
     assigned: myStores.length,
     risk: gradeCounts.RISK,
     recentEvents: 5, // Mock
     pendingActions: 3 // Mock
   };
+
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
 
   return (
     <div className="space-y-8 pb-20">
@@ -407,7 +453,7 @@ function SvDashboard({ user }: { user: User }) {
           <p className="text-gray-500 font-medium">담당 점포 수</p>
           <div className="flex justify-between items-end">
             <h3 className="text-3xl font-bold text-gray-900">{topCardData.assigned}개</h3>
-            <Store className="w-8 h-8 text-blue-100 text-blue-500" strokeWidth={1.5} />
+            <StoreIcon className="w-8 h-8 text-blue-100 text-blue-500" strokeWidth={1.5} />
           </div>
         </div>
         <div className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between h-32">
@@ -536,7 +582,7 @@ function SvDashboard({ user }: { user: User }) {
                 <div key={store.id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-100">
                   <div>
                     <p className="font-bold text-gray-900 text-sm">{store.name}</p>
-                    <p className="text-xs text-gray-500">{store.updatedAt.split('T')[0]}</p>
+                    <p className="text-xs text-gray-500">{store.lastInspectionDate ? store.lastInspectionDate.split('T')[0] : '-'}</p>
                   </div>
                   <Link href={`/stores/${store.id}`} className="p-1.5 bg-gray-100 rounded text-gray-600 hover:bg-blue-100 hover:text-blue-600 transition-colors">
                     <ArrowRight className="w-4 h-4" />

@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 
 export default async function StoreKPIPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const store = StoreService.getStore(id);
+    const store = await StoreService.getStore(id);
 
     if (!store) {
         notFound();

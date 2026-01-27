@@ -45,10 +45,14 @@ export default function StoreDetailContent() {
         setCurrentUser(user);
 
         if (!storeId) return;
-        const found = StoreService.getStore(storeId);
-        if (found) {
-            setStore(found);
-        }
+
+        const fetchStore = async () => {
+            const found = await StoreService.getStore(storeId);
+            if (found) {
+                setStore(found);
+            }
+        };
+        fetchStore();
     }, [storeId]);
 
     // Derived Data
@@ -283,7 +287,7 @@ export default function StoreDetailContent() {
                                     <Bell className="w-5 h-5 text-indigo-500" /> 최근 이벤트 (Log)
                                 </h3>
                                 <ul className="space-y-4">
-                                    {MOCK_EVENTS.filter(e => e.storeId === store.id).map(evt => (
+                                    {MOCK_EVENTS.filter(e => e.storeId === store.id.toString()).map(evt => (
                                         <li key={evt.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className={`px-2 py-0.5 rounded text-xs font-bold border ${evt.type === 'QSC' ? 'bg-blue-50 text-blue-600 border-blue-100' : evt.type === 'RISK' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-100 text-gray-600'}`}>
@@ -303,7 +307,7 @@ export default function StoreDetailContent() {
                                     <ClipboardList className="w-5 h-5 text-blue-500" /> 조치 현황
                                 </h3>
                                 <div className="space-y-3">
-                                    {MOCK_ACTIONS.filter(a => a.storeId === store.id).map(action => (
+                                    {MOCK_ACTIONS.filter(a => a.storeId === store.id.toString()).map(action => (
                                         <div key={action.id} className="flex justify-between items-center border border-gray-100 p-4 rounded-lg">
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
@@ -330,7 +334,7 @@ export default function StoreDetailContent() {
                                     <ClipboardList className="w-5 h-5 text-purple-500" /> QSC 점검 이력
                                 </h3>
                                 <div className="space-y-4">
-                                    {QscService.getInspections().filter(i => i.storeId === store.id)
+                                    {QscService.getInspections().filter(i => i.storeId === store.id.toString())
                                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                                         .map(inspection => (
                                             <div key={inspection.id} className="border p-4 rounded-lg">

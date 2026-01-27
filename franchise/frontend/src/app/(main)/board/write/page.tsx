@@ -57,7 +57,7 @@ export default function BoardWritePage() {
             id: Date.now().toString(),
             title: title,
             content: content,
-            author: currentUser.name,
+            author: currentUser.userName, // Changed from name to userName
             date: new Date().toISOString(),
             role: 'ADMIN' as const,
             isImportant: isImportant,

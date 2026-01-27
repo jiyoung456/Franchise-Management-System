@@ -15,14 +15,15 @@ const navigation = [
     { name: 'POS 관리', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: '위험현황', href: '/ai-insight', icon: AlertTriangle, roles: ['ADMIN'], section: 3 },
     { name: '이벤트관리', href: '/events', icon: Calendar, roles: ['ADMIN', 'SUPERVISOR'], section: 3 },
+    { name: '조치 관리', href: '/actions', icon: Hammer, roles: ['SUPERVISOR'], section: 3 },
     {
         name: '조치/권한관리',
         href: '#',
         icon: Hammer,
-        roles: ['ADMIN', 'SUPERVISOR'],
+        roles: ['ADMIN'],
         section: 3,
         children: [
-            { name: '조치 관리', href: '/actions', roles: ['ADMIN', 'SUPERVISOR'] },
+            { name: '조치 관리', href: '/actions', roles: ['ADMIN'] },
             { name: '권한 관리', href: '/admin/users', roles: ['ADMIN'] }
         ]
     },

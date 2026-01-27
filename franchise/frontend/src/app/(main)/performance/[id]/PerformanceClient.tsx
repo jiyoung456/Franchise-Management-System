@@ -23,7 +23,7 @@ export default function PerformanceClient({ id }: { id: string }) {
     if (!storeId) return <div className="p-8">Store ID missing</div>;
 
     // Data Fetching
-    const store = MOCK_STORES.find(s => s.id === storeId);
+    const store = MOCK_STORES.find(s => s.id.toString() === storeId);
     const posData = MOCK_POS_DATA[storeId] || MOCK_POS_DATA['1'];
     const perfData = MOCK_PERFORMANCE[storeId] || MOCK_PERFORMANCE['1'];
 
@@ -81,7 +81,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                 {/* Status Box */}
                 <div className="bg-white border border-gray-200 shadow-sm flex items-center px-6 h-full min-w-[200px] rounded-lg gap-2">
                     <span className="font-bold text-gray-700">상태 :</span>
-                    <StatusBadge status={store.currentState === 'NORMAL' ? '정상' : store.currentState === 'WATCHLIST' ? '관찰' : '위험'} />
+                    <StatusBadge status={store.state === 'NORMAL' ? '정상' : store.state === 'WATCHLIST' ? '관찰' : '위험'} />
                 </div>
 
                 {/* Filter Placeholder */}

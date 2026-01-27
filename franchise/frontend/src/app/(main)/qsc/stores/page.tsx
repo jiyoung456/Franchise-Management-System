@@ -1,23 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MOCK_STORES } from '@/lib/mock/mockData';
 import { ScoreBar } from '@/components/common/ScoreBar';
-import { StatusBadge } from '@/components/common/StatusBadge';
 import Link from 'next/link';
-import { Search, Filter, ArrowUpDown, Calendar } from 'lucide-react';
+import { Search, Filter, ArrowUpDown } from 'lucide-react';
 
 export default function QscStoreListPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [regionFilter, setRegionFilter] = useState('전체');
     const [sortOption, setSortOption] = useState('gradeDesc'); // gradeDesc, gradeAsc, dateRecent
 
+    const [stores, setStores] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStores = async () => {
+            // Simplified: User logic should be here, but for now assuming SV context or fetch all if Admin
+            // Checking if we can reuse the logic from StoreList
+            // But this page layout is slightly different. Let's just use MOCK_STORES for now but filtered?
+            // "qsc 내 담당점포 현황도 똑같은 데이터 뜨도록" -> implies SV context.
+            // We should use AuthService to get current user.
+            const { AuthService } = require('@/services/authService');
+            const { StoreService } = require('@/services/storeService');
+
+            const user = AuthService.getCurrentUser();
+            if (user && user.role === 'SUPERVISOR') {
+                try {
+                    const data = await StoreService.getStoresBySv(user.loginId);
+                    setStores(data);
+                } catch (e) { console.error(e); }
+            } else {
+                setStores(MOCK_STORES); // Admin or others see all? Or fetch from StoreService?
+            }
+            setLoading(false);
+        };
+        fetchStores();
+    }, []);
+
     // 1. Filter Logic
-    const filteredStores = MOCK_STORES.filter(store => {
+    const filteredStores = stores.filter(store => {
         const matchesSearch = store.name.includes(searchTerm);
-        const matchesRegion = regionFilter === '전체' || store.regionCode === regionFilter;
-        const isOperating = store.operationStatus === 'OPEN'; // Focus on operating stores for QSC
-        return matchesSearch && matchesRegion && isOperating;
+        const matchesRegion = regionFilter === '전체' || store.region === regionFilter;
+        // Mock data allows all states for simplicity, or filter by state if needed
+        return matchesSearch && matchesRegion;
     });
 
     // 2. Sort Logic
@@ -27,7 +53,9 @@ export default function QscStoreListPage() {
         } else if (sortOption === 'gradeAsc') {
             return a.qscScore - b.qscScore;
         } else if (sortOption === 'dateRecent') {
-            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+            const dateA = a.lastInspectionDate ? new Date(a.lastInspectionDate).getTime() : 0;
+            const dateB = b.lastInspectionDate ? new Date(b.lastInspectionDate).getTime() : 0;
+            return dateB - dateA;
         }
         return 0;
     });
@@ -116,8 +144,8 @@ export default function QscStoreListPage() {
                                 return (
                                     <tr key={store.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="px-6 py-4 font-medium text-gray-900">{store.name}</td>
-                                        <td className="px-6 py-4 text-gray-500">{store.regionCode}</td>
-                                        <td className="px-6 py-4 text-gray-500">{store.currentSupervisorId}</td>
+                                        <td className="px-6 py-4 text-gray-500">{store.region}</td>
+                                        <td className="px-6 py-4 text-gray-500">{store.supervisor}</td>
                                         <td className="px-6 py-4">
                                             <ScoreBar value={store.qscScore} showValue />
                                         </td>
@@ -129,7 +157,7 @@ export default function QscStoreListPage() {
                                                 {grade}등급
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-500">{store.updatedAt?.split('T')[0]}</td>
+                                        <td className="px-6 py-4 text-gray-500">{store.lastInspectionDate || '-'}</td>
                                         <td className="px-6 py-4 text-right">
                                             <Link
                                                 href={`/qsc/report/101`}

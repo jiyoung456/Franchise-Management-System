@@ -21,11 +21,16 @@ export default function ActionsListPage() {
         if (user) setRole(user.role);
 
         setActions(ActionService.getActions());
-        setStores(StoreService.getStores());
+
+        const fetchStores = async () => {
+            const data = await StoreService.getStores();
+            setStores(data);
+        };
+        fetchStores();
     }, []);
 
     const getStoreName = (storeId: string) => {
-        return stores.find(s => s.id === storeId)?.name || 'Unknown Store';
+        return stores.find(s => s.id.toString() === storeId)?.name || 'Unknown Store';
     };
 
     const getRelatedEventInfo = (action: ActionItem) => {

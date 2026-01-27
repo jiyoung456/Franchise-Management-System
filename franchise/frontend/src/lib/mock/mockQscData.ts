@@ -69,6 +69,7 @@ export const MOCK_TEMPLATES: QSCTemplate[] = [
         scope: '전체 매장',
         effective_from: '2025-01-10',
         effective_to: null,
+        isActive: true, // Added for UI
         createdAt: '2025-01-10',
         updatedAt: '2025-01-10',
         createdBy: '김관리',

@@ -36,7 +36,7 @@ export default function EditTemplatePage() {
                 setBasicInfo({
                     title: template.title,
                     scope: template.scope as any || '전체 매장',
-                    isActive: template.isActive,
+                    isActive: template.isActive ?? true,
                     createdBy: template.createdBy
                 });
                 setItems(template.items);

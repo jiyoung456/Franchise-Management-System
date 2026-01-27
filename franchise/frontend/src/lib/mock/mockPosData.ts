@@ -1,24 +1,17 @@
 import { MOCK_STORES } from './mockData';
 
 // 1. Interfaces
-export interface PosDailySales {
-    storeId: string;
-    date: string;         // YYYY-MM-DD
-    revenue: number;      // Total Sales
+export interface DailySales {
+    date: string;
+    amount: number;
     orderCount: number;
-    aov: number;          // Average Order Value (calc: revenue / orderCount)
-    originalRevenue: number; // Before discount (optional, for margin calc)
-    cost: number;         // COGS
-    margin: number;       // Revenue - Cost
-    channel: {
-        offline: number;  // Hall
-        delivery: number; // App/Delivery
-        takeout: number;
-    };
-    isAnomaly?: boolean;  // Flag for out-of-bounds data
+    // Added for compatibility with Performance pages
+    revenue: number;
+    cost: number;
+    margin: number;
 }
 
-export interface MenuPerformance {
+export interface MenuSales {
     menuId: string;
     menuName: string;
     category: string;
@@ -30,72 +23,48 @@ export interface MenuPerformance {
 
 export interface StorePosPerformance {
     storeId: string;
-    dailySales: PosDailySales[]; // 90 days history
-    menuPerformance: MenuPerformance[]; // Aggregated for the period
+    storeName: string; // Added for display convenience
+    dailySales: DailySales[];
+    weeklySales: { week: string; sales: number }[]; // 4 weeks
+    topMenus: MenuSales[];
+    worstMenus: MenuSales[];
 }
 
-// 2. Helper to generate random daily data
-function generateDailyData(storeId: string, days: number): PosDailySales[] {
-    const data: PosDailySales[] = [];
-    const today = new Date();
-
-    // Base performance characteristics per store (randomized slightly)
-    const baseDailyOrder = 50 + Math.floor(Math.random() * 50); // 50 ~ 100 orders
-    const baseAov = 25000 + Math.floor(Math.random() * 5000);   // 25k ~ 30k KRW
-
+// 2. Data Generators
+function generateDailyData(storeId: string, days: number): DailySales[] {
+    const data: DailySales[] = [];
+    const now = new Date();
     for (let i = days; i >= 0; i--) {
-        const d = new Date(today);
+        const d = new Date(now);
         d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
+        const dateStr = d.toISOString().slice(0, 10);
 
-        // Seasonality / Weekend factor
-        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-        const factor = isWeekend ? 1.3 : 1.0;
-
-        // Random Variation (+- 20%)
-        const variation = 0.8 + Math.random() * 0.4;
-
-        let orderCount = Math.floor(baseDailyOrder * factor * variation);
-        const aov = Math.floor(baseAov * variation);
-
-        // Inject Anomaly (Randomly 2% chance)
-        const isAnomaly = Math.random() < 0.02;
-        if (isAnomaly) {
-            // Drop significantly (e.g., system failure or closed)
-            orderCount = Math.floor(orderCount * 0.2);
-        }
-
-        const revenue = orderCount * aov;
-        const cost = Math.floor(revenue * 0.65); // 35% margin roughly
-        const margin = revenue - cost;
+        // Random fluctuation
+        const base = 800000; // 800k KRW
+        const random = (Math.random() - 0.5) * 200000;
+        const amount = Math.floor(base + random);
+        const cost = Math.floor(amount * 0.4);
 
         data.push({
-            storeId,
             date: dateStr,
-            revenue,
-            orderCount,
-            aov,
-            originalRevenue: Math.floor(revenue * 1.1),
-            cost,
-            margin,
-            channel: {
-                offline: Math.floor(revenue * 0.5),
-                delivery: Math.floor(revenue * 0.3),
-                takeout: Math.floor(revenue * 0.2),
-            },
-            isAnomaly
+            amount: amount,
+            orderCount: Math.floor(amount / 15000), // Avg check 15k
+            revenue: amount,
+            cost: cost,
+            margin: amount - cost
         });
     }
     return data;
 }
 
-function generateMenuPerf(): MenuPerformance[] {
+function generateMenuData(count: number): MenuSales[] {
     const menus = [
-        { name: '슈퍼디럭스 피자', cat: 'Main', price: 28000 },
-        { name: '페퍼로니 피자', cat: 'Main', price: 24000 },
-        { name: '치즈 오븐 스파게티', cat: 'Side', price: 9000 },
-        { name: '버팔로 윙', cat: 'Side', price: 8000 },
-        { name: '콜라 1.25L', cat: 'Beverage', price: 2500 },
+        { name: '불고기버거', price: 6500, cat: 'Burger' },
+        { name: '치즈버거', price: 5500, cat: 'Burger' },
+        { name: '감자튀김', price: 2500, cat: 'Side' },
+        { name: '콜라', price: 1500, cat: 'Drink' },
+        { name: '치킨너겟', price: 3000, cat: 'Side' },
+        { name: '새우버거', price: 7000, cat: 'Burger' }
     ];
 
     return menus.map(m => {
@@ -124,14 +93,23 @@ const initPosData = () => {
             return;
         }
         MOCK_STORES.forEach(store => {
-            MOCK_POS_DATA[store.id] = {
-                storeId: store.id,
-                dailySales: generateDailyData(store.id, 90), // Last 90 days
-                menuPerformance: generateMenuPerf()
+            const sid = store.id.toString();
+            MOCK_POS_DATA[sid] = {
+                storeId: sid,
+                storeName: store.name,
+                dailySales: generateDailyData(sid, 90), // Last 90 days
+                weeklySales: [
+                    { week: '1주차', sales: 5500000 },
+                    { week: '2주차', sales: 5800000 },
+                    { week: '3주차', sales: 5200000 },
+                    { week: '4주차', sales: 6100000 }
+                ],
+                topMenus: generateMenuData(5),
+                worstMenus: generateMenuData(3)
             };
         });
     } catch (e) {
-        console.error('Failed to initialize MOCK_POS_DATA', e);
+        console.error("Error generating Mock POS data", e);
     }
 };
 

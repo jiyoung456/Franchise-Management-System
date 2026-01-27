@@ -69,7 +69,8 @@ export interface RiskProfile {
 
 // 2. Mock Logic
 function calculateRisk(storeId: string): RiskProfile {
-    const store = MOCK_STORES.find(s => s.id === storeId);
+    // MOCK_STORES has storeId as number
+    const store = MOCK_STORES.find(s => s.id.toString() === storeId);
     if (!store) throw new Error('Store not found');
 
     const factors: NumericalEvidence[] = [];
@@ -77,126 +78,56 @@ function calculateRisk(storeId: string): RiskProfile {
     const context: ContextEvidence[] = [];
     const baseScore = 20;
 
-    // A. Numerical Evidence (QSC)
-    const qscScore = store.qscScore || 85;
-    if (qscScore < 70) {
+    // A. QSC Factor
+    const qscRisk = store.qscScore < 80 ? (80 - store.qscScore) * 1.5 : 0;
+    if (qscRisk > 0) {
         factors.push({
-            id: 'f_qsc_critical', category: 'QSC', label: 'QSC 점검 불합격 수준',
-            value: `${qscScore}점`, weight: 1.0, impactScore: 40
-        });
-        patterns.push({
-            id: 'p_qsc_repeat', type: 'REPEATED', description: '동일 위생 항목 반복 지적', detectedCount: 3
-        });
-    } else if (qscScore < 80) {
-        factors.push({
-            id: 'f_qsc_warn', category: 'QSC', label: 'QSC 품질 저하',
-            value: `${qscScore}점`, weight: 0.5, impactScore: 15
+            id: 'f_qsc', category: 'QSC', label: 'QSC 점수 미달',
+            value: store.qscScore, weight: 1.5, impactScore: qscRisk
         });
     }
 
-    // B. POS Evidence
-    if (['2', '4'].includes(storeId)) {
-        factors.push({
-            id: 'f_pos_drop', category: 'POS', label: '주간 매출 지속 하락',
-            value: '-18%', weight: 0.8, impactScore: 25
-        });
-        patterns.push({
-            id: 'p_sales_consecutive', type: 'CONSECUTIVE_DROP', description: '4주 연속 매출 하락세', detectedCount: 4
-        });
-    }
-
-    // C. Operation Evidence
-    if (store.currentState === 'RISK') {
-        factors.push({
-            id: 'f_ops_risk', category: 'OPERATION', label: '집중 관리 대상(Risk) 지정',
-            value: 'RISK 상태', weight: 0.9, impactScore: 30
-        });
-        context.push({
-            id: 'c_status_change', type: 'STATUS_CHANGE', description: '최근 WATCHLIST → RISK 상태 하향 조정됨', date: new Date().toISOString().split('T')[0]
-        });
-    }
-
-    // Mock Context for Action Delay
-    if (storeId === '1' || storeId === '3') {
-        context.push({
-            id: 'c_action_delay', type: 'ACTION_DELAY', description: '주요 개선 조치(위생 교육) 5일 이상 지연', date: '2025-11-20'
-        });
-    }
-
-    // Calculate Total
-    let totalRiskScore = baseScore + factors.reduce((sum, f) => sum + f.impactScore, 0);
-    totalRiskScore = Math.min(100, Math.max(0, totalRiskScore));
-
-    let riskLevel: RiskLevel = 'NORMAL';
-    if (totalRiskScore >= 75) riskLevel = 'RISK';
-    else if (totalRiskScore >= 50) riskLevel = 'WATCHLIST';
-
-    // Anomaly Result
-    let anomaly: AnomalyResult | null = null;
-    if (riskLevel === 'RISK') {
-        anomaly = {
-            isAnomaly: true,
-            detectedAt: new Date().toISOString(),
-            severity: 'HIGH',
-            summary: `최근 2주간 매출이 평균 대비 18% 감소하였으며, 최근 QSC 점검에서 위생 점수가 ${qscScore}점으로 하락했습니다.`,
-            features: ['매출 급락', '위생 점수 저하', '재방문율 감소 추세']
-        };
-    }
-
-    // New Fields Population (Mock Logic)
-    const metricAnomalies: MetricAnomaly[] = [];
-    if (riskLevel !== 'NORMAL') {
-        metricAnomalies.push({ label: '주간 매출', current: '850만', baseline: '1,050만', deviation: '-19%', severity: 'HIGH' });
-        metricAnomalies.push({ label: '재방문율', current: '42%', baseline: '55%', deviation: '-13%p', severity: 'MEDIUM' });
-    }
-
-    const operationalGaps: OperationalGap[] = [];
-    if (storeId === '1') {
-        operationalGaps.push({ type: 'SV 방문', description: '정기 방문 주기 초과', duration: '12일' });
-    }
-
-    const rootCauses = factors.sort((a, b) => b.impactScore - a.impactScore).slice(0, 3).map(f => f.label);
-
-    const history = Array.from({ length: 30 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (29 - i));
-        const variance = Math.floor(Math.random() * 10) - 5;
-        return {
-            date: date.toISOString().split('T')[0],
-            score: Math.min(100, Math.max(0, totalRiskScore - 5 + variance))
-        };
+    // B. State Factor
+    if (store.state === 'WATCHLIST') factors.push({
+        id: 'f_state_watch', category: 'OPERATION', label: '관찰 대상 지정',
+        value: 'WATCHLIST', weight: 10, impactScore: 10
+    });
+    if (store.state === 'RISK') factors.push({
+        id: 'f_state_risk', category: 'OPERATION', label: '위험 등급 지정',
+        value: 'RISK', weight: 20, impactScore: 20
     });
 
+    const totalScore = Math.min(100, Math.round(baseScore + qscRisk + (store.state === 'RISK' ? 30 : 0)));
+    const level: RiskLevel = totalScore >= 80 ? 'RISK' : totalScore >= 60 ? 'WATCHLIST' : 'NORMAL';
+
     return {
-        storeId: store.id,
+        storeId: store.id.toString(),
         storeName: store.name,
-        totalRiskScore,
-        riskLevel,
+        totalRiskScore: totalScore,
+        riskLevel: level,
         factors,
         patterns,
         context,
-        anomaly,
-        history,
-        metricAnomalies,
-        operationalGaps,
-        rootCauses
+        anomaly: {
+            isAnomaly: totalScore > 85,
+            detectedAt: new Date().toISOString(),
+            severity: totalScore > 90 ? 'HIGH' : 'MEDIUM',
+            summary: totalScore > 85 ? '복합적 위험 신호가 감지되었습니다.' : '특이사항 없습니다.',
+            features: ['QSC 하락', '매출 불안정']
+        },
+        history: [],
+        metricAnomalies: [],
+        operationalGaps: [],
+        rootCauses: []
     };
 }
 
-// 3. Generate Mock Data for All Stores
+// 3. Generate Mock Profiles
 export const MOCK_RISK_PROFILES: Record<string, RiskProfile> = {};
-const initRiskData = () => {
-    try {
-        if (!MOCK_STORES || !Array.isArray(MOCK_STORES)) {
-            console.warn('MOCK_STORES not ready for Risk Data generation');
-            return;
-        }
-        MOCK_STORES.forEach(s => {
-            MOCK_RISK_PROFILES[s.id] = calculateRisk(s.id);
-        });
-    } catch (e) {
-        console.error('Failed to initialize MOCK_RISK_PROFILES', e);
-    }
-};
 
-initRiskData();
+if (MOCK_STORES && Array.isArray(MOCK_STORES)) {
+    MOCK_STORES.forEach(store => {
+        const riskScore = 100 - store.qscScore; // Simple inverse for mock
+        MOCK_RISK_PROFILES[store.id.toString()] = calculateRisk(store.id.toString());
+    });
+}

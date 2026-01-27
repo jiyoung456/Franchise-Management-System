@@ -14,10 +14,10 @@ export default function AiRiskHomePage() {
     // 1. Data Aggregation
     const combinedData = useMemo(() => {
         return MOCK_STORES.map(store => {
-            const profile = MOCK_RISK_PROFILES[store.id];
+            const profile = MOCK_RISK_PROFILES[store.id.toString()];
             return {
                 ...store,
-                ...profile, // Risk Profile properties overwrite if collision, but usually discrete
+                ...(profile || {}), // Risk Profile properties overwrite if collision, but usually discrete
                 riskScore: profile ? profile.totalRiskScore : 0,
                 riskLevel: profile ? profile.riskLevel : 'NORMAL',
             };
@@ -28,7 +28,7 @@ export default function AiRiskHomePage() {
         if (!searchTerm) return combinedData;
         return combinedData.filter(item =>
             item.name.includes(searchTerm) ||
-            item.currentSupervisorId?.includes(searchTerm)
+            item.supervisor?.includes(searchTerm)
         );
     }, [combinedData, searchTerm]);
 
@@ -51,7 +51,7 @@ export default function AiRiskHomePage() {
     const topFactors = useMemo(() => {
         const factorMap = new Map<string, number>();
         MOCK_STORES.forEach(store => {
-            const profile = MOCK_RISK_PROFILES[store.id];
+            const profile = MOCK_RISK_PROFILES[store.id.toString()];
             if (profile) {
                 profile.factors.forEach(f => {
                     const current = factorMap.get(f.label) || 0;
@@ -154,14 +154,14 @@ export default function AiRiskHomePage() {
                     <tbody className="divide-y divide-gray-200">
                         {filteredData.map((store) => (
                             <tr
-                                key={store.id}
-                                onClick={() => router.push(`/ai-insight/${store.id}`)}
+                                key={store.storeId}
+                                onClick={() => router.push(`/ai-insight/${store.storeId}`)}
                                 className="hover:bg-gray-50 cursor-pointer transition-colors"
                             >
-                                <td className="px-6 py-4 font-bold text-gray-900 border-r border-gray-100">{store.name}</td>
+                                <td className="px-6 py-4 font-bold text-gray-900 border-r border-gray-100">{store.storeName}</td>
                                 <td className="px-6 py-4 border-r border-gray-100">{getStatusBadge(store.riskLevel)}</td>
-                                <td className="px-6 py-4 text-gray-600 border-r border-gray-100">{store.regionCode}</td>
-                                <td className="px-6 py-4 text-gray-600 border-r border-gray-100">{store.currentSupervisorId}</td>
+                                <td className="px-6 py-4 text-gray-600 border-r border-gray-100">{store.region}</td>
+                                <td className="px-6 py-4 text-gray-600 border-r border-gray-100">{store.supervisor}</td>
                                 <td className="px-6 py-4 border-r border-gray-100">
                                     <div className="flex items-center gap-3">
                                         <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
@@ -179,7 +179,7 @@ export default function AiRiskHomePage() {
                                         </span>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 text-gray-600">{store.updatedAt?.split('T')[0] || '-'}</td>
+                                <td className="px-6 py-4 text-gray-600">{store.lastInspectionDate || '-'}</td>
                             </tr>
                         ))}
                     </tbody>

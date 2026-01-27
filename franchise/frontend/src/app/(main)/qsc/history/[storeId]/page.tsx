@@ -11,7 +11,8 @@ export default function QscHistoryPage() {
     const router = useRouter();
     const params = useParams();
     const storeId = params.storeId as string;
-    const store = MOCK_STORES.find(s => s.id === storeId);
+    // Fix: storeId is number in mockData
+    const store = MOCK_STORES.find(s => s.id.toString() === storeId);
 
     // Filters
     const [period, setPeriod] = useState<'3M' | '6M' | '1Y'>('3M');
