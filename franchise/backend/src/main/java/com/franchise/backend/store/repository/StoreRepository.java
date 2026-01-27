@@ -12,7 +12,7 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     long countByCurrentState(StoreState currentState);
 
-    // qsc 점수와 최근 점검일
+    // 팀장 홈 : 점포 목록 검색
     @Query("""
         SELECT s
         FROM Store s
@@ -29,4 +29,13 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
             @Param("state") StoreState state,
             @Param("keyword") String keyword
     );
+
+    // SV 홈 : LoginId로 담당 점포 전체 조회
+    @Query("""
+        SELECT s
+        FROM Store s
+        JOIN s.supervisor u
+        WHERE u.loginId = :loginId
+    """)
+    List<Store> findBySupervisorLoginId(@Param("loginId") String loginId);
 }

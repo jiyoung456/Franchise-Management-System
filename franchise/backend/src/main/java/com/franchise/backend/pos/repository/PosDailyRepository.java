@@ -41,6 +41,21 @@ public interface PosDailyRepository extends JpaRepository<PosDaily, Long> {
             @Param("toDate") LocalDate toDate
     );
 
+    // SV 홈: 담당 점포들 매출 합
+    @Query("""
+        SELECT COALESCE(SUM(p.salesAmount), 0)
+        FROM PosDaily p
+        WHERE p.storeId IN :storeIds
+          AND (p.isMissing = false)
+          AND p.businessDate >= :from
+          AND p.businessDate <= :to
+    """)
+    BigDecimal sumSalesBetweenStoreIds(
+            @Param("storeIds") List<Long> storeIds,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
     // 기간 내 일별 데이터 (그래프용)
     List<PosDaily> findByStoreIdAndBusinessDateBetweenOrderByBusinessDateAsc(
             Long storeId, LocalDate fromDate, LocalDate toDate

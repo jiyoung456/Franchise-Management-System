@@ -19,6 +19,18 @@ public interface EventLogRepository extends JpaRepository<EventLog, Long> {
     """)
     long countNewEventsSince(@Param("since") OffsetDateTime since);
 
+    //SV 홈: 담당 점포들 기준 최근 이벤트 수(48h)
+    @Query("""
+        SELECT COUNT(e)
+        FROM EventLog e
+        WHERE e.storeId IN :storeIds
+          AND e.occurredAt >= :since
+    """)
+    long countNewEventsSinceForStores(
+            @Param("storeIds") List<Long> storeIds,
+            @Param("since") OffsetDateTime since
+    );
+
     // 점포 상세 : 해당 점포 이벤트 최신순
     List<EventLog> findByStoreIdOrderByOccurredAtDesc(Long storeId, Pageable pageable);
 
