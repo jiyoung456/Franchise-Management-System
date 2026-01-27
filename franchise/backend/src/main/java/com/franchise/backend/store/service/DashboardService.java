@@ -156,7 +156,7 @@ public class DashboardService {
                 new SupervisorDashboardSummaryResponse.TrendPoint("4주", avgRiskScore)
         );
 
-        // 6) 평균 매출 변화율 추이(최근 4개월) - pos_daily 기반 (실패 시 0으로 방어)
+        // 6) 평균 매출 변화율 추이(프로젝트 기준 월 고정: 2025-05 ~ 2025-08)
         List<SupervisorDashboardSummaryResponse.TrendPoint> monthlySalesTrend =
                 getMonthlyAvgSalesChangeRateTrend(storeIds);
 
@@ -197,11 +197,12 @@ public class DashboardService {
                         new SupervisorDashboardSummaryResponse.TrendPoint("3주", 0.0),
                         new SupervisorDashboardSummaryResponse.TrendPoint("4주", 0.0)
                 ),
+                // 프로젝트 기준 월(더미데이터 존재 구간)으로 고정
                 List.of(
+                        new SupervisorDashboardSummaryResponse.TrendPoint("5월", 0.0),
+                        new SupervisorDashboardSummaryResponse.TrendPoint("6월", 0.0),
                         new SupervisorDashboardSummaryResponse.TrendPoint("7월", 0.0),
-                        new SupervisorDashboardSummaryResponse.TrendPoint("8월", 0.0),
-                        new SupervisorDashboardSummaryResponse.TrendPoint("9월", 0.0),
-                        new SupervisorDashboardSummaryResponse.TrendPoint("10월", 0.0)
+                        new SupervisorDashboardSummaryResponse.TrendPoint("8월", 0.0)
                 ),
                 new SupervisorDashboardSummaryResponse.StateDistribution(0, 0, 0),
                 new SupervisorDashboardSummaryResponse.VisitStatus(0, 0, 0),
@@ -229,7 +230,6 @@ public class DashboardService {
             Long v = namedParameterJdbcTemplate.queryForObject(sql, params, Long.class);
             return (v == null ? 0 : v);
         } catch (DataAccessException e) {
-            // 테이블/컬럼이 다르거나 아직 없을 때 서버 죽지 않게 방어
             return 0;
         }
     }
@@ -237,10 +237,6 @@ public class DashboardService {
     private long countPendingActions(List<Long> storeIds) {
         if (storeIds == null || storeIds.isEmpty()) return 0;
 
-        // actions 테이블 컬럼명이 프로젝트마다 다를 수 있어서 try/catch 방어
-        // 기본 가정:
-        // - actions.store_id
-        // - actions.status (OPEN/IN_PROGRESS/CLOSED/OVERDUE 등)
         String sql = """
             SELECT COUNT(*)
             FROM actions
@@ -258,26 +254,29 @@ public class DashboardService {
         }
     }
 
+    /**
+     * 프로젝트 기준 월 고정:
+     * - 더미데이터 범위가 2025-03-01 ~ 2025-08-31 이므로
+     * - "최근 4개월"을 시스템 현재월(2026-01) 기준으로 잡으면 전부 0이 나옴
+     * - 그래서 SV 홈 매출 추이는 2025-05, 06, 07, 08 로 고정한다.
+     */
     private List<SupervisorDashboardSummaryResponse.TrendPoint> getMonthlyAvgSalesChangeRateTrend(List<Long> storeIds) {
-        // 최근 4개월 (이번달 포함) 기준으로 평균 매출 변화율을 계산
-        // - pos_daily: store_id, sales_date, sales_amount 가 있다고 가정
-        // - 월 매출합(전체 store 평균) 구하고, 전월 대비 변화율(%) 계산
+
         if (storeIds == null || storeIds.isEmpty()) {
             return List.of(
+                    new SupervisorDashboardSummaryResponse.TrendPoint("5월", 0.0),
+                    new SupervisorDashboardSummaryResponse.TrendPoint("6월", 0.0),
                     new SupervisorDashboardSummaryResponse.TrendPoint("7월", 0.0),
-                    new SupervisorDashboardSummaryResponse.TrendPoint("8월", 0.0),
-                    new SupervisorDashboardSummaryResponse.TrendPoint("9월", 0.0),
-                    new SupervisorDashboardSummaryResponse.TrendPoint("10월", 0.0)
+                    new SupervisorDashboardSummaryResponse.TrendPoint("8월", 0.0)
             );
         }
 
-        // label 4개 생성: (현재월 기준 -3 ~ 현재월)
-        YearMonth nowYm = YearMonth.now();
+        // 고정 월: 2025-05 ~ 2025-08
         List<YearMonth> yms = List.of(
-                nowYm.minusMonths(3),
-                nowYm.minusMonths(2),
-                nowYm.minusMonths(1),
-                nowYm
+                YearMonth.of(2025, 5),
+                YearMonth.of(2025, 6),
+                YearMonth.of(2025, 7),
+                YearMonth.of(2025, 8)
         );
 
         // 월별 총매출
@@ -312,7 +311,6 @@ public class DashboardService {
         LocalDate start = ym.atDay(1);
         LocalDate end = ym.atEndOfMonth();
 
-        // pos_daily 컬럼명은 프로젝트마다 다를 수 있으니 try/catch 방어
         String sql = """
             SELECT COALESCE(SUM(sales_amount), 0)
             FROM pos_daily
@@ -346,15 +344,13 @@ public class DashboardService {
     private VisitAgg getVisitStatusByQscThisMonth(List<Long> storeIds) {
         if (storeIds == null || storeIds.isEmpty()) return new VisitAgg(0, 0);
 
-        // 이번 달 1일 00:00 ~ 다음달 1일 00:00
+        // (현재 로직 유지) 이번 달 1일 00:00 ~ 다음달 1일 00:00
         LocalDate firstDay = LocalDate.now().withDayOfMonth(1);
         LocalDate nextMonthFirst = firstDay.plusMonths(1);
 
         OffsetDateTime from = firstDay.atStartOfDay().atOffset(ZoneOffset.UTC);
         OffsetDateTime to = nextMonthFirst.atStartOfDay().atOffset(ZoneOffset.UTC);
 
-        // qsc_master 기준: status='COMPLETED' & inspected_at in this month
-        // store_id별로 1건이라도 있으면 방문 완료로 간주
         String sql = """
             SELECT COUNT(DISTINCT store_id)
             FROM qsc_master
@@ -385,11 +381,9 @@ public class DashboardService {
     ) {
         if (storeIds == null || storeIds.isEmpty()) return List.of();
 
-        // storeId -> storeName
         Map<Long, String> storeNameMap = stores.stream()
                 .collect(Collectors.toMap(Store::getId, Store::getStoreName, (a, b) -> a));
 
-        // 최신 COMPLETED QSC를 storeIds 전체에서 최신순으로 N개
         String sql = """
             SELECT store_id, MAX(inspected_at) AS last_inspected_at
             FROM qsc_master
