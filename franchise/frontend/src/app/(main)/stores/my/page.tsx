@@ -1,4 +1,4 @@
-// ... imports
+'use client';
 import { useRouter } from 'next/navigation';
 import { Search, Filter } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -16,7 +16,7 @@ export default function MyStoresPage() {
 
     useEffect(() => {
         const fetchStores = async () => {
-            const user = AuthService.getCurrentUser();
+            const user = await AuthService.getCurrentUser();
             if (user) {
                 try {
                     const data = await StoreService.getStoresBySv(user.loginId);

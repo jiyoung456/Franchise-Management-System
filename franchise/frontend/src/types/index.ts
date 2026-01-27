@@ -13,7 +13,7 @@ export interface User {
     password?: string;
     userName: string; // was name
     email: string;
-    phone: string;
+    phone?: string;
     department: Department;
     role: 'ADMIN' | 'MANAGER' | 'SUPERVISOR'; // ENUM
     accountStatus: boolean; // account_status

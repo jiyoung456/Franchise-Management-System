@@ -28,9 +28,12 @@ export default function NewStorePage() {
 
     useEffect(() => {
         // Load SVs from Storage
-        const users = AuthService.getUsers();
-        const supervisors = users.filter(u => u.role === 'SUPERVISOR');
-        setSvs(supervisors);
+        const fetchSvs = async () => {
+            const users = await AuthService.getUsers();
+            const supervisors = users.filter(u => u.role === 'SUPERVISOR');
+            setSvs(supervisors);
+        };
+        fetchSvs();
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -59,7 +62,7 @@ export default function NewStorePage() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const newStoreId = Date.now().toString();
@@ -83,9 +86,13 @@ export default function NewStorePage() {
             growthRate: 0
         };
 
-        StoreService.addStore(newStore);
-        alert(`신규 점포가 등록되었습니다.\n(담당 SV: ${formData.svName})`);
-        router.push('/stores');
+        const success = await StoreService.addStore(newStore);
+        if (success) {
+            alert(`신규 점포가 등록되었습니다.\n(담당 SV: ${formData.svName})`);
+            router.push('/stores');
+        } else {
+            alert('점포 등록에 실패했습니다.');
+        }
     };
 
     return (

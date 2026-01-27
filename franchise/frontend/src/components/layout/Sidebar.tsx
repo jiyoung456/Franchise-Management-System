@@ -36,17 +36,20 @@ export function Sidebar() {
     const [role, setRole] = useState<'ADMIN' | 'SUPERVISOR' | 'MANAGER' | null>(null);
 
     useEffect(() => {
-        // Hydration safe check
-        const user = AuthService.getCurrentUser();
-        if (user) {
-            setRole(user.role);
-        } else {
-            // If no user found, redirect to login
-            // But checking pathname to avoid redirect loop if already on login is not needed inside Sidebar
-            // because Sidebar is only in (main) layout, not (auth).
-            // So safe to redirect.
-            router.push('/login');
-        }
+        const checkUser = async () => {
+            // Hydration safe check
+            const user = await AuthService.getCurrentUser();
+            if (user) {
+                setRole(user.role);
+            } else {
+                // If no user found, redirect to login
+                // But checking pathname to avoid redirect loop if already on login is not needed inside Sidebar
+                // because Sidebar is only in (main) layout, not (auth).
+                // So safe to redirect.
+                router.push('/login');
+            }
+        };
+        checkUser();
     }, [router]);
 
     // Custom Navigation for Team Leader

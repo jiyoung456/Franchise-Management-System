@@ -40,19 +40,20 @@ export default function StoreDetailContent() {
     const [isKPIModalOpen, setIsKPIModalOpen] = useState(false);
 
     // Effect: Initial Data Fetch
+    // Effect: Initial Data Fetch
     useEffect(() => {
-        const user = AuthService.getCurrentUser();
-        setCurrentUser(user);
+        const init = async () => {
+            const user = await AuthService.getCurrentUser();
+            setCurrentUser(user);
 
-        if (!storeId) return;
+            if (!storeId) return;
 
-        const fetchStore = async () => {
             const found = await StoreService.getStore(storeId);
             if (found) {
                 setStore(found);
             }
         };
-        fetchStore();
+        init();
     }, [storeId]);
 
     // Derived Data

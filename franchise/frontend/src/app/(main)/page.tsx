@@ -609,13 +609,16 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = AuthService.getCurrentUser();
-    if (!currentUser) {
-      router.replace('/login');
-      return;
-    }
-    setUser(currentUser);
-    setIsLoading(false);
+    const checkUser = async () => {
+      const currentUser = await AuthService.getCurrentUser();
+      if (!currentUser) {
+        router.replace('/login');
+        return;
+      }
+      setUser(currentUser);
+      setIsLoading(false);
+    };
+    checkUser();
   }, []);
 
   if (isLoading || !user) return <div className="p-8 text-center">Loading...</div>;

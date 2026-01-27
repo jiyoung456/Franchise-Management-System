@@ -19,7 +19,6 @@ function SignupContent() {
         password: '',
         passwordConfirm: '',
         email: '',
-        phone: '',
         department: '서울/경기' as Department
     });
 
@@ -39,7 +38,6 @@ function SignupContent() {
     const [idMessage, setIdMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' });
     const [passwordError, setPasswordError] = useState('');
     const [emailMessage, setEmailMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' });
-    const [phoneMessage, setPhoneMessage] = useState<{ text: string, type: 'success' | 'error' | '' }>({ text: '', type: '' });
 
     const validatePassword = (pwd: string) => {
         if (!pwd) {
@@ -55,7 +53,7 @@ function SignupContent() {
         return true;
     };
 
-    const validateEmail = (addr: string) => {
+    const validateEmail = async (addr: string) => {
         if (!addr) {
             setEmailMessage({ text: '', type: '' });
             return false;
@@ -66,7 +64,8 @@ function SignupContent() {
             return false;
         }
         // Check Duplicate
-        if (AuthService.checkDuplicateEmail(addr)) {
+        const isDup = await AuthService.checkDuplicateEmail(addr);
+        if (isDup) {
             setEmailMessage({ text: '이미 사용 중인 이메일입니다.', type: 'error' });
             return false;
         }
@@ -74,19 +73,7 @@ function SignupContent() {
         return true;
     };
 
-    const validatePhone = (num: string) => {
-        if (!num) {
-            setPhoneMessage({ text: '', type: '' });
-            return false;
-        }
-        // Simple check or regex if needed
-        if (AuthService.checkDuplicatePhone(num)) {
-            setPhoneMessage({ text: '이미 사용 중인 휴대전화 번호입니다.', type: 'error' });
-            return false;
-        }
-        setPhoneMessage({ text: '사용 가능한 휴대전화 번호입니다.', type: 'success' });
-        return true;
-    };
+
 
     // Terms and Agreements State
     const [agreements, setAgreements] = useState({
@@ -121,17 +108,16 @@ function SignupContent() {
         }
         if (name === 'password') validatePassword(value);
         if (name === 'email') setEmailMessage({ text: '', type: '' }); // Reset on type, check on blur
-        if (name === 'phone') setPhoneMessage({ text: '', type: '' }); // Reset on type, check on blur
     };
 
 
-    const handleIdCheck = () => {
+    const handleIdCheck = async () => {
         if (!formData.loginId.trim()) {
             setIdMessage({ text: '아이디를 입력해주세요.', type: 'error' });
             return;
         }
 
-        const isDuplicate = AuthService.checkDuplicateId(formData.loginId, activeTab);
+        const isDuplicate = await AuthService.checkDuplicateId(formData.loginId, activeTab);
 
         if (isDuplicate) {
             setIdMessage({ text: '사용 불가능합니다. 다른 아이디로 바꿔주십시오.', type: 'error' });
@@ -142,7 +128,7 @@ function SignupContent() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!isIdChecked) {
@@ -155,11 +141,8 @@ function SignupContent() {
             return;
         }
 
-        if (!validateEmail(formData.email)) {
+        if (!(await validateEmail(formData.email))) {
             // validateEmail sets message
-            return;
-        }
-        if (!validatePhone(formData.phone)) {
             return;
         }
 
@@ -182,12 +165,11 @@ function SignupContent() {
         const role = activeTab;
 
         // Register
-        const result = AuthService.register({
+        const result = await AuthService.register({
             loginId: formData.loginId,
             email: formData.email,
             userName: formData.userName,
             password: formData.password,
-            phone: formData.phone,
             department: formData.department,
             role: role
         });
@@ -347,25 +329,7 @@ function SignupContent() {
                     )}
                 </div>
 
-                {/* Phone */}
-                <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-600">휴대전화</label>
-                    <input
-                        name="phone"
-                        type="tel"
-                        required
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="휴대전화 번호를 입력해주세요."
-                        className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-[#2CA4D9] text-gray-900 placeholder-gray-300"
-                        onBlur={() => validatePhone(formData.phone)}
-                    />
-                    {phoneMessage.text && (
-                        <p className={`text-xs mt-1 ${phoneMessage.type === 'success' ? 'text-blue-500' : 'text-red-500'}`}>
-                            {phoneMessage.text}
-                        </p>
-                    )}
-                </div>
+
 
                 {/* Department (Region) - Only for STAFF equivalent (Manager/Supervisor) */}
                 {(activeTab === 'MANAGER' || activeTab === 'SUPERVISOR') && (

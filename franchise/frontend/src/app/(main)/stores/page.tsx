@@ -22,7 +22,7 @@ export default function StoreListPage() {
     const fetchStores = async () => {
         setLoading(true);
         try {
-            const user = AuthService.getCurrentUser();
+            const user = await AuthService.getCurrentUser();
             const currentRole = user?.role;
             setRole(currentRole || null);
 

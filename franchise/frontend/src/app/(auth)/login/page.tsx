@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useRef } from 'react';
-import { StorageService } from '@/lib/storage';
+import { AuthService } from '@/services/authService';
 import { Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/common/Logo';
 import ReCAPTCHA from 'react-google-recaptcha';
@@ -22,7 +22,7 @@ export default function LoginPage() {
     // Tab State: 'MANAGER' | 'SUPERVISOR' | 'ADMIN'
     const [activeTab, setActiveTab] = useState<'MANAGER' | 'SUPERVISOR' | 'ADMIN'>('SUPERVISOR');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!captchaValue) {
@@ -31,37 +31,45 @@ export default function LoginPage() {
         }
 
         // 1. Login attempt
-        const result = StorageService.login(id, password, activeTab);
+        // Use AuthService instead of StorageService
+        try {
+            const result = await AuthService.login(id, password, activeTab);
 
-        if (result.success && result.user) {
-            // Check for Warnings (Expired Password)
-            if (result.code === 'EXPIRED') {
-                alert(result.message);
-            }
+            if (result.success && result.user) {
+                // Check for Warnings (Expired Password)
+                if (result.code === 'EXPIRED') {
+                    alert(result.message);
+                }
 
-            // 2. Validate Role based on Active Tab
-            // 2. Validate Role based on Active Tab
-            const userRole = result.user.role;
+                // 2. Validate Role based on Active Tab
+                // 2. Validate Role based on Active Tab
+                const userRole = result.user.role;
 
-            if (userRole !== activeTab) {
-                let tabName = '팀장';
-                if (activeTab === 'SUPERVISOR') tabName = 'SV';
-                if (activeTab === 'ADMIN') tabName = '관리자';
+                if (userRole !== activeTab) {
+                    let tabName = '팀장';
+                    if (activeTab === 'SUPERVISOR') tabName = 'SV';
+                    if (activeTab === 'ADMIN') tabName = '관리자';
 
-                alert(`해당 계정은 ${tabName} 탭에서 로그인할 수 없습니다.`);
+                    alert(`해당 계정은 ${tabName} 탭에서 로그인할 수 없습니다.`);
+                    recaptchaRef.current?.reset();
+                    setCaptchaValue(null);
+                    return;
+                }
+
+                router.push('/');
+            } else {
+                if (result.code === 'LOCKED') {
+                    alert(result.message);
+                } else {
+                    alert(result.message || '로그인에 실패했습니다.');
+                }
+                // Reset Captcha on failure
                 recaptchaRef.current?.reset();
                 setCaptchaValue(null);
-                return;
             }
-
-            router.push('/');
-        } else {
-            if (result.code === 'LOCKED') {
-                alert(result.message);
-            } else {
-                alert(result.message || '로그인에 실패했습니다.');
-            }
-            // Reset Captcha on failure
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('로그인 중 오류가 발생했습니다.');
             recaptchaRef.current?.reset();
             setCaptchaValue(null);
         }

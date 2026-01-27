@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// Environment variable to toggle mock/real API
+export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false'; // Default to true if not set
+
 const api = axios.create({
     baseURL: 'http://localhost:8080',
     timeout: 10000,
@@ -8,13 +11,17 @@ const api = axios.create({
     }
 });
 
-// Add request interceptor if needed (e.g., to add auth token)
+// Add request interceptor
 api.interceptors.request.use(
     (config) => {
-        // const token = localStorage.getItem('token');
-        // if (token) {
-        //     config.headers.Authorization = `Bearer ${token}`;
-        // }
+        // Only attach token if we are NOT using mock (or if backend needs it)
+        // For now, we assume backend needs token if we are talking to it.
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem('token');
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        }
         return config;
     },
     (error) => {
@@ -22,7 +29,7 @@ api.interceptors.request.use(
     }
 );
 
-// Add response interceptor if needed
+// Add response interceptor
 api.interceptors.response.use(
     (response) => {
         return response;

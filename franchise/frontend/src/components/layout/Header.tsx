@@ -23,15 +23,21 @@ export function Header() {
     const [notifications, setNotifications] = useState<EventLog[]>([]);
 
     useEffect(() => {
-        // Initialize Storage (if needed) and get current user
-        AuthService.init();
-        setUser(AuthService.getCurrentUser());
+        const init = async () => {
+            // Initialize Storage (if needed) and get current user
+            await AuthService.init();
+            const currentUser = await AuthService.getCurrentUser();
+            setUser(currentUser);
 
-        // Fetch Events for Notifications
-        const allEvents = EventService.getEvents();
-        // Filter for Critical/High Open events
-        const notis = allEvents.filter(e => e.status === 'OPEN' && (e.severity === 'CRITICAL' || e.severity === 'WARNING'));
-        setNotifications(notis);
+            // Fetch Events for Notifications
+            // Note: EventService is still synchronous (Mock only) for now.
+            // If EventService becomes async, this will need await.
+            const allEvents = EventService.getEvents();
+            // Filter for Critical/High Open events
+            const notis = allEvents.filter(e => e.status === 'OPEN' && (e.severity === 'CRITICAL' || e.severity === 'WARNING'));
+            setNotifications(notis);
+        };
+        init();
     }, []);
 
     const handleLogout = () => {
