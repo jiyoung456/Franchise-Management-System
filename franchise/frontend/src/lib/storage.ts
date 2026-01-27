@@ -174,15 +174,12 @@ export const StorageService = {
             return { success: false, message: '이미 해당 직군에 사용 중인 아이디입니다.' };
         }
 
+
         // 2. Check Email Duplicate (Global)
         if (users.find(u => u.email === user.email)) {
             return { success: false, message: '이미 사용 중인 이메일입니다.' };
         }
 
-        // 3. Check Phone Duplicate (Global)
-        if (users.find(u => u.phone === user.phone)) {
-            return { success: false, message: '이미 사용 중인 전화번호입니다.' };
-        }
 
         const newUser: User = {
             ...user,

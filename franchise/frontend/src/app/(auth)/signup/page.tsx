@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { AuthService } from '@/services/authService';
-import { Department } from '@/types';
+import { Department, Team } from '@/types';
 import { Logo } from '@/components/common/Logo';
 
 
 const DEPARTMENTS: Department[] = ['서울/경기', '부산/경남', '강원/충청', '전라/광주', '대구/울산/경북', '제주'];
+const TEAMS: Team[] = ['운영1팀', '운영2팀', '운영3팀', '가맹관리팀', '품질관리팀'];
 type RoleOption = '관리자' | '팀장' | 'SV';
 
 function SignupContent() {
@@ -19,7 +20,8 @@ function SignupContent() {
         password: '',
         passwordConfirm: '',
         email: '',
-        department: '서울/경기' as Department
+        department: '서울/경기' as Department,
+        team: '운영1팀' as Team
     });
 
 
@@ -164,6 +166,9 @@ function SignupContent() {
         // Map UI Role based on Tab
         const role = activeTab;
 
+        // Determine team: Admin gets '운영본부', others use selected team
+        const teamValue = role === 'ADMIN' ? '운영본부' : formData.team;
+
         // Register
         const result = await AuthService.register({
             loginId: formData.loginId,
@@ -171,6 +176,7 @@ function SignupContent() {
             userName: formData.userName,
             password: formData.password,
             department: formData.department,
+            team: teamValue,
             role: role
         });
 
@@ -333,19 +339,34 @@ function SignupContent() {
 
                 {/* Department (Region) - Only for STAFF equivalent (Manager/Supervisor) */}
                 {(activeTab === 'MANAGER' || activeTab === 'SUPERVISOR') && (
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-600">담당 지역 (부서)</label>
-                        <select
-                            name="department"
-                            value={formData.department}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-[#2CA4D9] text-gray-700 bg-white"
-                        >
-                            {DEPARTMENTS.map(dept => (
-                                <option key={dept} value={dept}>{dept}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-600">담당 지역</label>
+                            <select
+                                name="department"
+                                value={formData.department}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-[#2CA4D9] text-gray-700 bg-white"
+                            >
+                                {DEPARTMENTS.map(dept => (
+                                    <option key={dept} value={dept}>{dept}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-600">부서</label>
+                            <select
+                                name="team"
+                                value={formData.team}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-[#2CA4D9] text-gray-700 bg-white"
+                            >
+                                {TEAMS.map(team => (
+                                    <option key={team} value={team}>{team}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </>
                 )}
 
 

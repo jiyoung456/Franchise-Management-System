@@ -5,6 +5,7 @@ export interface ApiResponse<T> {
 }
 
 export type Department = '서울/경기' | '부산/경남' | '강원/충청' | '전라/광주' | '대구/울산/경북' | '제주';
+export type Team = '운영1팀' | '운영2팀' | '운영3팀' | '가맹관리팀' | '품질관리팀' | '운영본부';
 export type Rank = 'HQ_ADMIN' | 'SV_TEAM_LEADER' | 'SV_SUPERVISOR';
 
 export interface User {
@@ -15,6 +16,7 @@ export interface User {
     email: string;
     phone?: string;
     department: Department;
+    team?: Team; // 부서 (팀)
     role: 'ADMIN' | 'MANAGER' | 'SUPERVISOR'; // ENUM
     accountStatus: boolean; // account_status
     lastLoginAt?: string; // last_login_at

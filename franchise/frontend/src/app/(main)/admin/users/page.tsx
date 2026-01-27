@@ -17,12 +17,15 @@ export default function UserManagementPage() {
     useEffect(() => {
         loadUsers();
         // Load current user
-        const user = AuthService.getCurrentUser();
-        setCurrentUser(user);
+        const loadCurrentUser = async () => {
+            const user = await AuthService.getCurrentUser();
+            setCurrentUser(user);
+        };
+        loadCurrentUser();
     }, []);
 
-    const loadUsers = () => {
-        const allUsers = AuthService.getUsers();
+    const loadUsers = async () => {
+        const allUsers = await AuthService.getUsers();
         setUsers(allUsers);
         setIsLoading(false);
     };
@@ -32,8 +35,8 @@ export default function UserManagementPage() {
         setIsEditModalOpen(true);
     };
 
-    const handleSaveUser = (updatedUser: User) => {
-        const result = AuthService.updateUser(updatedUser);
+    const handleSaveUser = async (updatedUser: User) => {
+        const result = await AuthService.updateUser(updatedUser);
         if (result.success) {
             loadUsers();
             setIsEditModalOpen(false);
@@ -43,9 +46,9 @@ export default function UserManagementPage() {
         }
     };
 
-    const handleDeleteUser = (userId: string) => {
+    const handleDeleteUser = async (userId: string) => {
         if (!confirm('정말 삭제하시겠습니까?')) return;
-        const result = AuthService.deleteUser(userId);
+        const result = await AuthService.deleteUser(userId);
         if (result.success) {
             loadUsers();
             setIsEditModalOpen(false);
@@ -94,6 +97,7 @@ export default function UserManagementPage() {
                                 <td className="px-6 py-4">
                                     <div className="text-sm text-gray-900">{user.department}</div>
                                     <div className="text-sm text-gray-500">
+                                        {user.team && `${user.team} · `}
                                         {user.role === 'ADMIN' ? '관리자' :
                                             user.role === 'MANAGER' ? '팀장' :
                                                 user.role === 'SUPERVISOR' ? '슈퍼바이저' : user.role}

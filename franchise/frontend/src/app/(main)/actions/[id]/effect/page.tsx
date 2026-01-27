@@ -105,7 +105,7 @@ export default function ActionEffectPage({ params }: { params: { id: string } })
                                 </div>
                             </div>
 
-                            <h4 className="font-bold text-gray-900 mb-2 border-b pb-1">AI 분석 리포트</h4>
+                            <h4 className="font-bold text-gray-900 mb-2 border-b pb-1">분석 리포트</h4>
                             <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
                                 <li><strong>비교 기간:</strong> 조치 시행일 기준 전/후 2주 데이터 비교</li>
                                 <li><strong>분석 결과:</strong> 조치 후 목표 지표({actionData.metric})가 평균 <span className="text-red-600 font-bold">15% 상승</span>했습니다.</li>
