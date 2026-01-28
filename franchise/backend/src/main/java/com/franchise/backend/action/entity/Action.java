@@ -94,4 +94,23 @@ public class Action {
         this.createdByUserId = createdByUserId;
     }
 
+    public void update(String actionType,
+                       String targetMetricCode,
+                       java.time.LocalDate dueDate,
+                       String priority,
+                       String title,
+                       String description) {
+
+        this.actionType = actionType;
+        this.targetMetricCode = targetMetricCode;
+        this.dueDate = dueDate;
+        this.priority = priority;
+        this.title = title;
+        this.description = description;
+    }
+
+
+    public void close() {
+        this.status = "CLOSED";
+    }
 }

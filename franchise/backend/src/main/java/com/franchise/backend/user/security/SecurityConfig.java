@@ -8,9 +8,14 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.annotation.Order;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @RequiredArgsConstructor
@@ -19,6 +24,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+//조치 임시 테스트
+
+
+//    @Bean
+//    @Order(0) // ✅ 가장 먼저 적용
+//    public SecurityFilterChain executionChain(HttpSecurity http) throws Exception {
+//        http
+//                .securityMatcher("/users/*/actions/summary") // ✅ 이 경로만 따로 잡기
+//                .csrf(csrf -> csrf.disable())
+//                .authorizeHttpRequests(auth -> auth
+//                        .anyRequest().permitAll()
+//                );
+//
+//        return http.build();
+//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -61,6 +81,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/risk-bands/**").hasRole("ADMIN")
                         .requestMatchers("/api/organizations/**").hasRole("ADMIN")
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
+
+
 
                         // 공통 조회(Read) - 전 역할 허용 (데이터 레벨은 다음 단계)
                         .requestMatchers(HttpMethod.GET,
@@ -112,6 +134,7 @@ public class SecurityConfig {
 
                         // 그 외는 인증 필요
                         .anyRequest().authenticated()
+
                 )
 
                 // JWT 필터
