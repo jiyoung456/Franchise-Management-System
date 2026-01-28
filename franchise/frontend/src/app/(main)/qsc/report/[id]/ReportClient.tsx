@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-export default function ReportClient({ id }: { id: string }) {
+export default function ReportClient({ id, storeId }: { id: string, storeId?: string }) {
     const router = useRouter();
 
     const [reportData, setReportData] = useState<any | null>(null); // Extended Inspection type
@@ -19,15 +19,29 @@ export default function ReportClient({ id }: { id: string }) {
     // const [activeTab, setActiveTab] = useState('quality'); // Default first tab (Unused in original code but kept for consistency if needed later)
 
     useEffect(() => {
-        const fetchInspection = () => {
-            const data = QscService.getInspection(id);
-            if (data) {
-                setReportData(data);
+        const fetchInspection = async () => {
+            setLoading(true);
+            try {
+                let data;
+                if (storeId) {
+                    // Fetch using backend list filtering
+                    data = await QscService.getInspectionDetail(Number(storeId), id);
+                } else {
+                    // Fallback to purely local mock if no storeId provided (Demo mode compatibility)
+                    data = QscService.getInspection(id);
+                }
+
+                if (data) {
+                    setReportData(data);
+                }
+            } catch (error) {
+                console.error("Failed to load inspection:", error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchInspection();
-    }, [id]);
+    }, [id, storeId]);
 
     const [template, setTemplate] = useState<any>(null);
 

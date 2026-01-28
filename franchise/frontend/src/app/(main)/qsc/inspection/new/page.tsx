@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FIXED_QSC_CATEGORIES, QSC_GRADE_CRITERIA } from '@/lib/mock/mockQscData';
 import { QSCItem, QSCTemplate, Store } from '@/types';
 import { AuthService } from '@/services/authService';
+import { QscService } from '@/services/qscService';
 import { StorageService } from '@/lib/storage';
 import { Camera, ChevronRight, ChevronLeft, ChevronDown, Trash2, Plus, Info, Search, Check } from 'lucide-react';
 
@@ -35,38 +36,29 @@ export default function NewInspectionPage() {
 
     // Load Initial Data
     useEffect(() => {
-        const user = AuthService.getCurrentUser();
-        if (user) {
-            setInspectorName(user.userName);
-            // SV's Stores Only
-            if (user.role === 'SUPERVISOR') {
-                const { StoreService } = require('@/services/storeService');
-                const myStores = StoreService.getStoresBySv(user.loginId);
-                // getStoresBySv returns Promise in strict mode? No, StorageService is synch in mock implementation usually?
-                // Wait, StorageService.getStoresBySv(userId) implementation in Step 396 was not fully visible but based on usage in SvPerformanceView (Step 445 overwrite) it returned a Promise there?
-                // "myStores.then(stores => setSvStores(stores));" I wrote that.
-                // Let's assume it returns Promise or handle both.
-                // In StorageService (mock), it's likely sync or async.
-                // Let's wrap in Promise.resolve just in case or check implementation.
-                // Actually in Step 445 I treated it as Promise.
-                Promise.resolve(myStores).then(s => setStores(s));
-            } else if (user.role === 'ADMIN') {
-                const { StoreService } = require('@/services/storeService');
-                StoreService.getStores().then((adminStores: any) => setStores(adminStores));
-            } else {
-                setStores([]);
+        const loadData = async () => {
+            const user = await AuthService.getCurrentUser();
+            if (user) {
+                setInspectorName(user.userName);
+                // SV's Stores Only
+                if (user.role === 'SUPERVISOR') {
+                    const { StoreService } = require('@/services/storeService');
+                    const myStores = await StoreService.getStoresBySv(user.loginId);
+                    setStores(myStores);
+                } else if (user.role === 'ADMIN') {
+                    const { StoreService } = require('@/services/storeService');
+                    const adminStores = await StoreService.getStores({ limit: 200 });
+                    setStores(adminStores);
+                } else {
+                    setStores([]);
+                }
             }
-        }
 
-        // Use StorageService to connect to Admin Data
-        StorageService.init();
-        const allTemplates = StorageService.getTemplates();
-
-        // DISABLE FILTER to ensure templates appear
-        const activeTemplates = allTemplates;
-
-        console.log('SV Loaded Templates:', activeTemplates);
-        setTemplates(activeTemplates);
+            // Use QscService to fetch Active Templates from Backend (Real API)
+            const activeTemplates = await QscService.getActiveTemplates();
+            setTemplates(activeTemplates);
+        };
+        loadData();
     }, []);
 
     // Helper: Select Template and Go Next
@@ -198,7 +190,6 @@ export default function NewInspectionPage() {
                                     </div>
                                     <span className="inline-block px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-3">{latest.type}</span>
                                     <h3 className="text-xl font-bold text-gray-900 mb-2">{latest.title}</h3>
-                                    <div className="text-sm text-gray-500 mb-4 line-clamp-2">{latest.description || '설명이 없습니다.'}</div>
                                     <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-4">
                                         <span className="text-xs font-mono text-gray-400">Latest v{latest.version}</span>
                                         <button className="text-sm font-bold text-blue-600 flex items-center group-hover:translate-x-1 transition-transform">

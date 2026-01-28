@@ -154,6 +154,7 @@ export interface Inspection {
     answers?: Record<string, any>; // Flexible for now
     overallComment?: string;
     overallPhotos?: string[];
+    summaryComment?: string;
 }
 
 // Events

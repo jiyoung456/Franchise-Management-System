@@ -1,14 +1,11 @@
 'use client';
 
-import { MOCK_STORES } from '@/lib/mock/mockData';
-import type { Store, StatusHistory, User as UserType } from '@/types';
+import type { Store, StatusHistory, User as UserType, ActionItem } from '@/types';
 import { AuthService } from '@/services/authService';
 import { StoreService } from '@/services/storeService';
 import { QscService } from '@/services/qscService';
-import { MOCK_EVENTS } from '@/lib/mock/mockEventData';
-import { MOCK_RISK_PROFILES } from '@/lib/mock/mockRiskData';
-import { MOCK_ACTIONS } from '@/lib/mock/mockActionData';
-import { MOCK_PERFORMANCE } from '@/lib/mock/mockSalesData';
+import { EventService } from '@/services/eventService';
+import { ActionService } from '@/services/actionService';
 import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
     MapPin, Calendar, User, FileText, Activity, AlertTriangle,
@@ -30,6 +27,9 @@ export default function StoreDetailContent() {
 
     // State
     const [store, setStore] = useState<Store | null>(null);
+    const [events, setEvents] = useState<any[]>([]);
+    const [actions, setActions] = useState<ActionItem[]>([]);
+    const [qscInspections, setQscInspections] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'history' | 'risk' | 'qsc'>(
         (searchParams.get('tab') as any) || 'info'
     );
@@ -48,17 +48,61 @@ export default function StoreDetailContent() {
 
             if (!storeId) return;
 
+            // 점포 정보 조회
             const found = await StoreService.getStore(storeId);
             if (found) {
                 setStore(found);
+            }
+
+            // 이벤트 조회 (점포별 API 사용)
+            try {
+                const storeEvents = await StoreService.getStoreEvents(storeId, 20);
+                setEvents(storeEvents);
+            } catch (error) {
+                console.error('Failed to load events:', error);
+                setEvents([]);
+            }
+
+            // 조치사항 조회 (전체 조치에서 필터링)
+            try {
+                const allActions = await ActionService.getActions();
+                const storeActions = allActions.filter((a: ActionItem) => a.storeId?.toString() === storeId);
+                setActions(storeActions);
+            } catch (error) {
+                console.error('Failed to load actions:', error);
+                setActions([]);
+            }
+
+            // QSC 점검 조회
+            try {
+                const qscData = await QscService.getStoreQscList(Number(storeId));
+                setQscInspections(qscData);
+            } catch (error) {
+                console.error('Failed to load QSC inspections:', error);
+                setQscInspections([]);
             }
         };
         init();
     }, [storeId]);
 
-    // Derived Data
-    const performance = MOCK_PERFORMANCE[store?.id || '1'] || MOCK_PERFORMANCE['1'];
-    const riskProfile = MOCK_RISK_PROFILES[store?.id || ''] || MOCK_RISK_PROFILES['1'];
+    // Derived Data (임시 기본값 - 추후 백엔드 API 연동 필요)
+    const performance = {
+        salesTrend: [],
+        qscTrend: [],
+        monthlySales: 0,
+        monthlyGrowth: 0,
+        weeklySales: [
+            { week: '1주차', sales: 0 },
+            { week: '2주차', sales: 0 },
+            { week: '3주차', sales: 0 },
+            { week: '4주차', sales: 0 }
+        ]
+    };
+    const riskProfile = {
+        totalRiskScore: store?.currentStateScore || 0,
+        anomaly: { summary: '특이사항 없습니다.' },
+        factors: []
+    };
 
     // Calculate Chart Data for Status History
     const statusChartData = useMemo(() => {
@@ -288,15 +332,17 @@ export default function StoreDetailContent() {
                                     <Bell className="w-5 h-5 text-indigo-500" /> 최근 이벤트 (Log)
                                 </h3>
                                 <ul className="space-y-4">
-                                    {MOCK_EVENTS.filter(e => e.storeId === store.id.toString()).map(evt => (
-                                        <li key={evt.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                                    {events.map((evt: any) => (
+                                        <li key={evt.eventId || evt.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                                             <div className="flex justify-between items-start mb-2">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-bold border ${evt.type === 'QSC' ? 'bg-blue-50 text-blue-600 border-blue-100' : evt.type === 'RISK' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-100 text-gray-600'}`}>
-                                                    {evt.type}
+                                                <span className={`px-2 py-0.5 rounded text-xs font-bold border ${evt.eventType === 'QSC' || evt.type === 'QSC' ? 'bg-blue-50 text-blue-600 border-blue-100' : evt.eventType === 'RISK' || evt.type === 'RISK' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-100 text-gray-600'}`}>
+                                                    {evt.eventType || evt.type || 'EVENT'}
                                                 </span>
-                                                <span className="text-xs text-gray-400">{evt.timestamp.replace('T', ' ').slice(0, 16)}</span>
+                                                <span className="text-xs text-gray-400">
+                                                    {(evt.occurredAt || evt.timestamp || '').toString().replace('T', ' ').slice(0, 16)}
+                                                </span>
                                             </div>
-                                            <p className="font-bold text-gray-900 mb-1">{evt.message}</p>
+                                            <p className="font-bold text-gray-900 mb-1">{evt.summary || evt.message || '이벤트 내용 없음'}</p>
                                         </li>
                                     ))}
                                 </ul>
@@ -307,8 +353,8 @@ export default function StoreDetailContent() {
                                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                                     <ClipboardList className="w-5 h-5 text-blue-500" /> 조치 현황
                                 </h3>
-                                <div className="space-y-3">
-                                    {MOCK_ACTIONS.filter(a => a.storeId === store.id.toString()).map(action => (
+                                <div className="space-y-4">
+                                    {actions.map((action: ActionItem) => (
                                         <div key={action.id} className="flex justify-between items-center border border-gray-100 p-4 rounded-lg">
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
@@ -335,13 +381,37 @@ export default function StoreDetailContent() {
                                     <ClipboardList className="w-5 h-5 text-purple-500" /> QSC 점검 이력
                                 </h3>
                                 <div className="space-y-4">
-                                    {QscService.getInspections().filter(i => i.storeId === store.id.toString())
-                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                        .map(inspection => (
-                                            <div key={inspection.id} className="border p-4 rounded-lg">
-                                                <div className="font-bold">{inspection.date} {inspection.type} 점검 - {inspection.grade}등급</div>
+                                    {qscInspections.length > 0 ? (
+                                        qscInspections.map((inspection: any) => (
+                                            <div key={inspection.inspectionId || inspection.id} className="border p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="font-bold text-gray-900">
+                                                        {(inspection.inspectedAt || inspection.date || '').toString().split('T')[0]} 점검
+                                                    </div>
+                                                    <span className={`px-2 py-1 rounded text-sm font-bold ${inspection.grade === 'A' ? 'bg-green-100 text-green-700' :
+                                                            inspection.grade === 'B' ? 'bg-blue-100 text-blue-700' :
+                                                                inspection.grade === 'C' ? 'bg-yellow-100 text-yellow-700' :
+                                                                    'bg-red-100 text-red-700'
+                                                        }`}>
+                                                        {inspection.grade}등급
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm text-gray-600">
+                                                    점수: {inspection.totalScore || inspection.score || 0}점
+                                                    {inspection.isPassed !== undefined && (
+                                                        <span className={`ml-2 ${inspection.isPassed ? 'text-green-600' : 'text-red-600'}`}>
+                                                            ({inspection.isPassed ? '통과' : '미통과'})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {inspection.summaryComment && (
+                                                    <p className="text-sm text-gray-500 mt-2">{inspection.summaryComment}</p>
+                                                )}
                                             </div>
-                                        ))}
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 text-center py-8">QSC 점검 이력이 없습니다.</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -386,30 +456,36 @@ export default function StoreDetailContent() {
                 </div>
             </div>
 
-            {isReportOpen && store && (
-                <DiagnosisReportModal
-                    isOpen={isReportOpen}
-                    onClose={() => setIsReportOpen(false)}
-                    profile={riskProfile}
-                />
-            )}
+            {
+                isReportOpen && store && (
+                    <DiagnosisReportModal
+                        isOpen={isReportOpen}
+                        onClose={() => setIsReportOpen(false)}
+                        profile={riskProfile}
+                    />
+                )
+            }
 
-            {isEditModalOpen && store && (
-                <StoreEditModal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
-                    store={store}
-                    onSave={handleSaveStore}
-                />
-            )}
+            {
+                isEditModalOpen && store && (
+                    <StoreEditModal
+                        isOpen={isEditModalOpen}
+                        onClose={() => setIsEditModalOpen(false)}
+                        store={store}
+                        onSave={handleSaveStore}
+                    />
+                )
+            }
 
-            {isKPIModalOpen && store && (
-                <StoreKPIModal
-                    isOpen={isKPIModalOpen}
-                    onClose={() => setIsKPIModalOpen(false)}
-                    store={store}
-                />
-            )}
-        </div>
+            {
+                isKPIModalOpen && store && (
+                    <StoreKPIModal
+                        isOpen={isKPIModalOpen}
+                        onClose={() => setIsKPIModalOpen(false)}
+                        store={store}
+                    />
+                )
+            }
+        </div >
     );
 }

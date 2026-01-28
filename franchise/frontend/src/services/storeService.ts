@@ -91,24 +91,58 @@ export const StoreService = {
         }
 
         try {
-            const response = await api.get<StoreDetail>(`/stores/${storeId}`);
-            return response.data;
+            const response = await api.get(`/stores/${storeId}`);
+            // Backend returns ApiResponse wrapper: { success: true, data: {...} }
+            const backendStore = response.data.data || response.data;
+
+            // Map backend fields to frontend Store type
+            return {
+                id: backendStore.storeId,
+                name: backendStore.storeName,
+                state: backendStore.currentState,
+                region: backendStore.regionCode,
+                description: '',
+                manager: backendStore.supervisorLoginId || '',
+                storePhone: backendStore.ownerPhone || '',
+                supervisor: backendStore.supervisorLoginId || '',
+                qscScore: backendStore.qscScore || 0,
+                lastInspectionDate: null,
+                regionCode: backendStore.regionCode,
+                currentSupervisorId: backendStore.supervisorLoginId || '',
+                operationStatus: backendStore.storeOperationStatus,
+                currentState: backendStore.currentState,
+                currentStateScore: backendStore.currentStateScore || 0,
+                openedAt: backendStore.openedDate || '',
+                statusHistory: [],
+                ownerName: backendStore.ownerName || '',
+                ownerPhone: backendStore.ownerPhone || '',
+                address: backendStore.address || '',
+                contractType: backendStore.contractType || '',
+                contractEndAt: backendStore.contractEndDate || ''
+            };
         } catch (error) {
+            console.error('Failed to fetch store detail:', error);
             return null;
         }
     },
 
-    // 점포 이벤트 목록 조회 (Mock)
-    getStoreEvents: async (storeId: number | string): Promise<StoreEventResponse[]> => {
+    // 점포 이벤트 목록 조회
+    getStoreEvents: async (storeId: number | string, limit: number = 20): Promise<any[]> => {
         if (USE_MOCK_API) {
-            return []; // Return empty for now or use MOCK_EVENTS if imported
+            return [];
         }
 
-        const response = await api.get<StoreEventResponse[]>(`/stores/${storeId}/events`);
-        return response.data;
+        try {
+            const response = await api.get(`/stores/${storeId}/events`, { params: { limit } });
+            // Backend returns ApiResponse wrapper: { success: true, data: [...] }
+            return response.data.data || response.data || [];
+        } catch (error) {
+            console.error('Failed to fetch store events:', error);
+            return [];
+        }
     },
 
-    // 점포 정보 수정 (Mock)
+    // 점포 정보 수정
     updateStore: async (storeId: number | string, data: StoreUpdateRequest): Promise<StoreDetail | null> => {
         if (USE_MOCK_API) {
             console.log('Mock Update:', storeId, data);
@@ -116,8 +150,41 @@ export const StoreService = {
             return current ? { ...current, ...data } as StoreDetail : null;
         }
 
-        const response = await api.put<StoreDetail>(`/stores/${storeId}`, data);
-        return response.data;
+        try {
+            // Backend uses PATCH, not PUT
+            const response = await api.patch(`/stores/${storeId}`, data);
+            // Backend returns ApiResponse wrapper: { success: true, data: {...} }
+            const backendStore = response.data.data || response.data;
+
+            // Map backend fields to frontend Store type (same as getStoreDetail)
+            return {
+                id: backendStore.storeId,
+                name: backendStore.storeName,
+                state: backendStore.currentState,
+                region: backendStore.regionCode,
+                description: '',
+                manager: backendStore.supervisorLoginId || '',
+                storePhone: backendStore.ownerPhone || '',
+                supervisor: backendStore.supervisorLoginId || '',
+                qscScore: backendStore.qscScore || 0,
+                lastInspectionDate: null,
+                regionCode: backendStore.regionCode,
+                currentSupervisorId: backendStore.supervisorLoginId || '',
+                operationStatus: backendStore.storeOperationStatus,
+                currentState: backendStore.currentState,
+                currentStateScore: backendStore.currentStateScore || 0,
+                openedAt: backendStore.openedDate || '',
+                statusHistory: [],
+                ownerName: backendStore.ownerName || '',
+                ownerPhone: backendStore.ownerPhone || '',
+                address: backendStore.address || '',
+                contractType: backendStore.contractType || '',
+                contractEndAt: backendStore.contractEndDate || ''
+            };
+        } catch (error) {
+            console.error('Failed to update store:', error);
+            return null;
+        }
     },
 
     // 점포 등록 (Mock)

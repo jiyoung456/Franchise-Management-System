@@ -1,10 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp, BarChart2 } from 'lucide-react';
+import { use } from 'react';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-export default function ActionEffectPage({ params }: { params: { id: string } }) {
-    const router = useRouter();
+export default function ActionEffectPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
 
     // Mock Data
     const actionData = {
@@ -17,13 +19,32 @@ export default function ActionEffectPage({ params }: { params: { id: string } })
         executionDate: '2026-01-15'
     };
 
+    // Graph data - 2 weeks before and after
+    const graphData = [
+        { day: 'D-14', before: 72, after: null },
+        { day: 'D-12', before: 73, after: null },
+        { day: 'D-10', before: 71, after: null },
+        { day: 'D-8', before: 74, after: null },
+        { day: 'D-6', before: 72, after: null },
+        { day: 'D-4', before: 73, after: null },
+        { day: 'D-2', before: 71, after: null },
+        { day: 'D-Day', before: 72, after: 72 },
+        { day: 'D+2', before: null, after: 75 },
+        { day: 'D+4', before: null, after: 78 },
+        { day: 'D+6', before: null, after: 82 },
+        { day: 'D+8', before: null, after: 85 },
+        { day: 'D+10', before: null, after: 87 },
+        { day: 'D+12', before: null, after: 88 },
+        { day: 'D+14', before: null, after: 89 },
+    ];
+
     return (
         <div className="space-y-8 max-w-7xl mx-auto pb-20">
             {/* Header */}
             <div className="flex items-center gap-4 border-b border-gray-300 pb-4">
-                <button onClick={() => router.back()} className="hover:bg-gray-100 p-1 rounded">
+                <Link href={`/actions/${id}`} className="hover:bg-gray-100 p-1 rounded">
                     <ArrowLeft className="w-6 h-6 text-gray-500" />
-                </button>
+                </Link>
                 <h1 className="text-2xl font-bold text-gray-900">조치 효과 분석</h1>
             </div>
 
@@ -70,48 +91,68 @@ export default function ActionEffectPage({ params }: { params: { id: string } })
                     <h2 className="text-xl font-bold text-gray-800">2. 조치 효과</h2>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-300 rounded-lg p-10 min-h-[400px]">
-                    {/* Graph Mockup */}
-                    <div className="flex flex-col items-center justify-center h-full space-y-6">
-                        <div className="relative w-full max-w-3xl h-64 border-l border-b border-gray-400 flex items-end px-4 gap-8">
-                            {/* Background Guidelines */}
-                            <div className="absolute inset-0 z-0 flex flex-col justify-between py-4 pointer-events-none opacity-20">
-                                <div className="border-b border-gray-400 w-full h-0"></div>
-                                <div className="border-b border-gray-400 w-full h-0"></div>
-                                <div className="border-b border-gray-400 w-full h-0"></div>
-                            </div>
-
-                            {/* Mock Lines */}
-                            {/* Blue Line (Before) */}
-                            <svg className="absolute inset-0 w-full h-full z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                <path d="M0,80 Q25,75 50,78 T100,70" fill="none" stroke="blue" strokeWidth="2" strokeDasharray="5,5" />
-                            </svg>
-                            {/* Red Line (After) */}
-                            <svg className="absolute inset-0 w-full h-full z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                <path d="M0,70 Q25,60 50,30 T100,20" fill="none" stroke="red" strokeWidth="3" />
-                            </svg>
-                        </div>
-
-                        {/* Legend & Guide */}
-                        <div className="bg-white p-6 rounded shadow-sm border border-gray-200 text-left max-w-2xl w-full">
-                            <div className="flex items-center gap-6 mb-4 justify-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-0.5 bg-blue-600 border-dashed border-b"></div>
-                                    <span className="text-sm font-bold text-blue-600">조치 전 (2주)</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-1 bg-red-500"></div>
-                                    <span className="text-sm font-bold text-red-500">조치 후 (2주) - 개선됨</span>
-                                </div>
-                            </div>
-
-                            <h4 className="font-bold text-gray-900 mb-2 border-b pb-1">분석 리포트</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                                <li><strong>비교 기간:</strong> 조치 시행일 기준 전/후 2주 데이터 비교</li>
-                                <li><strong>분석 결과:</strong> 조치 후 목표 지표({actionData.metric})가 평균 <span className="text-red-600 font-bold">15% 상승</span>했습니다.</li>
-                                <li><strong>세부 항목:</strong> QSC 점수 회복세가 뚜렷하며, 특히 위생 카테고리 점수가 대폭 개선되었습니다.</li>
-                            </ul>
-                        </div>
+                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
+                    <div style={{ width: '100%', height: '400px' }}>
+                        <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
+                            <LineChart data={graphData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                                <defs>
+                                    <linearGradient id="colorBefore" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="colorAfter" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1} />
+                                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                <XAxis
+                                    dataKey="day"
+                                    stroke="#6b7280"
+                                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                                    label={{ value: '2주 기간', position: 'insideBottom', offset: -10, style: { fill: '#374151', fontWeight: 'bold' } }}
+                                />
+                                <YAxis
+                                    stroke="#6b7280"
+                                    tick={{ fill: '#6b7280', fontSize: 12 }}
+                                    domain={[60, 100]}
+                                    label={{ value: actionData.metric, angle: -90, position: 'insideLeft', style: { fill: '#374151', fontWeight: 'bold' } }}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'white',
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '8px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }}
+                                />
+                                <Legend
+                                    wrapperStyle={{ paddingTop: '20px' }}
+                                    iconType="line"
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="before"
+                                    stroke="#3b82f6"
+                                    strokeWidth={3}
+                                    strokeDasharray="5 5"
+                                    dot={{ fill: '#3b82f6', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                    name="조치 전 (2주)"
+                                    connectNulls={false}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="after"
+                                    stroke="#ef4444"
+                                    strokeWidth={3}
+                                    dot={{ fill: '#ef4444', r: 4 }}
+                                    activeDot={{ r: 6 }}
+                                    name="조치 후 (2주) - 개선됨"
+                                    connectNulls={false}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             </div>

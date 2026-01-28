@@ -38,7 +38,7 @@ export default function StoreListPage() {
                     data = data.filter(s => s.state === statusFilter);
                 }
             } else {
-                const params: StoreSearchRequest = { limit: 100 };
+                const params: StoreSearchRequest = { limit: 200 };
                 if (searchTerm) params.keyword = searchTerm;
                 if (statusFilter && statusFilter !== 'ALL') params.state = statusFilter as any;
                 if (sortOption) params.sort = sortOption as any;

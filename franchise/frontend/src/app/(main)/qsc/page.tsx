@@ -39,17 +39,37 @@ function SvQscDashboard() {
 
     useEffect(() => {
         const fetchStats = async () => {
-            const user = AuthService.getCurrentUser();
+            const user = await AuthService.getCurrentUser();
             if (!user) return;
 
-            const allInspections = QscService.getInspections();
-            // Async call
+            // 1. Get My Stores
             const myStores = await StoreService.getStoresBySv(user.id);
-            const myStoreIds = myStores.map(s => s.id.toString());
+            if (myStores.length === 0) {
+                setLoading(false);
+                return;
+            }
 
-            // Filter Inspections for my stores
-            // Inspection uses storeId as string
-            const myInspections = allInspections.filter(i => myStoreIds.includes(i.storeId));
+            // 2. Fetch Inspections (Real Backend Data)
+            // Use getDashboardStats as a workaround to fetch latest/list from backend
+            // For dashboard we need history for timeline, but getDashboardStats only fetches latest per store currently
+            // To render timeline correctly we might need 'list' for each store, but that's too heavy (N*20+ requests).
+            // Compromise: Use 'latest' for stats/ranking, and Timeline might need to be mocked or just show current month
+            // actually user said "qsc_master data", so let's try to get list for timeline if possible or accept latest limitation.
+            // Let's modify getDashboardStats in service to optionally fetch list? 
+            // Scaling issue: fetching list for ALL stores is bad. 
+            // But for SV (few stores), we can fetch lists.
+
+            // Let's assume getDashboardStats returns *recent* inspections.
+            // Actually I defined getDashboardStats to fetch 'latest'. 
+            // For Timeline, we really need history. 
+            // SV usually manages ~20 stores. fetching list for 20 stores is acceptable (20 requests).
+
+            const myStoreIds = myStores.map(s => s.id);
+
+            // Parallel fetch lists for all my stores
+            const promises = myStoreIds.map(id => QscService.getStoreQscList(id));
+            const results = await Promise.all(promises);
+            const myInspections = results.flat(); // Flatten [ [inspections for store 1], [inspections for store 2] ]
 
             const getAvgScore = (monthStr: string) => {
                 const target = myInspections.filter(i => i.date.startsWith(monthStr));
@@ -77,7 +97,7 @@ function SvQscDashboard() {
             const completionTargetDiff = completionRate - 90;
 
             // 3. Risk & S Grade
-            // Get latest inspection per store
+            // Get latest inspection per store for current status
             const latestInfo: Record<string, Inspection> = {};
             myInspections.forEach(i => {
                 if (!latestInfo[i.storeId] || i.date > latestInfo[i.storeId].date) {
@@ -116,11 +136,15 @@ function SvQscDashboard() {
             setTimelineData(timeline);
 
             // 5. Ranking
-            const storeScores = Object.values(latestInfo).map(i => ({
-                name: i.storeName,
-                score: i.score,
-                items: i.grade === 'S' ? ['관리 상태 우수'] : ['개선 필요']
-            }));
+            const storeScores = Object.values(latestInfo).map(i => {
+                // Find store name from myStores
+                const storeName = myStores.find(s => s.id.toString() === i.storeId.toString())?.name || i.storeName;
+                return {
+                    name: storeName,
+                    score: i.score,
+                    items: i.grade === 'S' ? ['관리 상태 우수'] : ['개선 필요']
+                };
+            });
             storeScores.sort((a, b) => b.score - a.score);
 
             setRankingStores({
@@ -293,8 +317,14 @@ function AdminQscDashboard({ user }: { user: any }) {
 
     useEffect(() => {
         const fetchAdminData = async () => {
-            const data = QscService.getInspections();
             const allStores = await StoreService.getStores(); // Async wait
+
+            // For Admin, getting list for ALL stores is too heavy (120 * request). 
+            // Better to use getDashboardStats (parallel get latest).
+            // This is "Dashboard" after all, so current status is most important.
+            // If historical data is needed, we need a better API.
+            // Let's use getDashboardStats (fetched latest for all stores).
+            const data = await QscService.getDashboardStats(allStores);
 
             setInspections(data);
 
@@ -458,7 +488,7 @@ function AdminQscDashboard({ user }: { user: any }) {
                                         {item.isPassed ? <span className="text-green-600 font-bold">합격</span> : <span className="text-red-600 font-bold">불합격</span>}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Link href={`/qsc/report/${item.id}`} className="text-blue-600 hover:underline font-medium">리포트</Link>
+                                        <Link href={`/qsc/report/${item.id}?storeId=${item.storeId}`} className="text-blue-600 hover:underline font-medium">리포트</Link>
                                     </td>
                                 </tr>
                             ))}
@@ -488,10 +518,13 @@ export default function QscDashboardPage() {
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        AuthService.init();
-        const currentUser = AuthService.getCurrentUser();
-        setUser(currentUser);
-        if (currentUser) setRole(currentUser.role);
+        const initUser = async () => {
+            await AuthService.init();
+            const currentUser = await AuthService.getCurrentUser();
+            setUser(currentUser);
+            if (currentUser) setRole(currentUser.role);
+        };
+        initUser();
     }, []);
 
     if (!role) return <div className="flex h-screen items-center justify-center">Loading...</div>;

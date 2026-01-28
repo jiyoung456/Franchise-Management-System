@@ -7,8 +7,9 @@ export async function generateStaticParams() {
     }));
 }
 
-export default function ActionDetailPage({ params }: { params: { id: string } }) {
-    const action = MOCK_ACTIONS.find(a => a.id === params.id) || MOCK_ACTIONS[0];
+export default async function ActionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const action = MOCK_ACTIONS.find(a => a.id === id) || MOCK_ACTIONS[0];
 
-    return <ActionDetailClient action={action} id={params.id} />;
+    return <ActionDetailClient action={action} id={id} />;
 }
