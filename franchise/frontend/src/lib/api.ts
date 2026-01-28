@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Environment variable to toggle mock/real API
-export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false'; // Default to true if not set
+export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true'; // Default to false (use real API)
 
 const api = axios.create({
     baseURL: 'http://localhost:8080/api',
