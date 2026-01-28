@@ -33,20 +33,29 @@ export const QscService = {
         }
 
         try {
-            const response = await api.get('/qsc/inspection/new');
+            // NOTE: QscTemplateController is at /qsc/inspection/new (NOT /api/qsc/...)
+            // So we need to bypass the default baseURL
+            const response = await api.get('/qsc/inspection/new', { baseURL: 'http://localhost:8080' });
             // Backend returns List<QscTemplateSummaryResponse>
             const data = response.data.data || response.data || [];
 
+            // Map backend inspection types to Korean
+            const inspectionTypeMap: Record<string, '정기' | '특별' | '재점검'> = {
+                'REGULAR': '정기',
+                'SPECIAL': '특별',
+                'REINSPECTION': '재점검'
+            };
+
             const backendTemplates = data.map((item: any) => {
-                // Backend template doesn't have items. Merge with Mock items for demo.
-                const mockTemplate = MOCK_TEMPLATES.find(t => t.title === item.templateName) || MOCK_TEMPLATES[0];
+                // Backend template doesn't have items. Use default mock items for now.
+                const mockTemplate = MOCK_TEMPLATES[0]; // Use first template as baseline
 
                 return {
                     id: item.templateId.toString(),
                     title: item.templateName,
                     description: '백엔드 연동 템플릿',
                     version: item.version,
-                    type: '정기', // Default
+                    type: inspectionTypeMap[item.inspectionType] || '정기',
                     scope: '전체 매장',
                     effective_from: '2024-01-01',
                     effective_to: null,
@@ -54,18 +63,15 @@ export const QscService = {
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                     createdBy: 'Admin',
-                    items: mockTemplate.items // Fallback to mock items
+                    items: mockTemplate.items // Use default items (backend doesn't provide items yet)
                 };
             });
 
-            // Demo Mode: If backend has few templates, also show Mock templates (excluding duplicates by title)
-            const backendTitles = new Set(backendTemplates.map((t: any) => t.title));
-            const additionalMocks = MOCK_TEMPLATES.filter(t => !backendTitles.has(t.title));
-
-            return [...backendTemplates, ...additionalMocks];
+            // Return ONLY backend templates (no mock mixing)
+            return backendTemplates;
         } catch (error) {
             console.error('Failed to fetch templates:', error);
-            // Fallback to local
+            // Fallback to local only on error
             return QscService.getTemplates();
         }
     },
@@ -132,40 +138,53 @@ export const QscService = {
         };
     },
 
-    // 점포별 QSC 점검 목록 조회 (백엔드 API)
+    // 점포별 QSC 점검 목록 조회 (백엔드 API + 로컬 병합)
     getStoreQscList: async (storeId: number): Promise<Inspection[]> => {
+        let localInspections: Inspection[] = [];
+
+        // 1. Get Local Storage Data (for newly added items not yet in backend)
+        if (typeof window !== 'undefined') {
+            const allLocal = QscService.getInspections();
+            localInspections = allLocal.filter(i => i.storeId === storeId.toString());
+        }
+
         if (USE_MOCK_API) {
-            return MOCK_INSPECTIONS.filter(i => i.storeId === storeId.toString());
+            return localInspections;
         }
 
         try {
             const response = await api.get(`/qsc/stores/${storeId}?limit=100`);
             // Backend returns ApiResponse wrapper: { success: true, data: [...] }
-            // Backend QscResponse needs mapping to frontend Inspection type if fields differ slightly
-            // Backend fields: inspectionId, storeId, templateId, inspectorId, inspectedAt, status, totalScore, grade, isPassed, summaryComment, ...
             const data = response.data.data || response.data || [];
 
-            return data.map((item: any) => ({
+            const backendInspections = data.map((item: any) => ({
                 id: item.inspectionId.toString(),
                 date: item.inspectedAt ? item.inspectedAt.split('T')[0] : '',
                 storeId: item.storeId.toString(),
-                storeName: '', // Need to fill separately if needed, or from store list
+                storeName: '', // Need to fill separately if needed
                 region: '',
-                sv: '', // Need to fill
-                type: '정기', // Default or from template
+                sv: '',
+                type: '정기',
                 score: item.totalScore,
                 grade: item.grade,
                 isPassed: item.isPassed,
                 isReinspectionNeeded: item.needsReinspection,
-                inspector: item.inspectorId.toString(), // Name resolution needed?
+                inspector: item.inspectorId.toString(),
                 status: item.status === 'CONFIRMED' ? '완료' : '작성중',
-                // Additional mapping
                 templateId: item.templateId.toString(),
                 summaryComment: item.summaryComment
             }));
+
+            // Merge: Local items first (newer) + Backend items
+            // Filter out duplicates if any (though IDs should differ)
+            const backendIds = new Set(backendInspections.map((i: any) => i.id));
+            const uniqueLocal = localInspections.filter(i => !backendIds.has(i.id));
+
+            return [...uniqueLocal, ...backendInspections].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
         } catch (error) {
             console.error('Failed to fetch QSC inspections:', error);
-            return [];
+            return localInspections;
         }
     },
 
@@ -198,23 +217,30 @@ export const QscService = {
         return undefined;
     },
 
-    // 대시보드용: 모든/담당 점포의 최신 QSC 데이터 가져오기 (N+1 Fetch workaround)
+    // 대시보드용: 모든/담당 점포의 최신 QSC 데이터 가져오기 (N+1 Fetch workaround + Local Merge)
     getDashboardStats: async (stores: any[]): Promise<Inspection[]> => {
+        let localInspections: Inspection[] = [];
+        if (typeof window !== 'undefined') {
+            localInspections = QscService.getInspections();
+        }
+
         if (USE_MOCK_API) return MOCK_INSPECTIONS;
 
         // Fetch latest QSC for each store in parallel
-        const promises = stores.map(store =>
-            api.get(`/qsc/stores/${store.id}/latest`)
-                .then(res => {
-                    const item = res.data.data;
-                    if (!item) return null;
-                    return {
+        const promises = stores.map(async store => {
+            // 1. Get Backend Latest
+            let backendLatest: Inspection | null = null;
+            try {
+                const res = await api.get(`/qsc/stores/${store.id}/latest`);
+                const item = res.data.data;
+                if (item) {
+                    backendLatest = {
                         id: item.inspectionId.toString(),
                         date: item.inspectedAt ? item.inspectedAt.split('T')[0] : '',
                         storeId: item.storeId.toString(),
                         storeName: store.name,
                         region: store.region,
-                        sv: store.supervisor, // Assuming store object has this
+                        sv: store.supervisor,
                         type: '정기',
                         score: item.totalScore,
                         grade: item.grade,
@@ -224,9 +250,28 @@ export const QscService = {
                         status: item.status,
                         templateId: item.templateId.toString()
                     } as Inspection;
-                })
-                .catch(() => null)
-        );
+                }
+            } catch (e) {
+                // Ignore backend error, try local
+            }
+
+            // 2. Get Local Latest for this store
+            const storeLocals = localInspections.filter(i => i.storeId === store.id.toString());
+            // Sort by date desc
+            storeLocals.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const localLatest = storeLocals.length > 0 ? storeLocals[0] : null;
+
+            // 3. Compare and Pick Newest
+            if (!backendLatest && !localLatest) return null;
+            if (!backendLatest) return localLatest;
+            if (!localLatest) return backendLatest;
+
+            // Compare dates
+            const backendDate = new Date(backendLatest.date).getTime();
+            const localDate = new Date(localLatest.date).getTime();
+
+            return localDate >= backendDate ? localLatest : backendLatest;
+        });
 
         const results = await Promise.all(promises);
         return results.filter(r => r !== null) as Inspection[];

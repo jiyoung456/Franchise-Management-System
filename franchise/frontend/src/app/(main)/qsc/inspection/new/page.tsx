@@ -86,9 +86,23 @@ export default function NewInspectionPage() {
         setScores(prev => ({ ...prev, [itemId]: value }));
     };
 
-    const addOverallPhoto = () => {
-        const newPhoto = `/mock/photo_${Date.now()}.jpg`;
-        setOverallPhotos(prev => [...prev, newPhoto]);
+    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        // Convert uploaded files to Base64 for LocalStorage persistence (Demo)
+        // In real backend integration, we would use FormData to send files.
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                setOverallPhotos(prev => [...prev, base64String]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Reset input
+        e.target.value = '';
     };
 
     const removeOverallPhoto = (idx: number) => {
@@ -253,38 +267,18 @@ export default function NewInspectionPage() {
                     {/* Store Search - Improved */}
                     <div>
                         <label className="block text-xs font-bold text-gray-500 mb-1">점포 선택</label>
-                        <div className="relative">
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder="점포명 검색..."
-                                    value={searchStoreTerm}
-                                    onChange={(e) => setSearchStoreTerm(e.target.value)}
-                                    className="w-full border border-gray-300 rounded-lg p-2.5 pl-9 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
-                                />
-                                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-                            </div>
-
-                            {/* Always show list (filtered) */}
-                            <div className="absolute top-full left-0 w-full bg-white border border-gray-200 mt-1 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                                {filteredStores.length > 0 ? (
-                                    filteredStores.map(s => (
-                                        <div
-                                            key={s.id}
-                                            className={`p-2.5 hover:bg-blue-50 cursor-pointer text-sm flex justify-between items-center border-b border-gray-50 last:border-0 ${selectedStoreId === s.id.toString() ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700'}`}
-                                            onClick={() => {
-                                                setSelectedStoreId(s.id.toString());
-                                            }}
-                                        >
-                                            <span>{s.name}</span>
-                                            <span className="text-xs text-gray-400 font-normal">{s.region}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-3 text-xs text-gray-400 text-center">검색 결과가 없습니다.</div>
-                                )}
-                            </div>
-                        </div>
+                        <select
+                            value={selectedStoreId}
+                            onChange={(e) => setSelectedStoreId(e.target.value)}
+                            className="w-full border border-gray-300 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        >
+                            <option value="">점포를 선택해주세요</option>
+                            {stores.map(s => (
+                                <option key={s.id} value={s.id.toString()}>
+                                    {s.name} ({s.region})
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
@@ -376,15 +370,29 @@ export default function NewInspectionPage() {
                         <div>
                             <div className="flex items-center justify-between mb-2">
                                 <label className="text-xs font-bold text-gray-500">현장 사진</label>
-                                <button onClick={addOverallPhoto} className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1">
+                                <label className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer">
                                     <Plus className="w-3 h-3" /> 추가
-                                </button>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handlePhotoUpload}
+                                        className="hidden"
+                                    />
+                                </label>
                             </div>
                             <div className="grid grid-cols-3 gap-2">
                                 {overallPhotos.map((p, idx) => (
-                                    <div key={idx} className="relative aspect-square bg-gray-100 rounded-lg border border-gray-200 group">
-                                        <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 font-bold">IMG</div>
-                                        <button onClick={() => removeOverallPhoto(idx)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div key={idx} className="relative aspect-square bg-gray-100 rounded-lg border border-gray-200 group overflow-hidden">
+                                        <img
+                                            src={p}
+                                            alt={`현장사진 ${idx + 1}`}
+                                            className="absolute inset-0 w-full h-full object-cover"
+                                        />
+                                        <button
+                                            onClick={() => removeOverallPhoto(idx)}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                        >
                                             <Trash2 className="w-3 h-3" />
                                         </button>
                                     </div>

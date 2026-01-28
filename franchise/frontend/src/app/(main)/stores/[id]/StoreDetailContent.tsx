@@ -18,6 +18,8 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { DiagnosisReportModal } from '@/components/features/ai-insight/DiagnosisReportModal';
 import { StoreEditModal } from '@/components/features/stores/StoreEditModal';
 import { StoreKPIModal } from '@/components/features/stores/StoreKPICard';
+import { StorePosSummary } from '@/components/features/stores/StorePosSummary';
+
 
 export default function StoreDetailContent() {
     const params = useParams();
@@ -30,7 +32,7 @@ export default function StoreDetailContent() {
     const [events, setEvents] = useState<any[]>([]);
     const [actions, setActions] = useState<ActionItem[]>([]);
     const [qscInspections, setQscInspections] = useState<any[]>([]);
-    const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'history' | 'risk' | 'qsc'>(
+    const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'history' | 'risk' | 'qsc' | 'pos'>(
         (searchParams.get('tab') as any) || 'info'
     );
     const [currentUser, setCurrentUser] = useState<UserType | null>(null);
@@ -265,13 +267,14 @@ export default function StoreDetailContent() {
                 <div className="lg:col-span-3 bg-white border border-gray-200 shadow-sm flex flex-col min-h-[500px] rounded-lg">
                     {/* Tab Header */}
                     <div className="flex border-b border-gray-200">
-                        {['info', 'events', 'actions', 'qsc', 'history', 'risk'].map((tab) => (
+                        {['info', 'pos', 'events', 'actions', 'qsc', 'history', 'risk'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
                                 className={`flex-1 py-4 text-center font-bold text-sm transition-colors ${activeTab === tab ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                             >
                                 {tab === 'info' && '가게 정보'}
+                                {tab === 'pos' && 'POS 성과'}
                                 {tab === 'events' && '최근 이벤트'}
                                 {tab === 'actions' && '조치 현황'}
                                 {tab === 'qsc' && 'QSC 점검'}
@@ -319,6 +322,38 @@ export default function StoreDetailContent() {
                                         <span className="col-span-2 text-gray-900">{store.contractType} (만료: {store.contractEndAt?.split('T')[0]})</span>
                                     </div>
                                     {/* ... other info fields ... */}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'pos' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                        <BarChart2 className="w-5 h-5 text-blue-500" /> POS 성과 요약
+                                    </h3>
+                                    <button
+                                        onClick={() => router.push(`/stores/${storeId}/pos`)}
+                                        className="text-sm text-blue-600 font-bold hover:underline flex items-center"
+                                    >
+                                        상세 분석 보기 <ArrowRight className="w-4 h-4 ml-1" />
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Simple Summary Cards */}
+                                    {/* Since we don't have the data in `store` object, we might need to fetch it. 
+                                         However, for now, to avoid complex state changes in `StoreDetailContent` which is quite large, 
+                                         I will render a specialized `StorePosSummaryWidget` locally defined or imported? 
+                                         Actually, I'll use a local `PosSummaryView` component defined at bottom or just fetch inline.
+                                         The easiest way is to use `StoreKPICard` but passing a `summaryOnly` prop.
+                                         But the user wants "briefly summarized". `StoreKPICard` is heavy.
+                                         
+                                         Let's create a new component `StorePosSummary` in `StoreDetailContent` (bottom) or separate file. 
+                                         I'll stick to a simple inline fetch or separate component. 
+                                         I'll create a new component `StorePosSummary` in `src/components/features/stores/StorePosSummary.tsx`.
+                                     */}
+                                    <StorePosSummary storeId={Number(storeId)} />
                                 </div>
                             </div>
                         )}
@@ -389,9 +424,9 @@ export default function StoreDetailContent() {
                                                         {(inspection.inspectedAt || inspection.date || '').toString().split('T')[0]} 점검
                                                     </div>
                                                     <span className={`px-2 py-1 rounded text-sm font-bold ${inspection.grade === 'A' ? 'bg-green-100 text-green-700' :
-                                                            inspection.grade === 'B' ? 'bg-blue-100 text-blue-700' :
-                                                                inspection.grade === 'C' ? 'bg-yellow-100 text-yellow-700' :
-                                                                    'bg-red-100 text-red-700'
+                                                        inspection.grade === 'B' ? 'bg-blue-100 text-blue-700' :
+                                                            inspection.grade === 'C' ? 'bg-yellow-100 text-yellow-700' :
+                                                                'bg-red-100 text-red-700'
                                                         }`}>
                                                         {inspection.grade}등급
                                                     </span>
