@@ -8,10 +8,8 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
-import com.franchise.backend.qsc.entity.QscMaster;
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.time.OffsetDateTime;
+
 
 public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
 

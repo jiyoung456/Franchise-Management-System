@@ -73,6 +73,17 @@ public class DashboardService {
                 .map(Store::getId)
                 .toList();
 
+        List<QscMaster> qscList = qscMasterRepository.findLatestCompletedByStoreIds(storeIds);
+
+        System.out.println("🔥 QSC FOUND COUNT = " + qscList.size());
+        qscList.forEach(q ->
+                System.out.println(
+                        "QSC storeId=" + q.getStoreId()
+                                + ", score=" + q.getTotalScore()
+                                + ", inspectedAt=" + q.getInspectedAt()
+                )
+        );
+
         // 점포별 최신 COMPLETED QSC 가져오기
         Map<Long, QscMaster> latestQscMap = storeIds.isEmpty()
                 ? Map.of()
@@ -99,12 +110,41 @@ public class DashboardService {
                                     ? q.getInspectedAt().toLocalDate()
                                     : null;
 
+
+                    // 점포 리스트에 sv 이름
+                    String supervisorDisplay = "-";
+
+                    // 점포 리스트의 권역 이름
+                    String regionDisplay = (s.getRegionCode() == null || s.getRegionCode().isBlank())
+                            ? "-"
+                            : s.getRegionCode();
+
+                    if (s.getSupervisor() != null) {
+                        // supervisor 표시
+                        String userName = s.getSupervisor().getUserName();
+                        if (userName != null && !userName.isBlank()) {
+                            supervisorDisplay = userName.trim();
+                        } else {
+                            String supervisorLoginId = s.getSupervisor().getLoginId();
+                            supervisorDisplay = (supervisorLoginId == null || supervisorLoginId.isBlank())
+                                    ? "-"
+                                    : supervisorLoginId;
+                        }
+
+                        // region 표시 (users.region)
+                        String userRegion = s.getSupervisor().getRegion();
+                        if (userRegion != null && !userRegion.isBlank()) {
+                            regionDisplay = userRegion.trim();
+                        }
+                    }
+
+
                     return new StoreListResponse(
                             s.getId(),
                             s.getStoreName(),
                             s.getCurrentState().name(),
-                            s.getRegionCode(),
-                            (s.getSupervisor() != null ? s.getSupervisor().getLoginId() : "-"),
+                            regionDisplay,
+                            supervisorDisplay,
                             qscScore,
                             lastInspectionDate
                     );
