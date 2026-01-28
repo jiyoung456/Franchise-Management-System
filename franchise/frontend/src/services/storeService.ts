@@ -28,8 +28,9 @@ export const StoreService = {
             return filtered;
         }
 
-        const response = await api.get<Store[]>('/stores', { params });
-        return response.data;
+        const response = await api.get('/stores', { params });
+        // Backend returns ApiResponse wrapper: { success: true, data: [...] }
+        return response.data.data || response.data || [];
     },
 
     // Supervisor-specific stores (Mock)
@@ -41,8 +42,9 @@ export const StoreService = {
             return MOCK_STORES.filter(s => [1, 4, 12].includes(s.id));
         }
 
-        const response = await api.get<Store[]>(`/stores?supervisorId=${svId}`);
-        return response.data;
+        const response = await api.get(`/stores?supervisorId=${svId}`);
+        // Backend returns ApiResponse wrapper: { success: true, data: [...] }
+        return response.data.data || response.data || [];
     },
 
     // 점포 상세 조회

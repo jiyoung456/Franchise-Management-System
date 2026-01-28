@@ -65,13 +65,8 @@ function SignupContent() {
             setEmailMessage({ text: '올바른 이메일 형식이 아닙니다.', type: 'error' });
             return false;
         }
-        // Check Duplicate
-        const isDup = await AuthService.checkDuplicateEmail(addr);
-        if (isDup) {
-            setEmailMessage({ text: '이미 사용 중인 이메일입니다.', type: 'error' });
-            return false;
-        }
-        setEmailMessage({ text: '사용 가능한 이메일입니다.', type: 'success' });
+        // Backend doesn't support duplicate check, skip it
+        setEmailMessage({ text: '', type: '' });
         return true;
     };
 

@@ -16,21 +16,25 @@ export default function ActionsListPage() {
     const [stores, setStores] = useState<Store[]>([]);
 
     useEffect(() => {
-        AuthService.init();
-        const user = AuthService.getCurrentUser();
-        if (user) setRole(user.role);
+        const init = async () => {
+            AuthService.init();
+            const user = await AuthService.getCurrentUser();
+            if (user) setRole(user.role);
 
-        setActions(ActionService.getActions());
+            setActions(ActionService.getActions());
 
-        const fetchStores = async () => {
             const data = await StoreService.getStores();
             setStores(data);
         };
-        fetchStores();
+        init();
     }, []);
 
     const getStoreName = (storeId: string) => {
-        return stores.find(s => s.id.toString() === storeId)?.name || 'Unknown Store';
+        const store = stores.find(s => {
+            const id = (s as any).id || (s as any).storeId;
+            return id?.toString() === storeId;
+        });
+        return (store as any)?.name || (store as any)?.storeName || 'Unknown Store';
     };
 
     const getRelatedEventInfo = (action: ActionItem) => {

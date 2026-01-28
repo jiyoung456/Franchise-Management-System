@@ -212,8 +212,11 @@ function TeamLeaderDashboard({ user }: { user: User }) {
   // Filter & Sort Logic
   const filteredStores = myStores
     .filter(s => {
-      const matchesSearch = s.name.includes(searchTerm) || (s.supervisor || '').includes(searchTerm);
-      const matchesStatus = statusFilter === 'ALL' || s.state === statusFilter;
+      const storeName = (s as any).name || (s as any).storeName || '';
+      const supervisorName = (s as any).supervisor || '';
+      const matchesSearch = storeName.includes(searchTerm) || supervisorName.includes(searchTerm);
+      const storeState = (s as any).state || (s as any).currentState || 'NORMAL';
+      const matchesStatus = statusFilter === 'ALL' || storeState === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
