@@ -27,18 +27,18 @@ public class SecurityConfig {
 //조치 임시 테스트
 
 
-//    @Bean
-//    @Order(0) // ✅ 가장 먼저 적용
-//    public SecurityFilterChain executionChain(HttpSecurity http) throws Exception {
-//        http
-//                .securityMatcher("/users/*/actions/summary") // ✅ 이 경로만 따로 잡기
-//                .csrf(csrf -> csrf.disable())
-//                .authorizeHttpRequests(auth -> auth
-//                        .anyRequest().permitAll()
-//                );
-//
-//        return http.build();
-//    }
+    @Bean
+    @Order(0) // ✅ 가장 먼저 적용
+    public SecurityFilterChain executionChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/qsc/inspection/new") // ✅ 이 경로만 따로 잡기
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
+                );
+
+        return http.build();
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
