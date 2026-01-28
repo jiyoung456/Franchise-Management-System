@@ -50,7 +50,7 @@ function AdminDashboard() {
   useEffect(() => {
     const fetchStores = async () => {
       try {
-        const data = await StoreService.getStores();
+        const data = await StoreService.getStores({ limit: 200 });
         setAllStores(data);
       } catch (error) {
         console.error("Failed to load stores", error);
