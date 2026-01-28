@@ -8,6 +8,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import com.franchise.backend.qsc.entity.QscMaster;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.time.OffsetDateTime;
 
 public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
 
@@ -55,4 +59,12 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
 
     // 최근 COMPLETED 점검 N개만 가져오기 (이벤트 상세에서 직전 대비 계산)
     List<QscMaster> findByStoreIdAndStatusOrderByInspectedAtDesc(Long storeId, String status, Pageable pageable);
+
+
+    //조치 효과 조회용
+    List<QscMaster> findByStoreIdAndInspectedAtBetweenOrderByInspectedAtAsc(
+            Long storeId,
+            OffsetDateTime from,
+            OffsetDateTime to
+    );
 }

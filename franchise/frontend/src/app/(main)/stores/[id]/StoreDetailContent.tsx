@@ -256,7 +256,7 @@ export default function StoreDetailContent() {
                                     </div>
                                     <div className="grid grid-cols-3 gap-4 py-4">
                                         <span className="font-bold text-gray-600">마지막 상태 변경일</span>
-                                        <span className="col-span-2 text-gray-900">{store.statusHistory[0]?.date || '-'}</span>
+                                        <span className="col-span-2 text-gray-900">{store.statusHistory?.[0]?.date || '-'}</span>
                                     </div>
                                     <div className="grid grid-cols-3 gap-4 py-4">
                                         <span className="font-bold text-gray-600">점주명</span>
@@ -352,7 +352,7 @@ export default function StoreDetailContent() {
                                     <History className="w-5 h-5 text-gray-500" /> 상태 변경 이력
                                 </h3>
                                 <div className="space-y-4">
-                                    {store.statusHistory.map((h, i) => (
+                                    {(store.statusHistory || []).map((h, i) => (
                                         <div key={i} className="border-l-2 pl-4 border-gray-200">
                                             <div className="font-bold">{h.newStatus}</div>
                                             <div className="text-sm text-gray-500">{h.date} - {h.reason}</div>

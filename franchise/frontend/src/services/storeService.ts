@@ -9,6 +9,35 @@ import {
 } from '@/types';
 import { MOCK_STORES } from '@/lib/mock/mockData';
 
+// Map backend StoreListResponse to frontend Store type
+const mapBackendStoreToFrontend = (backendStore: any): Store => {
+    return {
+        id: backendStore.storeId,
+        name: backendStore.storeName,
+        state: backendStore.state || 'NORMAL',
+        region: backendStore.region || '',
+        supervisor: backendStore.supervisor || '',
+        qscScore: backendStore.qscScore || 0,
+        lastInspectionDate: backendStore.lastInspectionDate || null,
+        // Required fields with defaults
+        description: '',
+        manager: '',
+        storePhone: '',
+        regionCode: backendStore.region || '',
+        currentSupervisorId: '',
+        operationStatus: 'OPEN',
+        currentState: backendStore.state || 'NORMAL',
+        currentStateScore: backendStore.qscScore || 0,
+        openedAt: '',
+        statusHistory: [],
+        ownerName: '',
+        ownerPhone: '',
+        address: '',
+        contractType: '',
+        contractEndAt: ''
+    };
+};
+
 export const StoreService = {
     // 점포 목록 조회 (Mock)
     getStores: async (params?: StoreSearchRequest): Promise<Store[]> => {
@@ -30,7 +59,8 @@ export const StoreService = {
 
         const response = await api.get('/stores', { params });
         // Backend returns ApiResponse wrapper: { success: true, data: [...] }
-        return response.data.data || response.data || [];
+        const backendStores = response.data.data || response.data || [];
+        return backendStores.map(mapBackendStoreToFrontend);
     },
 
     // Supervisor-specific stores (Mock)
@@ -44,7 +74,8 @@ export const StoreService = {
 
         const response = await api.get(`/stores?supervisorId=${svId}`);
         // Backend returns ApiResponse wrapper: { success: true, data: [...] }
-        return response.data.data || response.data || [];
+        const backendStores = response.data.data || response.data || [];
+        return backendStores.map(mapBackendStoreToFrontend);
     },
 
     // 점포 상세 조회
