@@ -10,7 +10,9 @@ import com.franchise.backend.store.dto.StoreUpdateRequest;
 import com.franchise.backend.store.entity.StoreState;
 import com.franchise.backend.store.service.DashboardService;
 import com.franchise.backend.store.service.StoreService;
+import com.franchise.backend.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,6 +37,7 @@ public class StoreController {
     // - limit: 기본 50, 최대 200
     @GetMapping
     public ApiResponse<List<StoreListResponse>> list(
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(required = false) StoreState state,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String sort,
@@ -46,7 +49,10 @@ public class StoreController {
         condition.setSort(sort);
         condition.setLimit(limit);
 
-        return ApiResponse.ok(dashboardService.getStores(condition));
+        // 팀장 loginId는 토큰에서 가져옴
+        String managerLoginId = principal.getLoginId();
+
+        return ApiResponse.ok(dashboardService.getStoresForManager(managerLoginId, condition));
     }
 
     // 점포 상세(가게 정보)

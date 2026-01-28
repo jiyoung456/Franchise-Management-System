@@ -29,6 +29,8 @@ public class DashboardService {
     private final EventLogRepository eventLogRepository; // 기존 팀장 summary에서 사용하던 것 유지
     private final QscMasterRepository qscMasterRepository;
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    private final com.franchise.backend.user.repository.UserRepository userRepository;
+
 
     // 팀장 홈 대시보드 상단 카드
     public DashboardSummaryResponse getSummary() {
@@ -43,16 +45,27 @@ public class DashboardService {
         return new DashboardSummaryResponse(riskCount, newEventCount, managementGapCount);
     }
 
-    // 팀장 홈 점포 검색 / 필터 / 정렬
-    public List<StoreListResponse> getStores(StoreSearchRequest condition) {
+    // 팀장 홈 점포 검색 / 필터 / 정렬 (팀장 부서 기준)
+    public List<StoreListResponse> getStoresForManager(String managerLoginId, StoreSearchRequest condition) {
 
         // 안전한 limit
         int safeLimit = normalizeLimit(condition.getLimit());
 
-        // DB에서 상태/키워드로 후보 조회
-        List<Store> stores = storeRepository.searchStores(
+        // 팀장 조회 → department 확보
+        String loginId = (managerLoginId == null ? null : managerLoginId.trim());
+        if (loginId == null || loginId.isBlank()) {
+            return List.of();
+        }
+
+        String department = userRepository.findByLoginId(loginId)
+                .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
+                .orElse(null);
+
+        // DB에서 "상태/키워드 + (SV.department=팀장.department)" 로 후보 조회
+        List<Store> stores = storeRepository.searchStoresForManager(
                 condition.getState(),
-                normalizeKeyword(condition.getKeyword())
+                normalizeKeyword(condition.getKeyword()),
+                department
         );
 
         // storeIds
@@ -108,6 +121,7 @@ public class DashboardService {
         }
         return rows;
     }
+
 
 
     // SV 홈 대시보드
