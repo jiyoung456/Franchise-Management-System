@@ -305,7 +305,7 @@ function TeamLeaderDashboard({ user }: { user: User }) {
         <table className="w-full text-left">
           <thead className="bg-white border-b border-gray-300">
             <tr>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[150px]">점포명</th>
+              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[200px]">점포명</th>
               <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[240px]">
                 상태
                 <div className="flex gap-1 mt-1 text-xs font-normal">

@@ -21,20 +21,22 @@ export default function ActionsListPage() {
             const user = await AuthService.getCurrentUser();
             if (user) setRole(user.role);
 
-            setActions(ActionService.getActions());
+            setActions(await ActionService.getActions());
 
-            const data = await StoreService.getStores();
+            const data = await StoreService.getStores({ limit: 200 });
             setStores(data);
         };
         init();
     }, []);
 
     const getStoreName = (storeId: string) => {
-        const store = stores.find(s => {
-            const id = (s as any).id || (s as any).storeId;
-            return id?.toString() === storeId;
-        });
-        return (store as any)?.name || (store as any)?.storeName || 'Unknown Store';
+        const store = stores.find(s => s.id?.toString() === storeId);
+        if (store) {
+            return store.name;
+        }
+        // Debug: log if store not found
+        console.log('Store not found for ID:', storeId, 'Available stores:', stores.map(s => s.id));
+        return 'Unknown Store';
     };
 
     const getRelatedEventInfo = (action: ActionItem) => {
