@@ -88,6 +88,14 @@ public class StoreController {
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "50") int limit
     ) {
+        if (principal == null) {
+            // 401로 보내는 게 정석
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                    "Unauthorized: login required"
+            );
+        }
+
         String supervisorLoginId = principal.getLoginId();
 
         StoreSearchRequest condition = new StoreSearchRequest();
@@ -98,4 +106,5 @@ public class StoreController {
 
         return ApiResponse.ok(storeService.getStoresForSupervisor(supervisorLoginId, condition));
     }
+
 }

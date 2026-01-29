@@ -26,7 +26,7 @@ public class EventScopeService {
     public List<Long> resolveAccessibleStoreIds(UserPrincipal principal) {
         if (principal == null) return Collections.emptyList();
 
-        Role role = principal.getRole(); // ✅ UserPrincipal에 getRole() 있어야 함
+        Role role = principal.getRole(); // UserPrincipal에 getRole() 있어야 함
         String loginId = principal.getLoginId();
 
         if (role == null || loginId == null || loginId.isBlank()) {
