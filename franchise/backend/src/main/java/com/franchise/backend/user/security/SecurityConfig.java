@@ -94,6 +94,9 @@ public class SecurityConfig {
                                 "/api/pos/**"
                         ).hasAnyRole("ADMIN", "MANAGER", "SUPERVISOR")
 
+                        // SV POS 대시보드 접근 허용
+                        .requestMatchers("/api/pos/supervisor/**").hasAnyRole("SUPERVISOR", "MANAGER", "ADMIN")
+
                         // Store Master - 등록/삭제는 ADMIN, 수정은 ADMIN/MANAGER
                         .requestMatchers(HttpMethod.POST, "/api/stores/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/stores/**").hasAnyRole("ADMIN", "MANAGER")

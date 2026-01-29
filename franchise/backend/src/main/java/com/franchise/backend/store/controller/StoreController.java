@@ -78,4 +78,24 @@ public class StoreController {
     ) {
         return ApiResponse.ok(storeService.updateStore(storeId, request));
     }
+
+    // SV 담당 점포 목록 조회 ( + 상태 / 정렬 / 검색 / limit)
+    @GetMapping("/supervisor")
+    public ApiResponse<List<StoreListResponse>> listForSupervisor(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) StoreState state,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "50") int limit
+    ) {
+        String supervisorLoginId = principal.getLoginId();
+
+        StoreSearchRequest condition = new StoreSearchRequest();
+        condition.setState(state);
+        condition.setKeyword(keyword);
+        condition.setSort(sort);
+        condition.setLimit(limit);
+
+        return ApiResponse.ok(storeService.getStoresForSupervisor(supervisorLoginId, condition));
+    }
 }

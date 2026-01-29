@@ -41,5 +41,25 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
         WHERE u.loginId = :loginId
     """)
     List<Store> findBySupervisorLoginId(@Param("loginId") String loginId);
+
+    // SV 점포 관리 : 상태/키워드 필터 포함
+    @Query("""
+        SELECT s
+        FROM Store s
+        JOIN s.supervisor u
+        WHERE u.loginId = :loginId
+          AND (:state IS NULL OR s.currentState = :state)
+          AND (
+                :keyword IS NULL
+                OR s.storeName LIKE %:keyword%
+          )
+        ORDER BY s.updatedAt DESC
+    """)
+    List<Store> searchStoresForSupervisor(
+            @Param("loginId") String loginId,
+            @Param("state") StoreState state,
+            @Param("keyword") String keyword
+    );
+
     List<Store> findBySupervisor_Id(Long supervisorId);
 }

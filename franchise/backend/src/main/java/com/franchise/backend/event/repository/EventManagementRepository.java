@@ -2,7 +2,6 @@ package com.franchise.backend.event.repository;
 
 import com.franchise.backend.event.dto.EventListItemResponse;
 import com.franchise.backend.event.entity.EventLog;
-import com.franchise.backend.store.entity.Store;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
@@ -31,13 +30,16 @@ public interface EventManagementRepository extends Repository<EventLog, Long> {
             e.occurredAt,
             s.currentStateScore
         )
-        FROM EventLog e, Store s
-        WHERE e.storeId = s.id
+        FROM EventLog e
+        JOIN com.franchise.backend.store.entity.Store s ON e.storeId = s.id
+        JOIN s.supervisor u
+        WHERE u.department = :department
           AND (:status IS NULL OR e.status = :status)
           AND (:keyword IS NULL OR s.storeName LIKE %:keyword%)
         ORDER BY e.occurredAt DESC
     """)
-    List<EventListItemResponse> searchEvents(
+    List<EventListItemResponse> searchEventsForManagerDepartment(
+            @Param("department") String department,
             @Param("status") String status,
             @Param("keyword") String keyword,
             Pageable pageable
