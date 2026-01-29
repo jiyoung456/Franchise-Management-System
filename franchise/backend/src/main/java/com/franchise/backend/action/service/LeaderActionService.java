@@ -1,10 +1,6 @@
 package com.franchise.backend.action.service;
 
-import com.franchise.backend.action.dto.ActionCreateRequest;
-import com.franchise.backend.action.dto.ActionDetailResponse;
-import com.franchise.backend.action.dto.ActionEffectResponse;
-import com.franchise.backend.action.dto.ActionListResponse;
-import com.franchise.backend.action.dto.ActionUpdateRequest;
+import com.franchise.backend.action.dto.*;
 import com.franchise.backend.action.entity.Action;
 import com.franchise.backend.action.repository.ActionRepository;
 import com.franchise.backend.pos.entity.PosDaily;
@@ -109,6 +105,36 @@ public class LeaderActionService {
                 })
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public ActionCountSummaryResponse getSummary(String managerLoginId) {
+
+        String loginId = (managerLoginId == null ? null : managerLoginId.trim());
+        if (loginId == null || loginId.isBlank()) {
+            return new ActionCountSummaryResponse(0);
+        }
+
+        String department = userRepository.findByLoginId(loginId)
+                .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
+                .orElse(null);
+
+        if (department == null || department.isBlank()) {
+            return new ActionCountSummaryResponse(0);
+        }
+
+        List<Long> storeIds = storeRepository.findStoreIdsBySupervisorDepartment(department);
+        if (storeIds == null || storeIds.isEmpty()) {
+            return new ActionCountSummaryResponse(0);
+        }
+
+        long count = actionRepository
+                .findManagerScopedActions(storeIds, "IN_PROGRESS")
+                .size();
+
+        return new ActionCountSummaryResponse(count);
+    }
+
+
 
     @Transactional(readOnly = true)
     public ActionDetailResponse getActionDetail(Long actionId) {

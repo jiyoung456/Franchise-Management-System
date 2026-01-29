@@ -15,6 +15,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
+import com.franchise.backend.user.security.UserPrincipal;
+import com.franchise.backend.user.entity.Role;
+
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -33,17 +36,78 @@ public class DashboardService {
 
 
     // 팀장 홈 대시보드 상단 카드
-    public DashboardSummaryResponse getSummary() {
+    // 팀장/관리자 홈 대시보드 상단 카드 (스코프 적용)
+    public DashboardSummaryResponse getSummary(UserPrincipal principal) {
 
-        long riskCount = storeRepository.countByCurrentState(StoreState.RISK);
+        if (principal == null) {
+            // 로그인 안 된 상태면 401이 맞지만, 일단 0 반환
+            return new DashboardSummaryResponse(0, 0, 0);
+        }
 
+        Role role = principal.getRole();
+        String loginId = principal.getLoginId();
+
+        // 1) 스코프 storeIds 계산
+        // - ADMIN: null (전체)
+        // - MANAGER: 본인 department 기반 점포들
+        // - SUPERVISOR: 본인 담당 점포들
+        List<Long> scopedStoreIds = resolveScopedStoreIds(role, loginId);
+
+        // 2) 위험 점포 수
+        long riskCount;
+        if (scopedStoreIds == null) {
+            // ADMIN 전체
+            riskCount = storeRepository.countByCurrentState(StoreState.RISK);
+        } else if (scopedStoreIds.isEmpty()) {
+            riskCount = 0;
+        } else {
+            riskCount = storeRepository.countByCurrentStateAndIdIn(StoreState.RISK, scopedStoreIds);
+        }
+
+        // 3) 신규 이벤트 수(최근 48h)
         OffsetDateTime since48h = OffsetDateTime.now(ZoneOffset.UTC).minusHours(48);
-        long newEventCount = eventLogRepository.countNewEventsSince(since48h);
 
-        long managementGapCount = 0;
+        long newEventCount;
+        if (scopedStoreIds == null) {
+            // ADMIN 전체
+            newEventCount = eventLogRepository.countNewEventsSince(since48h);
+        } else if (scopedStoreIds.isEmpty()) {
+            newEventCount = 0;
+        } else {
+            newEventCount = eventLogRepository.countNewEventsSinceForStores(scopedStoreIds, since48h);
+        }
+
+        long managementGapCount = 0; // TODO
 
         return new DashboardSummaryResponse(riskCount, newEventCount, managementGapCount);
     }
+
+    private List<Long> resolveScopedStoreIds(Role role, String loginId) {
+        if (role == null || loginId == null || loginId.isBlank()) {
+            return List.of();
+        }
+
+        if (role == Role.ADMIN) {
+            return null; // 전체
+        }
+
+        if (role == Role.SUPERVISOR) {
+            return storeRepository.findStoreIdsBySupervisorLoginId(loginId.trim());
+        }
+
+        if (role == Role.MANAGER) {
+            String dept = userRepository.findByLoginId(loginId.trim())
+                    .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
+                    .orElse(null);
+
+            if (dept == null || dept.isBlank()) return List.of();
+
+            return storeRepository.findStoreIdsBySupervisorDepartment(dept);
+        }
+
+        return List.of();
+    }
+
 
     // 팀장 홈 점포 검색 / 필터 / 정렬 (팀장 부서 기준)
     public List<StoreListResponse> getStoresForManager(String managerLoginId, StoreSearchRequest condition) {
@@ -75,14 +139,14 @@ public class DashboardService {
 
         List<QscMaster> qscList = qscMasterRepository.findLatestCompletedByStoreIds(storeIds);
 
-        System.out.println("🔥 QSC FOUND COUNT = " + qscList.size());
-        qscList.forEach(q ->
-                System.out.println(
-                        "QSC storeId=" + q.getStoreId()
-                                + ", score=" + q.getTotalScore()
-                                + ", inspectedAt=" + q.getInspectedAt()
-                )
-        );
+        //System.out.println("QSC FOUND COUNT = " + qscList.size());
+        //qscList.forEach(q ->
+        //        System.out.println(
+        //                "QSC storeId=" + q.getStoreId()
+        //                        + ", score=" + q.getTotalScore()
+        //                        + ", inspectedAt=" + q.getInspectedAt()
+        //        )
+        //);
 
         // 점포별 최신 COMPLETED QSC 가져오기
         Map<Long, QscMaster> latestQscMap = storeIds.isEmpty()

@@ -12,6 +12,8 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     long countByCurrentState(StoreState currentState);
 
+    long countByCurrentStateAndIdIn(StoreState currentState, List<Long> ids);
+
     // 팀장 홈 : "팀장 부서(department)" 기준 점포 목록 조회
     // - 같은 부서의 SV가 담당(supervisor)인 점포만
     @Query("""
