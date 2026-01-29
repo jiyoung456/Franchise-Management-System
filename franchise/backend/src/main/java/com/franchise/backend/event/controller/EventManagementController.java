@@ -21,15 +21,17 @@ public class EventManagementController {
     private final EventManagementService eventManagementService;
     private final EventDetailService eventDetailService;
 
-    // 이벤트 관리 - 상단 카드 요약 (Role 스코프 적용)
+    // 이벤트 관리 - 상단 카드 요약 (스코프 적용)
     @GetMapping("/summary")
     public ApiResponse<EventDashboardSummaryResponse> summary(
             @AuthenticationPrincipal UserPrincipal principal
     ) {
-        return ApiResponse.ok(eventManagementService.getSummary(principal));
+        return ApiResponse.ok(
+                eventManagementService.getSummary(principal.getRole(), principal.getLoginId())
+        );
     }
 
-    // 이벤트 관리 - 리스트 조회 (Role 스코프 적용)
+    // 이벤트 관리 - 리스트 조회 (스코프 적용)
     @GetMapping
     public ApiResponse<List<EventListItemResponse>> list(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -37,7 +39,15 @@ public class EventManagementController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "50") int limit
     ) {
-        return ApiResponse.ok(eventManagementService.getEvents(principal, keyword, status, limit));
+        return ApiResponse.ok(
+                eventManagementService.getEvents(
+                        principal.getRole(),
+                        principal.getLoginId(),
+                        keyword,
+                        status,
+                        limit
+                )
+        );
     }
 
     // 이벤트 상세 조회 (Role 스코프 적용 + 보안)

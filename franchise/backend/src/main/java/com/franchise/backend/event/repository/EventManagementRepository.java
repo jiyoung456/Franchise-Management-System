@@ -39,9 +39,10 @@ public interface EventManagementRepository extends Repository<EventLog, Long> {
         ORDER BY e.occurredAt DESC
     """)
     List<EventListItemResponse> searchEvents(
+            @Param("storeIds") List<Long> storeIds,
             @Param("status") String status,
             @Param("keyword") String keyword,
-            @Param("storeIds") List<Long> storeIds,
             Pageable pageable
     );
+
 }

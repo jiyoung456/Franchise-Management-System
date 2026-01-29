@@ -61,7 +61,7 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
             @Param("keyword") String keyword
     );
 
-    // SV loginId로 storeId만 뽑기 (이벤트 스코프용)
+    // sv 기준 : 본인이 담당하는 점포 ID들
     @Query("""
         SELECT s.id
         FROM Store s
@@ -70,7 +70,7 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
     """)
     List<Long> findStoreIdsBySupervisorLoginId(@Param("loginId") String loginId);
 
-    // department로 storeId만 뽑기 (팀장 스코프용)
+    // 팀장 기준 : 해당 부서 SV들이 담당하는 점포 ID들
     @Query("""
         SELECT s.id
         FROM Store s

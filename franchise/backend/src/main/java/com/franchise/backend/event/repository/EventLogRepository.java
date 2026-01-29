@@ -74,22 +74,22 @@ public interface EventLogRepository extends JpaRepository<EventLog, Long> {
     """)
     long countCriticalOpenEventsByDepartment(@Param("department") String department);
 
-    // 스코프 적용: OPEN count
+    // 점포목록 기준 OPEN 이벤트 수
     @Query("""
-        SELECT COUNT(e)
-        FROM EventLog e
-        WHERE e.status = 'OPEN'
-          AND e.storeId IN :storeIds
-    """)
-    long countOpenEventsForStores(@Param("storeIds") List<Long> storeIds);
+    SELECT COUNT(e)
+    FROM EventLog e
+    WHERE e.status = 'OPEN'
+      AND e.storeId IN :storeIds
+""")
+    long countOpenEventsByStoreIds(@Param("storeIds") List<Long> storeIds);
 
-    // 스코프 적용: OPEN+CRITICAL count
+    // 점포목록 기준 CRITICAL(OEPN) 이벤트 수
     @Query("""
-        SELECT COUNT(e)
-        FROM EventLog e
-        WHERE e.status = 'OPEN'
-          AND e.severity = 'CRITICAL'
-          AND e.storeId IN :storeIds
-    """)
-    long countCriticalOpenEventsForStores(@Param("storeIds") List<Long> storeIds);
+    SELECT COUNT(e)
+    FROM EventLog e
+    WHERE e.status = 'OPEN'
+      AND e.severity = 'CRITICAL'
+      AND e.storeId IN :storeIds
+""")
+    long countCriticalOpenEventsByStoreIds(@Param("storeIds") List<Long> storeIds);
 }
