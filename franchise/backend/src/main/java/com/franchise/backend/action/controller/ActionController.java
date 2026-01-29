@@ -1,17 +1,11 @@
 package com.franchise.backend.action.controller;
 
-import com.franchise.backend.action.dto.ActionListResponse;
-import com.franchise.backend.action.dto.ActionUpdateRequest;
+import com.franchise.backend.action.dto.*;
 import com.franchise.backend.action.service.LeaderActionService;
-import org.springframework.web.bind.annotation.*;
-
-import com.franchise.backend.action.dto.ActionDetailResponse;
-import org.springframework.web.bind.annotation.PathVariable;
-
-import com.franchise.backend.action.dto.ActionCreateRequest;
+import com.franchise.backend.user.security.UserPrincipal;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import com.franchise.backend.action.dto.ActionEffectResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -25,9 +19,22 @@ public class ActionController {
         this.leaderActionService = leaderActionService;
     }
 
+    // 팀장 조치관리
+    // - 팀장 부서 SV 점포의 "이벤트 연계된 조치"만
+    // - 기본: 처리된 내역만 보이게 CLOSED로
     @GetMapping
-    public List<ActionListResponse> getActions() {
-        return leaderActionService.getActionList();
+    public List<ActionListResponse> getActions(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false, defaultValue = "50") int limit
+    ) {
+        if (principal == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                    "Unauthorized: login required"
+            );
+        }
+        return leaderActionService.getActionList(principal.getLoginId(), status, limit);
     }
 
     @GetMapping("/{actionId}")
@@ -36,18 +43,29 @@ public class ActionController {
     }
 
     @PostMapping
-    public ResponseEntity<Long> createAction(@RequestBody ActionCreateRequest request) {
+    public ResponseEntity<Long> createAction(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody ActionCreateRequest request
+    ) {
+        if (principal == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                    "Unauthorized: login required"
+            );
+        }
 
-        // 임시로 1L
-        Long createdByUserId = 1L;
+        // 로그인 유저 기준 createdByUserId
+        Long createdByUserId = principal.getUserId(); // UserPrincipal에 getUserId()가 있어야 함
 
         Long actionId = leaderActionService.createAction(request, createdByUserId);
         return ResponseEntity.ok(actionId);
     }
 
     @PutMapping("/{actionId}")
-    public ResponseEntity<Void> updateAction(@PathVariable Long actionId,
-                                             @RequestBody ActionUpdateRequest request) {
+    public ResponseEntity<Void> updateAction(
+            @PathVariable Long actionId,
+            @RequestBody ActionUpdateRequest request
+    ) {
         leaderActionService.updateAction(actionId, request);
         return ResponseEntity.ok().build();
     }
@@ -56,5 +74,4 @@ public class ActionController {
     public ActionEffectResponse getEffect(@PathVariable Long actionId) {
         return leaderActionService.getActionEffect(actionId);
     }
-
 }
