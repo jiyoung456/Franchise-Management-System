@@ -16,6 +16,8 @@ import { MOCK_STORES } from '@/lib/mock/mockData';
 import { MOCK_EVENTS } from '@/lib/mock/mockEventData';
 import { MOCK_RISK_PROFILES } from '@/lib/mock/mockRiskData';
 import { ActionService } from '@/services/actionService';
+import { DashboardService } from '@/services/dashboardService'; // Import added
+import { ManagerDashboardSummary, SupervisorDashboardSummary } from '@/types'; // Import added
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -184,6 +186,7 @@ function AdminDashboard() {
 function TeamLeaderDashboard({ user }: { user: User }) {
   const router = useRouter();
   const [myStores, setMyStores] = useState<Store[]>([]);
+  const [dashboardData, setDashboardData] = useState<ManagerDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -196,12 +199,17 @@ function TeamLeaderDashboard({ user }: { user: User }) {
   useEffect(() => {
     const init = async () => {
       try {
-        const [stores, count] = await Promise.all([
-          StoreService.getStores(),
-          ActionService.getSummary()
-        ]);
+        setLoading(true);
+        // User is manager, call getManagerDashboard
+        const data = await DashboardService.getManagerDashboard();
+
+        // We still need list of stores for the table, so keep fetching stores
+        // But summary cards should come from 'data'
+        const stores = await StoreService.getStores();
+
         setMyStores(stores);
-        setActionCount(count);
+        setDashboardData(data);
+
       } catch (error) {
         console.error("Failed to load team leader dashboard data", error);
       } finally {
@@ -211,13 +219,9 @@ function TeamLeaderDashboard({ user }: { user: User }) {
     init();
   }, []);
 
-  const oneDayAgo = new Date();
-  oneDayAgo.setDate(oneDayAgo.getDate() - 2);
-  const newEventsCount = MOCK_EVENTS.filter(e => new Date(e.timestamp) > oneDayAgo).length;
-
-  const riskStoresCount = myStores.filter(s => s.state === 'RISK').length;
-  const gapStoresCount = 0;
-  const overdueActionsCount = actionCount;
+  const riskStoresCount = dashboardData?.riskStoreCount ?? 0;
+  const gapStoresCount = dashboardData?.managementGapCount ?? 0;
+  const newEventsCount = dashboardData?.newEventCount ?? 0;
 
   // Filter & Sort Logic
   const filteredStores = myStores
@@ -396,61 +400,55 @@ function TeamLeaderDashboard({ user }: { user: User }) {
 
 // --- SV DASHBOARD (Original) ---
 function SvDashboard({ user }: { user: User }) {
-  const [myStores, setMyStores] = useState<Store[]>([]);
+  const [dashboardData, setDashboardData] = useState<SupervisorDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [actionCount, setActionCount] = useState(0);
 
   useEffect(() => {
     const init = async () => {
       try {
-        const [stores, count] = await Promise.all([
-          StoreService.getStoresBySv(),
-          ActionService.getUserSummary(user.id)
-        ]);
-        setMyStores(stores);
-        setActionCount(count);
+        setLoading(true);
+        // Call getSvDashboard
+        const data = await DashboardService.getSvDashboard(user.loginId);
+        setDashboardData(data);
+
+        // Fetch Stores for list compatibility if needed, or remove if not used here
+        // Originally myStores was used for calculating locally. Now mostly replaced.
+        // But if there are other usages of myStores in SvDashboard (none seen), we can optimize.
+        // For safety, let's just use the dashboardData.
+
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
     init();
   }, [user]);
 
-  // 1. Grade Distribution
-  const gradeCounts = {
-    NORMAL: myStores.filter(s => s.state === 'NORMAL').length,
-    WATCHLIST: myStores.filter(s => s.state === 'WATCHLIST').length,
-    RISK: myStores.filter(s => s.state === 'RISK').length,
-  };
-
-  // 2. Visit Status (This Month)
-  const visitedThisMonth = 0;
-  const visitRate = 0;
-
-  // 3. Recent Visits
-  const recentVisits = [...myStores]
-    .sort((a, b) => {
-      const dA = a.lastInspectionDate ? new Date(a.lastInspectionDate).getTime() : 0;
-      const dB = b.lastInspectionDate ? new Date(b.lastInspectionDate).getTime() : 0;
-      return dB - dA;
-    })
-    .slice(0, 4);
-
-  // Mock Trend Data
-  const riskTrendData = [
-    { label: '1주', score: 12 }, { label: '2주', score: 15 }, { label: '3주', score: 8 }, { label: '4주', score: 10 }
-  ];
-  const revenueTrendData = [
-    { label: '7월', val: 5 }, { label: '8월', val: 8 }, { label: '9월', val: 12 }, { label: '10월', val: 15 }
-  ];
-
-  // Mock Top Card Data
+  // Map backend response to UI structure
+  // If data is not yet loaded, use safe defaults
   const topCardData = {
-    assigned: myStores.length,
-    risk: gradeCounts.RISK,
-    recentEvents: 5, // Mock
-    pendingActions: actionCount
+    assigned: dashboardData?.assignedStoreCount ?? 0,
+    risk: dashboardData?.riskStoreCount ?? 0,
+    recentEvents: dashboardData?.recentEventCount ?? 0,
+    pendingActions: dashboardData?.pendingActionCount ?? 0
   };
+
+  const riskTrendData = dashboardData?.weeklyAvgRiskScoreTrend.map(t => ({ label: t.label, score: t.value })) ?? [];
+  const revenueTrendData = dashboardData?.monthlyAvgSalesChangeRateTrend.map(t => ({ label: t.label, val: t.value })) ?? [];
+
+  const gradeCounts = {
+    NORMAL: dashboardData?.stateDistribution.normalCount ?? 0,
+    WATCHLIST: dashboardData?.stateDistribution.watchCount ?? 0,
+    RISK: dashboardData?.stateDistribution.riskCount ?? 0,
+  };
+
+  const visitStatus = dashboardData?.visitStatus ?? { completedCount: 0, totalCount: 0, completionRatePct: 0 };
+  const visitRate = visitStatus.completionRatePct;
+  const visitedThisMonth = visitStatus.completedCount;
+
+  const recentVisits = dashboardData?.recentVisitedStores.map(s => ({
+    id: s.storeId,
+    name: s.storeName,
+    lastInspectionDate: s.visitedAt
+  })) ?? [];
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
 
@@ -579,7 +577,7 @@ function SvDashboard({ user }: { user: User }) {
               </div>
             </div>
             <div className="text-center text-sm text-gray-600">
-              <span className="font-semibold text-blue-600">{visitedThisMonth}</span> / {myStores.length} 점포 방문 완료
+              <span className="font-semibold text-blue-600">{visitedThisMonth}</span> / {topCardData.assigned} 점포 방문 완료
             </div>
           </div>
         </div>

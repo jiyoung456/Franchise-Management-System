@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, AlertTriangle, TrendingDown, DollarSign, Info } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AuthService } from '@/services/authService';
 import { EventService } from '@/services/eventService';
@@ -9,7 +9,7 @@ import { EventLog } from '@/types'; // 타입 활용
 
 export default function EventDetailClient({ id }: { id: string }) {
     const router = useRouter();
-    const [event, setEvent] = useState<EventLog | null>(null); 
+    const [event, setEvent] = useState<EventLog | null>(null);
     const [role, setRole] = useState<'ADMIN' | 'MANAGER' | 'SUPERVISOR' | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -23,7 +23,7 @@ export default function EventDetailClient({ id }: { id: string }) {
                 }
 
                 const foundEvent = await EventService.getEvent(id);
-                
+
                 if (foundEvent) {
                     // Service에서 이미 매핑된 데이터를 그대로 사용
                     setEvent(foundEvent);
@@ -88,75 +88,7 @@ export default function EventDetailClient({ id }: { id: string }) {
                 </div>
             </div>
 
-            {/* 2. Root Cause Metrics Area (Conditional) */}
-            {event.relatedData && (
-                <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-                        <TrendingDown className="w-5 h-5 mr-2 text-red-500" />
-                        발생 원인 지표 분석
-                    </h3>
 
-                    {(event.type === 'QSC' || event.type.startsWith('QSC')) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="border border-gray-200 rounded-lg p-5 flex flex-col justify-between hover:border-blue-300 transition-colors">
-                                <span className="text-sm font-bold text-gray-500 mb-2">
-                                    {event.relatedData.metricLabel || '관련 지표'}
-                                </span>
-                                <div>
-                                    <span className="text-3xl font-bold text-red-600">
-                                        {event.relatedData.value}
-                                    </span>
-                                    {event.relatedData.threshold && (
-                                        <span className="ml-2 text-sm text-gray-500">
-                                            (기준: {event.relatedData.threshold})
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="border border-gray-200 rounded-lg p-5 flex items-center justify-center text-gray-400 text-sm">
-                                상세 점검 리포트는 추후 연동 예정입니다.
-                            </div>
-                        </div>
-                    )}
-
-                    {(event.type === 'POS' || event.type.startsWith('POS')) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:shadow-md transition-shadow">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                                    <DollarSign className="w-6 h-6 text-blue-600" />
-                                </div>
-                                <h4 className="text-gray-500 font-bold text-sm mb-1">
-                                    {event.relatedData.metricLabel || '매출 지표'}
-                                </h4>
-                                <span className="text-2xl font-bold text-gray-900">
-                                    {Number(event.relatedData.value).toLocaleString()}
-                                </span>
-                            </div>
-                             <div className="border border-gray-200 rounded-lg p-6 flex items-center justify-center text-gray-400 text-sm">
-                                상세 매출 분석 데이터는 추후 연동 예정입니다.
-                            </div>
-                        </div>
-                    )}
-
-                    {!event.type.startsWith('QSC') && !event.type.startsWith('POS') && (
-                         <div className="border border-gray-200 rounded-lg p-5">
-                            <span className="text-sm font-bold text-gray-500 block mb-1">
-                                {event.relatedData.metricLabel || '참고 데이터'}
-                            </span>
-                            <span className="text-xl font-bold text-gray-900">
-                                {event.relatedData.value}
-                            </span>
-                         </div>
-                    )}
-                </div>
-            )}
-            
-            {!event.relatedData && (
-                <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 text-sm">
-                    <Info className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                    이 이벤트와 관련된 추가 지표 데이터가 없습니다.
-                </div>
-            )}
 
             {/* Footer Buttons */}
             <div className="flex justify-end mt-8">

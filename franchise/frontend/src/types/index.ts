@@ -261,6 +261,57 @@ export interface DailyBriefing {
     };
 }
 
+// --- Dashboard DTOs (Matched with Backend) ---
+export interface ManagerDashboardSummary {
+    riskStoreCount: number;
+    newEventCount: number;
+    managementGapCount: number;
+}
+
+export interface TrendPoint {
+    label: string;
+    value: number;
+}
+
+export interface StateDistribution {
+    normalCount: number;
+    watchCount: number;
+    riskCount: number;
+}
+
+export interface VisitStatus {
+    completedCount: number;
+    totalCount: number;
+    completionRatePct: number;
+}
+
+export interface RecentVisitedStore {
+    storeId: number;
+    storeName: string;
+    visitedAt: string;
+}
+
+export interface SupervisorDashboardSummary {
+    // Top Cards
+    assignedStoreCount: number;
+    riskStoreCount: number;
+    recentEventCount: number;
+    pendingActionCount: number;
+
+    // Charts
+    weeklyAvgRiskScoreTrend: TrendPoint[];
+    monthlyAvgSalesChangeRateTrend: TrendPoint[];
+
+    // Distribution
+    stateDistribution: StateDistribution;
+
+    // Visit Status
+    visitStatus: VisitStatus;
+
+    // List
+    recentVisitedStores: RecentVisitedStore[];
+}
+
 export interface Notice {
     id: string;
     title: string;
