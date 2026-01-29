@@ -3,13 +3,11 @@ import {
     StoreSearchRequest,
     Store,
     StoreDetail,
-    StoreEventResponse,
-    StoreUpdateRequest,
-    ApiResponse
+    StoreUpdateRequest
 } from '@/types';
 import { MOCK_STORES } from '@/lib/mock/mockData';
 
-// Map backend StoreListResponse to frontend Store type
+// ... mapBackendStoreToFrontend 함수 (기존과 동일) ...
 const mapBackendStoreToFrontend = (backendStore: any): Store => {
     return {
         id: backendStore.storeId,
@@ -19,7 +17,6 @@ const mapBackendStoreToFrontend = (backendStore: any): Store => {
         supervisor: backendStore.supervisor || '',
         qscScore: backendStore.qscScore || 0,
         lastInspectionDate: backendStore.lastInspectionDate || null,
-        // Required fields with defaults
         description: '',
         manager: '',
         storePhone: '',
@@ -39,46 +36,52 @@ const mapBackendStoreToFrontend = (backendStore: any): Store => {
 };
 
 export const StoreService = {
-    // 점포 목록 조회 (Mock)
+    // ... getStores (기존 유지) ...
     getStores: async (params?: StoreSearchRequest): Promise<Store[]> => {
         if (USE_MOCK_API) {
-            // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 500));
-
             let filtered = [...MOCK_STORES];
             if (params?.keyword) {
                 const key = params.keyword.toLowerCase();
                 filtered = filtered.filter(s =>
                     s.name.includes(key) ||
                     s.region.includes(key) ||
-                    (s.supervisor && s.supervisor.includes(key)) // SV name check
+                    (s.supervisor && s.supervisor.includes(key))
                 );
             }
             return filtered;
         }
 
-        const response = await api.get('/stores', { params });
-        // Backend returns ApiResponse wrapper: { success: true, data: [...] }
+        const response = await api.get('/stores', { params: params || {} });
         const backendStores = response.data.data || response.data || [];
         return backendStores.map(mapBackendStoreToFrontend);
     },
 
-    // Supervisor-specific stores (Mock)
-    getStoresBySv: async (svId: string): Promise<Store[]> => {
+    // [수정된 부분] Supervisor 전용 목록 조회
+    getStoresBySv: async (params?: StoreSearchRequest): Promise<Store[]> => {
         if (USE_MOCK_API) {
-            // Return fixed dummy stores for ALL SVs
-            // IDs: 1(Normal), 4(Risk), 11(Normal), 12(Watchlist)
             await new Promise(resolve => setTimeout(resolve, 300));
             return MOCK_STORES.filter(s => [1, 4, 12].includes(s.id));
         }
 
-        const response = await api.get(`/stores?supervisorId=${svId}`);
-        // Backend returns ApiResponse wrapper: { success: true, data: [...] }
-        const backendStores = response.data.data || response.data || [];
-        return backendStores.map(mapBackendStoreToFrontend);
+        try {
+            // [Fix] params가 객체인지 확인하고, 안전하게 config 객체 생성
+            // 만약 params가 문자열(레거시 호출)로 들어오면 무시하고 빈 객체 사용
+            const safeParams = (typeof params === 'object' && params !== null) ? params : {};
+
+            const response = await api.get('/stores/supervisor', { 
+                params: safeParams 
+            });
+            
+            const backendStores = response.data.data || response.data || [];
+            return backendStores.map(mapBackendStoreToFrontend);
+        } catch (error) {
+            console.error('Failed to fetch sv stores:', error);
+            return [];
+        }
     },
 
-    // 점포 상세 조회
+    // ... getStore, getStoreDetail, getStoreEvents, updateStore, addStore (기존 유지) ...
     getStore: async (storeId: number | string): Promise<StoreDetail | null> => {
         return StoreService.getStoreDetail(storeId);
     },
@@ -92,10 +95,7 @@ export const StoreService = {
 
         try {
             const response = await api.get(`/stores/${storeId}`);
-            // Backend returns ApiResponse wrapper: { success: true, data: {...} }
             const backendStore = response.data.data || response.data;
-
-            // Map backend fields to frontend Store type
             return {
                 id: backendStore.storeId,
                 name: backendStore.storeName,
@@ -126,15 +126,12 @@ export const StoreService = {
         }
     },
 
-    // 점포 이벤트 목록 조회
     getStoreEvents: async (storeId: number | string, limit: number = 20): Promise<any[]> => {
         if (USE_MOCK_API) {
             return [];
         }
-
         try {
             const response = await api.get(`/stores/${storeId}/events`, { params: { limit } });
-            // Backend returns ApiResponse wrapper: { success: true, data: [...] }
             return response.data.data || response.data || [];
         } catch (error) {
             console.error('Failed to fetch store events:', error);
@@ -142,21 +139,14 @@ export const StoreService = {
         }
     },
 
-    // 점포 정보 수정
     updateStore: async (storeId: number | string, data: StoreUpdateRequest): Promise<StoreDetail | null> => {
         if (USE_MOCK_API) {
-            console.log('Mock Update:', storeId, data);
             const current = await StoreService.getStoreDetail(storeId);
             return current ? { ...current, ...data } as StoreDetail : null;
         }
-
         try {
-            // Backend uses PATCH, not PUT
             const response = await api.patch(`/stores/${storeId}`, data);
-            // Backend returns ApiResponse wrapper: { success: true, data: {...} }
             const backendStore = response.data.data || response.data;
-
-            // Map backend fields to frontend Store type (same as getStoreDetail)
             return {
                 id: backendStore.storeId,
                 name: backendStore.storeName,
@@ -187,14 +177,11 @@ export const StoreService = {
         }
     },
 
-    // 점포 등록 (Mock)
     addStore: async (data: any): Promise<boolean> => {
         if (USE_MOCK_API) {
-            console.log('Mock Create:', data);
             await new Promise(resolve => setTimeout(resolve, 500));
             return true;
         }
-
         try {
             await api.post('/stores', data);
             return true;

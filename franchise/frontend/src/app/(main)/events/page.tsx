@@ -13,16 +13,31 @@ export default function EventManagementPage() {
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [events, setEvents] = useState<EventLog[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        EventService.init(); // Initialize checks and sync with latest data
-        const data = EventService.getEvents();
-        setEvents(data);
+        const fetchEvents = async () => {
+            try {
+                setIsLoading(true);
+                const data = await EventService.getEvents(); 
+                setEvents(data);
+            } catch (error) {
+                console.error('Failed to fetch events:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchEvents();
     }, []);
 
     const filteredEvents = events
         .filter(evt => {
-            const matchesSearch = evt.storeName.includes(searchTerm);
+            if (!evt) return false;
+            
+            const storeName = evt.storeName || '';
+            const matchesSearch = storeName.includes(searchTerm);
+            
             if (filterStatus === 'ALL') return matchesSearch;
 
             let matchesFilter = false;
@@ -31,12 +46,12 @@ export default function EventManagementPage() {
                     matchesFilter = evt.status === 'OPEN';
                     break;
                 case '위험':
-                    matchesFilter = evt.severity === 'CRITICAL';
+                    matchesFilter = evt.severity === 'CRITICAL'; 
                     break;
                 case '조치필요':
-                    matchesFilter = evt.status === 'ACKNOWLEDGED'; // Assuming '조치필요' aligns with 'Action Required/Processing'
+                    matchesFilter = evt.status === 'ACKNOWLEDGED';
                     break;
-                case '완료': // Adding for completeness if needed, though not in screenshot
+                case '완료':
                     matchesFilter = evt.status === 'RESOLVED';
                     break;
                 default:
@@ -45,7 +60,12 @@ export default function EventManagementPage() {
 
             return matchesFilter && matchesSearch;
         })
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        .sort((a, b) => {
+             // [수정] occurredAt 제거 -> timestamp 사용
+             const dateA = new Date(a.timestamp || 0).getTime();
+             const dateB = new Date(b.timestamp || 0).getTime();
+             return dateB - dateA;
+        });
 
     const getSeverityBadge = (severity: string) => {
         switch (severity) {
@@ -99,7 +119,6 @@ export default function EventManagementPage() {
                 </button>
             </div>
 
-            {/* KPI Cards */}
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-gradient-to-br from-white to-blue-50/50 p-6 rounded-2xl border border-blue-100 shadow-sm hover:shadow-md transition-all">
@@ -180,74 +199,81 @@ export default function EventManagementPage() {
                         <option value="미처리">미처리</option>
                         <option value="위험">위험</option>
                         <option value="조치필요">조치필요</option>
+                        <option value="완료">완료</option>
                     </select>
                 </div>
             </div>
 
             {/* Event List */}
             <div className="space-y-4">
-                {filteredEvents.map(evt => (
-                    <div
-                        key={evt.id}
-                        className={`group bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer ${getSeverityColor(evt.severity)}`}
-                        onClick={() => router.push(`/events/${evt.id}`)}
-                    >
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <span className={`px-2.5 py-1 rounded-md text-xs font-bold border flex items-center gap-1.5 ${getSeverityBadge(evt.severity)}`}>
-                                        {getEventTypeIcon(evt.type)}
-                                        {evt.severity}
-                                    </span>
-                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                        {evt.storeName}
-                                    </h3>
-                                    <span className="text-sm text-gray-300">|</span>
-                                    <span className="text-sm font-medium text-gray-500">{evt.type} 이슈</span>
-                                </div>
-                                <div className="ml-1">
-                                    <p className="text-sm text-gray-600 line-clamp-1">{evt.message}</p>
-                                    <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
-                                        <span>발생: {evt.timestamp.replace('T', ' ').slice(0, 16)}</span>
-                                        {evt.relatedData?.metricLabel && (
-                                            <>
-                                                <span>•</span>
-                                                <span className="font-medium text-gray-600">{evt.relatedData.metricLabel}: {evt.relatedData.value}</span>
-                                            </>
-                                        )}
+                {isLoading ? (
+                    <div className="text-center py-20 text-gray-500">로딩 중...</div>
+                ) : (
+                    <>
+                        {filteredEvents.map(evt => (
+                            <div
+                                key={evt.id}
+                                className={`group bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer ${getSeverityColor(evt.severity || 'INFO')}`}
+                                onClick={() => router.push(`/events/${evt.id}`)}
+                            >
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className={`px-2.5 py-1 rounded-md text-xs font-bold border flex items-center gap-1.5 ${getSeverityBadge(evt.severity || 'INFO')}`}>
+                                                {getEventTypeIcon(evt.type)}
+                                                {evt.severity || 'INFO'}
+                                            </span>
+                                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                {evt.storeName}
+                                            </h3>
+                                            <span className="text-sm text-gray-300">|</span>
+                                            <span className="text-sm font-medium text-gray-500">{evt.type} 이슈</span>
+                                        </div>
+                                        <div className="ml-1">
+                                            {/* [수정] content/title 제거 -> message 사용 */}
+                                            <p className="text-sm text-gray-600 line-clamp-1">{evt.message}</p>
+                                            <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
+                                                {/* [수정] occurredAt 제거 -> timestamp 사용 */}
+                                                <span>발생: {(evt.timestamp || '').replace('T', ' ').slice(0, 16)}</span>
+                                                {evt.relatedData?.metricLabel && (
+                                                    <>
+                                                        <span>•</span>
+                                                        <span className="font-medium text-gray-600">{evt.relatedData.metricLabel}: {evt.relatedData.value}</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-6 pl-4 md:border-l border-gray-100">
+                                        <div className="text-right hidden md:block">
+                                            <div className="text-xs text-gray-400 mb-1">Status</div>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusBadge(evt.status)}`}>
+                                                {evt.status}
+                                            </span>
+                                        </div>
+                                        <div className="md:hidden">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusBadge(evt.status)}`}>
+                                                {evt.status}
+                                            </span>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                                            <ChevronRight className="w-5 h-5" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        ))}
 
-                            <div className="flex items-center gap-6 pl-4 md:border-l border-gray-100">
-                                <div className="text-right hidden md:block">
-                                    <div className="text-xs text-gray-400 mb-1">Status</div>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusBadge(evt.status)}`}>
-                                        {evt.status}
-                                    </span>
+                        {filteredEvents.length === 0 && (
+                            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 border-dashed">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                    <Search className="w-8 h-8 text-gray-300" />
                                 </div>
-                                {/* Mobile View Status */}
-                                <div className="md:hidden">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusBadge(evt.status)}`}>
-                                        {evt.status}
-                                    </span>
-                                </div>
-
-                                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                                    <ChevronRight className="w-5 h-5" />
-                                </div>
+                                <p className="text-gray-500 font-medium">검색된 이벤트가 없습니다.</p>
                             </div>
-                        </div>
-                    </div>
-                ))}
-
-                {filteredEvents.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl border border-gray-200 border-dashed">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                            <Search className="w-8 h-8 text-gray-300" />
-                        </div>
-                        <p className="text-gray-500 font-medium">검색된 이벤트가 없습니다.</p>
-                    </div>
+                        )}
+                    </>
                 )}
             </div>
 
