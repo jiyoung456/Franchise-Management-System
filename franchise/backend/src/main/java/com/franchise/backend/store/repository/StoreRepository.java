@@ -61,5 +61,26 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
             @Param("keyword") String keyword
     );
 
+    // SV loginId로 storeId만 뽑기 (이벤트 스코프용)
+    @Query("""
+        SELECT s.id
+        FROM Store s
+        JOIN s.supervisor u
+        WHERE u.loginId = :loginId
+    """)
+    List<Long> findStoreIdsBySupervisorLoginId(@Param("loginId") String loginId);
+
+    // department로 storeId만 뽑기 (팀장 스코프용)
+    @Query("""
+        SELECT s.id
+        FROM Store s
+        JOIN s.supervisor u
+        WHERE u.department = :department
+    """)
+    List<Long> findStoreIdsBySupervisorDepartment(@Param("department") String department);
+
     List<Store> findBySupervisor_Id(Long supervisorId);
 }
+
+
+

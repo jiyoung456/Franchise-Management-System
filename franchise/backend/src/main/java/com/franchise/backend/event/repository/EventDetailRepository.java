@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface EventDetailRepository extends Repository<EventLog, Long> {
@@ -34,6 +35,10 @@ public interface EventDetailRepository extends Repository<EventLog, Long> {
         FROM EventLog e, Store s
         WHERE e.storeId = s.id
           AND e.eventId = :eventId
+          AND (:storeIds IS NULL OR e.storeId IN :storeIds)
     """)
-    Optional<EventDetailResponse> findEventDetail(@Param("eventId") Long eventId);
+    Optional<EventDetailResponse> findEventDetail(
+            @Param("eventId") Long eventId,
+            @Param("storeIds") List<Long> storeIds
+    );
 }

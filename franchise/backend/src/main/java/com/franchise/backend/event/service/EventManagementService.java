@@ -4,7 +4,7 @@ import com.franchise.backend.event.dto.EventDashboardSummaryResponse;
 import com.franchise.backend.event.dto.EventListItemResponse;
 import com.franchise.backend.event.repository.EventLogRepository;
 import com.franchise.backend.event.repository.EventManagementRepository;
-import com.franchise.backend.user.repository.UserRepository;
+import com.franchise.backend.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -18,52 +18,58 @@ public class EventManagementService {
 
     private final EventLogRepository eventLogRepository;
     private final EventManagementRepository eventManagementRepository;
-    private final UserRepository userRepository;
+    private final EventScopeService eventScopeService;
 
-    // 이벤트 관리 - 상단 카드 (팀장 부서 기준)
+    // 이벤트 관리 - 상단 카드 (Role 스코프 적용)
     @Transactional(readOnly = true)
-    public EventDashboardSummaryResponse getSummary(String managerLoginId) {
+    public EventDashboardSummaryResponse getSummary(UserPrincipal principal) {
 
-        String dept = resolveManagerDepartment(managerLoginId);
+        List<Long> storeIds = eventScopeService.resolveAccessibleStoreIds(principal);
 
-        long openCount = eventLogRepository.countOpenEventsByDepartment(dept);
-        long criticalCount = eventLogRepository.countCriticalOpenEventsByDepartment(dept);
+        // ADMIN이면 storeIds == null (전체)
+        long openCount;
+        long criticalCount;
 
-        // 조치(Action) 도메인 아직 “완전 구현 전”이면 0
+        // SV/팀장인데 접근 가능한 점포가 0개면 바로 0 리턴
+        if (storeIds != null && storeIds.isEmpty()) {
+            return new EventDashboardSummaryResponse(0, 0, 0);
+        }
+
+        if (storeIds == null) {
+            openCount = eventLogRepository.countOpenEvents();
+            criticalCount = eventLogRepository.countCriticalOpenEvents();
+        } else {
+            openCount = eventLogRepository.countOpenEventsForStores(storeIds);
+            criticalCount = eventLogRepository.countCriticalOpenEventsForStores(storeIds);
+        }
+
         long actionInProgressCount = 0;
 
         return new EventDashboardSummaryResponse(openCount, criticalCount, actionInProgressCount);
     }
 
-    // 이벤트 관리 - 리스트 조회 (팀장 부서 기준)
+    // 이벤트 관리 - 리스트 조회 (Role 스코프 적용)
     @Transactional(readOnly = true)
-    public List<EventListItemResponse> getEvents(String managerLoginId, String keyword, String status, int limit) {
+    public List<EventListItemResponse> getEvents(UserPrincipal principal, String keyword, String status, int limit) {
 
-        String dept = resolveManagerDepartment(managerLoginId);
+        List<Long> storeIds = eventScopeService.resolveAccessibleStoreIds(principal);
+
+        // SV/팀장인데 점포 0개면 빈 리스트
+        if (storeIds != null && storeIds.isEmpty()) {
+            return List.of();
+        }
 
         String normalizedKeyword = normalizeKeyword(keyword);
         String normalizedStatus = normalizeStatus(status);
 
         int safeLimit = Math.max(1, Math.min(limit, 200));
 
-        return eventManagementRepository.searchEventsForManagerDepartment(
-                dept,
+        return eventManagementRepository.searchEvents(
                 normalizedStatus,
                 normalizedKeyword,
+                storeIds, // ADMIN이면 null(전체), 그 외는 IN 필터
                 PageRequest.of(0, safeLimit)
         );
-    }
-
-    private String resolveManagerDepartment(String managerLoginId) {
-        String loginId = (managerLoginId == null ? null : managerLoginId.trim());
-        if (loginId == null || loginId.isBlank()) {
-            throw new IllegalArgumentException("로그인 정보가 없습니다.");
-        }
-
-        return userRepository.findByLoginId(loginId)
-                .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
-                .filter(d -> d != null && !d.isBlank())
-                .orElseThrow(() -> new IllegalArgumentException("팀장 department 정보를 찾을 수 없습니다. loginId=" + loginId));
     }
 
     private String normalizeKeyword(String keyword) {
