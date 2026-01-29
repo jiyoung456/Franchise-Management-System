@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, MapPin } from 'lucide-react'; // MapPin 아이콘 추가
 import { useState, useEffect } from 'react';
 import { ScoreBar } from '@/components/common/ScoreBar';
 import { StoreService } from '@/services/storeService';
@@ -9,11 +9,11 @@ import { Store, StoreSearchRequest } from '@/types';
 import { AuthService } from '@/services/authService';
 
 export default function MyStoresPage() {
+    // ... (기존 로직 동일) ...
     const router = useRouter();
     const [myStores, setMyStores] = useState<Store[]>([]);
     const [loading, setLoading] = useState(true);
     
-    // 검색 및 필터 상태
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [role, setRole] = useState<'ADMIN' | 'MANAGER' | 'SUPERVISOR' | null>(null);
@@ -26,23 +26,16 @@ export default function MyStoresPage() {
                 
                 if (user) {
                     setRole(user.role);
-
-                    // 검색 조건 생성 (서버로 전달)
-                    const params: StoreSearchRequest = { limit: 200 }; // 충분한 조회 개수
+                    const params: StoreSearchRequest = { limit: 200 };
                     if (searchTerm) params.keyword = searchTerm;
                     if (filterStatus !== 'ALL') params.state = filterStatus as any;
 
                     let data: Store[] = [];
-
                     if (user.role === 'SUPERVISOR') {
-                        // [슈퍼바이저] 내 담당(또는 부서) 점포 조회 (/api/stores/supervisor)
                         data = await StoreService.getStoresBySv(params);
                     } else {
-                        // [팀장/관리자] 내 부서 점포 조회 (/api/stores)
-                        // 백엔드에서 로그인한 사용자의 부서(Department)를 기준으로 자동 필터링됩니다.
                         data = await StoreService.getStores(params);
                     }
-                    
                     setMyStores(data);
                 } else {
                     setMyStores([]);
@@ -54,13 +47,12 @@ export default function MyStoresPage() {
             }
         };
 
-        // Debounce 적용 (선택 사항) 또는 검색 버튼 없이 실시간 조회
         const timer = setTimeout(() => {
             fetchStores();
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [searchTerm, filterStatus]); // 검색어, 필터 변경 시 재조회
+    }, [searchTerm, filterStatus]);
 
     if (loading && myStores.length === 0) return <div className="p-12 text-center">Loading...</div>;
 
@@ -105,19 +97,24 @@ export default function MyStoresPage() {
 
             {/* List Table */}
             <div className="border-t border-gray-400 mt-6">
-                {/* Table Body */}
                 <div className="bg-white space-y-4 py-4">
                     {myStores.map(store => (
                         <div key={store.id} className="border border-gray-300 p-4 flex items-center justify-between hover:shadow-md transition-shadow">
                             {/* Left Info */}
                             <div className="flex flex-col gap-1">
-                                <span className="font-bold text-gray-900 text-lg">
-                                    {store.name}
-                                    <span className="text-sm font-normal text-gray-500 ml-2">{store.region}</span>
-                                </span>
+                                <div className="flex items-center">
+                                    <span className="font-bold text-gray-900 text-lg mr-2">
+                                        {store.name}
+                                    </span>
+                                    {/* [변경] 지역명 배지 스타일 적용 */}
+                                    {store.region && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                            {store.region}
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="text-sm text-gray-600 flex gap-2">
                                     <span>{store.lastInspectionDate ? `최근 점검: ${store.lastInspectionDate}` : '점검 이력 없음'}</span>
-                                    {/* 팀장/관리자인 경우 담당 SV 표시 */}
                                     {role !== 'SUPERVISOR' && store.supervisor && (
                                         <>
                                             <span className="text-gray-300">|</span>

@@ -1,7 +1,5 @@
 import api from '@/lib/api';
 
-const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true';
-
 // Backend DTO Types
 export interface PosKpiDashboardResponse {
     storeId: number;
@@ -48,11 +46,6 @@ export const PosService = {
         periodType: 'WEEK' | 'MONTH' = 'WEEK',
         limit: number = 12
     ): Promise<PosKpiDashboardResponse | null> => {
-        if (USE_MOCK_API) {
-            // Mock data fallback if needed, but we aim for backend integration
-            console.warn('Using Mock API for POS (not implemented fully)');
-            return null;
-        }
 
         try {
             const response = await api.get(`/stores/${storeId}/pos/kpi`, {
