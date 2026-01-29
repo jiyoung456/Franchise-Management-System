@@ -40,6 +40,8 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
         JOIN s.supervisor u
         WHERE u.loginId = :loginId
     """)
+
     List<Store> findBySupervisorLoginId(@Param("loginId") String loginId);
+
     List<Store> findBySupervisor_Id(Long supervisorId);
 }
