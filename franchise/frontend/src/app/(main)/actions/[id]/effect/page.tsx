@@ -1,42 +1,62 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ActionService } from '@/services/actionService';
+import { ActionItem } from '@/types';
 
 export default function ActionEffectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const [action, setAction] = useState<ActionItem | null>(null);
+    const [effect, setEffect] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data
-    const actionData = {
-        title: '위생 점검 재이행',
-        store: '강남점',
-        relatedEvent: '이벤트11',
-        type: '방문',
-        assignee: '김슈퍼',
-        metric: '위생점수',
-        executionDate: '2026-01-15'
-    };
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [actionData, effectData] = await Promise.all([
+                    ActionService.getAction(id),
+                    ActionService.getActionEffect(id)
+                ]);
+                setAction(actionData || null);
+                setEffect(effectData || null);
+            } catch (error) {
+                console.error("Failed to fetch effect data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [id]);
 
-    // Graph data - 2 weeks before and after
+    if (loading) return <div className="p-12 text-center text-gray-500 font-bold">효과 분석 데이터를 불러오는 중...</div>;
+    if (!action || !effect) return <div className="p-12 text-center text-red-500 font-bold">데이터를 불러오는 데 실패했습니다.</div>;
+
+    // Map backend effect data to graphData
+    // Backend return format (from ActionEffectResponse.java):
+    // List<TimeSeriesData> beforeExecution;
+    // List<TimeSeriesData> afterExecution;
+    // double baseline;
+
+    const beforeData = effect.beforeExecution || [];
+    const afterData = effect.afterExecution || [];
+
     const graphData = [
-        { day: 'D-14', before: 72, after: null },
-        { day: 'D-12', before: 73, after: null },
-        { day: 'D-10', before: 71, after: null },
-        { day: 'D-8', before: 74, after: null },
-        { day: 'D-6', before: 72, after: null },
-        { day: 'D-4', before: 73, after: null },
-        { day: 'D-2', before: 71, after: null },
-        { day: 'D-Day', before: 72, after: 72 },
-        { day: 'D+2', before: null, after: 75 },
-        { day: 'D+4', before: null, after: 78 },
-        { day: 'D+6', before: null, after: 82 },
-        { day: 'D+8', before: null, after: 85 },
-        { day: 'D+10', before: null, after: 87 },
-        { day: 'D+12', before: null, after: 88 },
-        { day: 'D+14', before: null, after: 89 },
+        ...beforeData.map((d: any) => ({ day: d.dateLabel || d.date, before: d.value, after: null })),
+        ...afterData.map((d: any) => ({ day: d.dateLabel || d.date, before: null, after: d.value }))
     ];
+
+    const actionData = {
+        title: action.title,
+        store: action.storeName || action.storeId,
+        relatedEvent: action.linkedEventId || '-',
+        type: action.type,
+        assignee: action.assigneeName || action.assignee,
+        metric: effect.metricLabel || '점수',
+        executionDate: action.completedAt?.split('T')[0] || action.updatedAt?.split('T')[0] || '-'
+    };
 
     return (
         <div className="space-y-8 max-w-7xl mx-auto pb-20">

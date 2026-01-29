@@ -2,7 +2,6 @@ import { Store, QSCTemplate, Inspection, EventLog, ActionItem, QSCItem, User } f
 import { MOCK_STORES } from './mock/mockData';
 import { MOCK_TEMPLATES, MOCK_INSPECTIONS } from './mock/mockQscData';
 import { MOCK_EVENTS } from './mock/mockEventData';
-import { MOCK_ACTIONS } from './mock/mockActionData';
 
 export type { QSCTemplate, QSCItem, User };
 
@@ -107,10 +106,7 @@ export const StorageService = {
             localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(MOCK_EVENTS));
         }
 
-        // Initialize Actions
-        if (!localStorage.getItem(STORAGE_KEYS.ACTIONS)) {
-            localStorage.setItem(STORAGE_KEYS.ACTIONS, JSON.stringify(MOCK_ACTIONS));
-        }
+
     },
 
     // --- USER / AUTH ---
@@ -505,24 +501,13 @@ export const StorageService = {
 
     // --- ACTIONS ---
     getActions: (): ActionItem[] => {
-        if (typeof window === 'undefined') return MOCK_ACTIONS;
-        const json = localStorage.getItem(STORAGE_KEYS.ACTIONS);
-        return json ? JSON.parse(json) : MOCK_ACTIONS;
+        return [];
     },
 
     getAction: (id: string): ActionItem | undefined => {
-        const actions = StorageService.getActions();
-        return actions.find(a => a.id === id);
+        return undefined;
     },
 
     saveAction: (action: ActionItem) => {
-        const actions = StorageService.getActions();
-        const index = actions.findIndex(a => a.id === action.id);
-        if (index !== -1) {
-            actions[index] = action;
-        } else {
-            actions.unshift(action);
-        }
-        localStorage.setItem(STORAGE_KEYS.ACTIONS, JSON.stringify(actions));
     }
 };

@@ -14,8 +14,8 @@ import {
 } from 'recharts';
 import { MOCK_STORES } from '@/lib/mock/mockData';
 import { MOCK_EVENTS } from '@/lib/mock/mockEventData';
-import { MOCK_ACTIONS } from '@/lib/mock/mockActionData';
 import { MOCK_RISK_PROFILES } from '@/lib/mock/mockRiskData';
+import { ActionService } from '@/services/actionService';
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -47,18 +47,24 @@ function AdminDashboard() {
   const [allStores, setAllStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [actionCount, setActionCount] = useState(0);
+
   useEffect(() => {
-    const fetchStores = async () => {
+    const init = async () => {
       try {
-        const data = await StoreService.getStores({ limit: 200 });
-        setAllStores(data);
+        const [stores, count] = await Promise.all([
+          StoreService.getStores({ limit: 200 }),
+          ActionService.getSummary()
+        ]);
+        setAllStores(stores);
+        setActionCount(count);
       } catch (error) {
-        console.error("Failed to load stores", error);
+        console.error("Failed to load admin dashboard data", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchStores();
+    init();
   }, []);
 
   const totalStores = allStores.length;
@@ -66,7 +72,7 @@ function AdminDashboard() {
   const oneDayAgo = new Date();
   oneDayAgo.setDate(oneDayAgo.getDate() - 2);
   const newEvents = MOCK_EVENTS.filter(e => new Date(e.timestamp) > oneDayAgo).length;
-  const overdueActions = MOCK_ACTIONS.filter(a => a.status === 'OVERDUE' || (a.status !== 'COMPLETED' && new Date(a.dueDate) < new Date())).length;
+  const overdueActions = actionCount; // Using inProgressCount from backend as fallback for overdue
 
   // Reuse same mock chart data for simplicity
   const qscTrendData = [
@@ -185,29 +191,33 @@ function TeamLeaderDashboard({ user }: { user: User }) {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RISK' | 'WATCHLIST' | 'NORMAL'>('ALL');
   const [sortConfig, setSortConfig] = useState<{ key: 'qscScore' | 'lastInspectionDate' | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'desc' });
 
+  const [actionCount, setActionCount] = useState(0);
+
   useEffect(() => {
-    const fetchStores = async () => {
+    const init = async () => {
       try {
-        const data = await StoreService.getStores();
-        setMyStores(data);
+        const [stores, count] = await Promise.all([
+          StoreService.getStores(),
+          ActionService.getSummary()
+        ]);
+        setMyStores(stores);
+        setActionCount(count);
       } catch (error) {
-        console.error(error);
+        console.error("Failed to load team leader dashboard data", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchStores();
+    init();
   }, []);
 
-  const riskStoresCount = myStores.filter(s => s.state === 'RISK').length;
-
-  // Mock 'New Events' (last 48h)
   const oneDayAgo = new Date();
   oneDayAgo.setDate(oneDayAgo.getDate() - 2);
   const newEventsCount = MOCK_EVENTS.filter(e => new Date(e.timestamp) > oneDayAgo).length;
 
-  // Mock 'Management Gap'
-  const gapStoresCount = 0; // Placeholder logic as lastCheckDate is removed
+  const riskStoresCount = myStores.filter(s => s.state === 'RISK').length;
+  const gapStoresCount = 0;
+  const overdueActionsCount = actionCount;
 
   // Filter & Sort Logic
   const filteredStores = myStores
@@ -389,20 +399,21 @@ function SvDashboard({ user }: { user: User }) {
   const [myStores, setMyStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [actionCount, setActionCount] = useState(0);
+
   useEffect(() => {
-    const fetchMyStores = async () => {
+    const init = async () => {
       try {
-        // For mock purposes user.id might be generic, but assuming user.loginId matches supervisor name in SV mock
-        // or just get all stores and filter by name if SV ID not in store list properties?
-        // List has 'supervisor' name. 
-        // We can use getStoresBySv(user.loginId) if backend supports it or just get all.
-        // Let's use getStoresBySv assuming it works
-        const data = await StoreService.getStoresBySv(user.loginId);
-        setMyStores(data);
+        const [stores, count] = await Promise.all([
+          StoreService.getStoresBySv(),
+          ActionService.getUserSummary(user.id)
+        ]);
+        setMyStores(stores);
+        setActionCount(count);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
-    fetchMyStores();
+    init();
   }, [user]);
 
   // 1. Grade Distribution
@@ -438,7 +449,7 @@ function SvDashboard({ user }: { user: User }) {
     assigned: myStores.length,
     risk: gradeCounts.RISK,
     recentEvents: 5, // Mock
-    pendingActions: 3 // Mock
+    pendingActions: actionCount
   };
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;

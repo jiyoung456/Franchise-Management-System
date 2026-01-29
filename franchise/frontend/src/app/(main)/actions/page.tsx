@@ -29,31 +29,26 @@ export default function ActionsListPage() {
         init();
     }, []);
 
-    const getStoreName = (storeId: string) => {
-        const store = stores.find(s => s.id?.toString() === storeId);
-        if (store) {
-            return store.name;
-        }
-        // Debug: log if store not found
-        console.log('Store not found for ID:', storeId, 'Available stores:', stores.map(s => s.id));
-        return 'Unknown Store';
+    const getStoreName = (action: ActionItem) => {
+        return action.storeName || action.storeId || 'Unknown Store';
     };
 
     const getRelatedEventInfo = (action: ActionItem) => {
         if (action.linkedEventId) {
-            // Optimize: In a real app we might fetch this. For now just show ID or lookup if cheap.
-            // Let's do a quick lookup if we want perfection, but 'Event' + ID is okay for now.
-            // Update: Let's actually fetch it since it's local storage.
-            const evt = EventService.getEvent(action.linkedEventId);
-            return evt ? `${evt.type} (${evt.severity})` : 'Linked Event';
+            return `Event #${action.linkedEventId}`;
         }
         return '-';
     };
 
     // Stats
-    const openCount = actions.filter(a => a.status === 'OPEN').length;
+    const openCount = actions.filter(a => a.status === 'OPEN' || a.status === 'IN_PROGRESS').length;
     const overdueCount = actions.filter(a => a.status === 'OVERDUE').length;
-    const unfulfilledAction = actions.filter(a => a.status === 'OVERDUE').sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+    const closedCount = actions.filter(a => a.status === 'CLOSED' || a.status === 'COMPLETED').length;
+
+    // Sort by dueDate to find most urgent
+    const urgentAction = actions
+        .filter(a => a.status !== 'CLOSED' && a.status !== 'COMPLETED' && a.dueDate)
+        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
 
 
     return (
@@ -85,18 +80,18 @@ export default function ActionsListPage() {
                             <AlertTriangle className="w-24 h-24 text-red-600" />
                         </div>
 
-                        {unfulfilledAction ? (
+                        {urgentAction ? (
                             <>
                                 <div>
                                     <h3 className="text-red-600 font-bold text-sm mb-3 flex items-center gap-2">
                                         <AlertCircle className="w-4 h-4" />
-                                        가장 최근 미이행 조치
+                                        가장 긴급한 조치
                                     </h3>
-                                    <p className="text-lg font-bold text-gray-900 line-clamp-1">{unfulfilledAction.title}</p>
-                                    <p className="text-sm text-gray-600 font-medium">{getStoreName(unfulfilledAction.storeId)}</p>
+                                    <p className="text-lg font-bold text-gray-900 line-clamp-1">{urgentAction.title}</p>
+                                    <p className="text-sm text-gray-600 font-medium">{getStoreName(urgentAction)}</p>
                                 </div>
                                 <div className="mt-2 text-sm text-gray-500 flex flex-col gap-1">
-                                    <span className="font-bold text-red-500">기한: {unfulfilledAction.dueDate}</span>
+                                    <span className="font-bold text-red-500">기한: {urgentAction.dueDate}</span>
                                 </div>
                             </>
                         ) : (
@@ -142,7 +137,7 @@ export default function ActionsListPage() {
                                                 {action.title}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-600 font-medium">{getStoreName(action.storeId)}</td>
+                                        <td className="px-6 py-4 text-gray-600 font-medium">{getStoreName(action)}</td>
                                         <td className="px-6 py-4">
                                             <span className={`text-xs font-bold px-2 py-1 rounded-full border ${action.priority === 'CRITICAL' ? 'bg-red-50 text-red-600 border-red-200' :
                                                 action.priority === 'HIGH' ? 'bg-orange-50 text-orange-600 border-orange-200' :
@@ -153,10 +148,10 @@ export default function ActionsListPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`text-xs font-bold flex items-center gap-1.5 ${action.status === 'COMPLETED' ? 'text-green-600' :
+                                            <span className={`text-xs font-bold flex items-center gap-1.5 ${action.status === 'COMPLETED' || action.status === 'CLOSED' ? 'text-green-600' :
                                                 action.status === 'OPEN' ? 'text-blue-600' : 'text-gray-500'
                                                 }`}>
-                                                {action.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> :
+                                                {action.status === 'COMPLETED' || action.status === 'CLOSED' ? <CheckCircle2 className="w-3 h-3" /> :
                                                     action.status === 'OPEN' ? <AlertCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                                                 {action.status}
                                             </span>
@@ -169,7 +164,7 @@ export default function ActionsListPage() {
                                                 <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
                                                     <User className="w-3 h-3 text-gray-400" />
                                                 </div>
-                                                {action.assignee}
+                                                {action.assigneeName || action.assignee || '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">

@@ -1,23 +1,62 @@
 'use client';
 
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Camera, } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft, Camera } from 'lucide-react';
+import { ActionService } from '@/services/actionService';
 
-export default function ActionExecutionPage({ params }: { params: { id: string } }) {
+export default function ActionExecutionPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
+    const { id } = use(params);
 
-    // Mock Data - usually fetched
-    const actionData = {
-        id: params.id,
-        store: '강남점',
-        problemCause: '식자재 보관 미흡 (이벤트 #11)',
-        actionName: '위생 점검 재이행',
-        actionType: '방문',
-    };
-
+    const [formData, setFormData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [executionDate, setExecutionDate] = useState(new Date().toISOString().split('T')[0]);
     const [resultContent, setResultContent] = useState('');
+
+    useEffect(() => {
+        const fetchForm = async () => {
+            try {
+                const data = await ActionService.getResultForm(id);
+                setFormData(data);
+            } catch (error) {
+                console.error("Failed to fetch result form", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchForm();
+    }, [id]);
+
+    const handleSubmit = async () => {
+        if (!resultContent.trim()) {
+            alert('조치 결과를 입력해주세요.');
+            return;
+        }
+
+        const success = await ActionService.saveExecution(id, {
+            resultContent,
+            completedAt: executionDate + 'T' + new Date().toISOString().split('T')[1]
+        });
+
+        if (success) {
+            alert('작성 완료되었습니다. 조치가 CLOSED 상태로 변경되었습니다.');
+            router.push(`/actions/${id}`);
+        } else {
+            alert('작성 중 오류가 발생했습니다.');
+        }
+    };
+
+    if (loading) return <div className="p-12 text-center text-gray-500 font-bold">양식을 불러오는 중...</div>;
+    if (!formData) return <div className="p-12 text-center text-red-500 font-bold">양식 데이터를 찾을 수 없습니다.</div>;
+
+    const actionData = {
+        id: id,
+        store: formData.storeName || '-',
+        problemCause: formData.problemMessage || '-',
+        actionName: formData.actionTitle || '-',
+        actionType: formData.actionType || '-',
+    };
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-20">
@@ -109,10 +148,7 @@ export default function ActionExecutionPage({ params }: { params: { id: string }
                     임시 저장
                 </button>
                 <button
-                    onClick={() => {
-                        alert('작성 완료되었습니다. 팀장이 확인 후 효과 분석을 진행합니다.');
-                        router.push(`/actions/${params.id}`);
-                    }}
+                    onClick={handleSubmit}
                     className="px-6 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700"
                 >
                     작성 완료
