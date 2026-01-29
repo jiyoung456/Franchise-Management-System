@@ -1,3 +1,5 @@
+package com.franchise.backend.qsc.repository;
+
 import com.franchise.backend.qsc.entity.QscTemplateCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 

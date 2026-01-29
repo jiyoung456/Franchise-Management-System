@@ -43,5 +43,13 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     List<Store> findBySupervisorLoginId(@Param("loginId") String loginId);
 
+    //전체 목록 검색용
     List<Store> findBySupervisor_Id(Long supervisorId);
+
+
+    //sv가 담당하는 점포 검색용(qsc 점검 매장 선택시 필요함)
+    List<Store> findBySupervisor_IdAndStoreNameContaining(
+            Long supervisorId,
+            String storeName
+    );
 }
