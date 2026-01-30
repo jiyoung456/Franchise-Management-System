@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
@@ -49,4 +50,6 @@ public class QscTemplateCategory {
     public void preUpdate() {
         this.updatedAt = OffsetDateTime.now();
     }
+
+
 }

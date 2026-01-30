@@ -51,4 +51,6 @@ public class QscTemplateItem {
     public void preUpdate() {
         this.updatedAt = OffsetDateTime.now();
     }
+
+
 }

@@ -56,4 +56,5 @@ public class QscMaster {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
 }

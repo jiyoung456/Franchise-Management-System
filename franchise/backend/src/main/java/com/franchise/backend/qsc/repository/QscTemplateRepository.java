@@ -8,5 +8,6 @@ import java.util.List;
 
 public interface QscTemplateRepository extends JpaRepository<QscTemplate, Long> {
     List<QscTemplate> findAllByOrderByEffectiveFromDesc();
+
 }
 
