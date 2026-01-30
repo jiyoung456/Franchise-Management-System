@@ -201,6 +201,7 @@ export interface EventLog {
         linkUrl?: string;
     };
     ruleId?: string;
+    assignedToUserId?: number;
 }
 
 // Actions
