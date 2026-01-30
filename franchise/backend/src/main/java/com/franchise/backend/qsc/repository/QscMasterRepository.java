@@ -65,4 +65,155 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
             OffsetDateTime from,
             OffsetDateTime to
     );
+
+    /* =========================
+      1. SUMMARY
+      ========================= */
+    @Query(value = """
+        WITH scoped AS (
+            SELECT qm.*
+            FROM qsc_master qm
+            JOIN stores s ON s.store_id = qm.store_id
+            WHERE s.current_supervisor_id = :svId
+              AND qm.status = 'CONFIRMED'
+              AND qm.confirmed_at >= :startInclusive
+              AND qm.confirmed_at < :endExclusive
+        ),
+        latest_per_store AS (
+            SELECT *
+            FROM (
+                SELECT scoped.*,
+                       ROW_NUMBER() OVER (PARTITION BY scoped.store_id ORDER BY scoped.confirmed_at DESC) rn
+                FROM scoped
+            ) t
+            WHERE rn = 1
+        )
+        SELECT
+            (SELECT AVG(total_score::numeric)
+             FROM scoped
+             WHERE total_score IS NOT NULL) AS avgScore,
+
+            (SELECT COUNT(*) FROM scoped) AS doneCount,
+
+            (SELECT COUNT(*) FROM latest_per_store WHERE grade IN ('C','D')) AS riskStoreCount,
+
+            (SELECT COUNT(*) FROM latest_per_store WHERE grade = 'S') AS sStoreCount
+        """, nativeQuery = true)
+    QscDashboardProjection.Summary fetchMonthlySummary(
+            @Param("svId") Long svId,
+            @Param("startInclusive") OffsetDateTime startInclusive,
+            @Param("endExclusive") OffsetDateTime endExclusive
+    );
+
+    /* =========================
+       2. TREND (최근 6개월)
+       ========================= */
+    @Query(value = """
+        SELECT
+            TO_CHAR(
+                DATE_TRUNC('month', qm.confirmed_at AT TIME ZONE 'Asia/Seoul'),
+                'YYYY-MM'
+            ) AS month,
+            AVG(qm.total_score::numeric)
+                FILTER (WHERE qm.total_score IS NOT NULL) AS avgScore,
+            COUNT(*) AS inspectionCount
+        FROM qsc_master qm
+        JOIN stores s ON s.store_id = qm.store_id
+        WHERE s.current_supervisor_id = :svId
+          AND qm.status = 'CONFIRMED'
+          AND qm.confirmed_at >= :startInclusive
+          AND qm.confirmed_at < :endExclusive
+        GROUP BY 1
+        ORDER BY 1
+        """, nativeQuery = true)
+    List<QscDashboardProjection.TrendRow> fetchTrend(
+            @Param("svId") Long svId,
+            @Param("startInclusive") OffsetDateTime startInclusive,
+            @Param("endExclusive") OffsetDateTime endExclusive
+    );
+
+    /* =========================
+       3. RANKING (TOP)
+       ========================= */
+    @Query(value = """
+        WITH latest_per_store AS (
+            SELECT *
+            FROM (
+                SELECT qm.store_id,
+                       s.store_name,
+                       qm.total_score,
+                       qm.grade,
+                       qm.summary_comment,
+                       qm.confirmed_at,
+                       ROW_NUMBER() OVER (PARTITION BY qm.store_id ORDER BY qm.confirmed_at DESC) rn
+                FROM qsc_master qm
+                JOIN stores s ON s.store_id = qm.store_id
+                WHERE s.current_supervisor_id = :svId
+                  AND qm.status = 'CONFIRMED'
+                  AND qm.confirmed_at >= :startInclusive
+                  AND qm.confirmed_at < :endExclusive
+            ) t
+            WHERE rn = 1
+        )
+        SELECT
+            store_id        AS storeId,
+            store_name      AS storeName,
+            total_score     AS score,
+            grade           AS grade,
+            summary_comment AS summaryComment,
+            confirmed_at    AS confirmedAt
+        FROM latest_per_store
+        WHERE total_score IS NOT NULL
+        ORDER BY total_score DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<QscDashboardProjection.RankingRow> fetchTopRanking(
+            @Param("svId") Long svId,
+            @Param("startInclusive") OffsetDateTime startInclusive,
+            @Param("endExclusive") OffsetDateTime endExclusive,
+            @Param("limit") int limit
+    );
+
+    /* =========================
+       4. RANKING (BOTTOM)
+       ========================= */
+    @Query(value = """
+        WITH latest_per_store AS (
+            SELECT *
+            FROM (
+                SELECT qm.store_id,
+                       s.store_name,
+                       qm.total_score,
+                       qm.grade,
+                       qm.summary_comment,
+                       qm.confirmed_at,
+                       ROW_NUMBER() OVER (PARTITION BY qm.store_id ORDER BY qm.confirmed_at DESC) rn
+                FROM qsc_master qm
+                JOIN stores s ON s.store_id = qm.store_id
+                WHERE s.current_supervisor_id = :svId
+                  AND qm.status = 'CONFIRMED'
+                  AND qm.confirmed_at >= :startInclusive
+                  AND qm.confirmed_at < :endExclusive
+            ) t
+            WHERE rn = 1
+        )
+        SELECT
+            store_id        AS storeId,
+            store_name      AS storeName,
+            total_score     AS score,
+            grade           AS grade,
+            summary_comment AS summaryComment,
+            confirmed_at    AS confirmedAt
+        FROM latest_per_store
+        WHERE total_score IS NOT NULL
+        ORDER BY total_score ASC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<QscDashboardProjection.RankingRow> fetchBottomRanking(
+            @Param("svId") Long svId,
+            @Param("startInclusive") OffsetDateTime startInclusive,
+            @Param("endExclusive") OffsetDateTime endExclusive,
+            @Param("limit") int limit
+    );
+
 }

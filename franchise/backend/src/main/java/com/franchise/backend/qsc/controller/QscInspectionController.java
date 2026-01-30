@@ -32,9 +32,10 @@ public class QscInspectionController {
         return Map.of("inspectionId", inspectionId);
     }
 
-//    @GetMapping("/{inspectionId}")
-//    public QscInspectionDetailResponse getDetail(@PathVariable Long inspectionId) {
-//        return queryService.getDetail(inspectionId);
-//    }
+    @GetMapping("/{inspectionId}")
+    public QscInspectionDetailResponse getDetail(@PathVariable Long inspectionId) {
+        QscInspectionController queryService = null;
+        return queryService.getDetail(inspectionId);
+    }
 
 }
