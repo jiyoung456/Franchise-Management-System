@@ -50,7 +50,7 @@ export default function EventManagementPage() {
                 case '미처리':
                     matchesFilter = evt.status === 'OPEN';
                     break;
-                case '위험함
+                case '위험':
                     matchesFilter = evt.severity === 'CRITICAL';
                     break;
                 case '조치필요':
