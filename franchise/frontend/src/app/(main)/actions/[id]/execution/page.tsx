@@ -6,6 +6,7 @@ import { ArrowLeft, Camera, X } from 'lucide-react';
 import { ActionService } from '@/services/actionService';
 import { StoreService } from '@/services/storeService';
 import { EventService } from '@/services/eventService';
+import { AuthService } from '@/services/authService';
 
 export default function ActionExecutionPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -100,9 +101,13 @@ export default function ActionExecutionPage({ params }: { params: Promise<{ id: 
             return;
         }
 
+        const user = await AuthService.getCurrentUser();
+
         const success = await ActionService.saveExecution(id, {
-            resultContent,
-            completedAt: executionDate + 'T' + new Date().toISOString().split('T')[1]
+            resultComment: resultContent,
+            performedAt: executionDate + 'T' + new Date().toTimeString().split(' ')[0],
+            userId: user ? Number(user.id) : 0,
+            attachments: [] // Image upload functionality to be implemented fully later
         });
 
         if (success) {

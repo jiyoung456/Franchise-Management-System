@@ -23,9 +23,10 @@ export interface ActionUpdateRequest {
 }
 
 export interface ActionExecutionSaveRequest {
-    resultContent: string;
-    completedAt: string;
-    // other fields if needed
+    performedAt: string;
+    resultComment: string;
+    attachments: { photoUrl: string; photoName: string }[];
+    userId: number;
 }
 
 const STORAGE_KEY = 'fms_actions';
@@ -111,7 +112,7 @@ export const ActionService = {
 
     getResultForm: async (id: string) => {
         try {
-            const response = await api.get(`/actions/${id}/execution`, { baseURL: '' });
+            const response = await api.get(`/actions/${id}/execution`);
             return response.data.data || response.data;
         } catch (error) {
             console.error(`Failed to fetch result form for action ${id}:`, error);
@@ -121,7 +122,7 @@ export const ActionService = {
 
     saveExecution: async (id: string, data: ActionExecutionSaveRequest): Promise<boolean> => {
         try {
-            await api.post(`/actions/${id}/execution`, data, { baseURL: '' });
+            await api.post(`/actions/${id}/execution`, data);
             return true;
         } catch (error) {
             console.error(`Failed to save execution for action ${id}:`, error);
@@ -131,7 +132,7 @@ export const ActionService = {
 
     getSummary: async (): Promise<number> => {
         try {
-            const response = await api.get('/actions/summary', { baseURL: '' });
+            const response = await api.get('/actions/summary');
             return response.data.data?.inProgressCount || response.data.inProgressCount || 0;
         } catch (error) {
             console.error('Failed to fetch action summary:', error);
@@ -141,7 +142,7 @@ export const ActionService = {
 
     getUserSummary: async (userId: string | number): Promise<number> => {
         try {
-            const response = await api.get(`/users/${userId}/actions/summary`, { baseURL: '' });
+            const response = await api.get(`/users/${userId}/actions/summary`);
             return response.data.data?.inProgressCount || response.data.inProgressCount || 0;
         } catch (error) {
             console.error(`Failed to fetch user action summary for ${userId}:`, error);
