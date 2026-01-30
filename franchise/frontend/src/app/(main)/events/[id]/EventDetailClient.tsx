@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, TrendingDown, DollarSign, Info } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AuthService } from '@/services/authService';
 import { EventService } from '@/services/eventService';
@@ -132,25 +132,25 @@ export default function EventDetailClient({ id }: { id: string }) {
                                     {Number(event.relatedData.value).toLocaleString()}
                                 </span>
                             </div>
-                             <div className="border border-gray-200 rounded-lg p-6 flex items-center justify-center text-gray-400 text-sm">
+                            <div className="border border-gray-200 rounded-lg p-6 flex items-center justify-center text-gray-400 text-sm">
                                 상세 매출 분석 데이터는 추후 연동 예정입니다.
                             </div>
                         </div>
                     )}
 
                     {!event.type.startsWith('QSC') && !event.type.startsWith('POS') && (
-                         <div className="border border-gray-200 rounded-lg p-5">
+                        <div className="border border-gray-200 rounded-lg p-5">
                             <span className="text-sm font-bold text-gray-500 block mb-1">
                                 {event.relatedData.metricLabel || '참고 데이터'}
                             </span>
                             <span className="text-xl font-bold text-gray-900">
                                 {event.relatedData.value}
                             </span>
-                         </div>
+                        </div>
                     )}
                 </div>
             )}
-            
+
             {!event.relatedData && (
                 <div className="bg-gray-50 rounded-xl p-8 text-center text-gray-500 text-sm">
                     <Info className="w-8 h-8 mx-auto mb-2 text-gray-300" />
