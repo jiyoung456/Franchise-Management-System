@@ -23,61 +23,50 @@ export default function QscMyStoresPage() {
                 return;
             }
 
-            console.log('QSC My Stores: User:', user);
-            let myStoresData: any[] = [];
-            try {
-                // Assuming StoreService.getStoresBySv takes userId or loginId. 
-                // The original code used user.loginId for StoreService and user.id for StorageService (mock).
-                // Let's stick to what worked or seems intended. 
-                // Previous code:
-                // const svStores = StorageService.getStoresBySv(user.id); (unused variable)
-                // myStoresData = await StoreService.getStoresBySv(user.loginId);
+            // 1. Fetch Real Store List for this User
+            // Using the 'test' endpoint found in QscStoreController because SvStoreQscStatusController is broken.
+            const myStores = await QscService.getStoresBySupervisor(user.id);
 
-                // We'll use user.id (numeric) if StoreService expects it, or loginId (string).
-                // StoreService.getStoresBySv signature likely expects number or string. 
-                // Given previous usage: StoreService.getStoresBySv(user.loginId)
-                myStoresData = await StoreService.getStoresBySv(user.id);
+            // 2. Fetch Latest QSC Status for each store
+            // We can use getDashboardStats or manual calls. 
+            // getDashboardStats takes a list of stores (with id property) and returns inspections.
+            const storesForStats = myStores.map((s: any) => ({ id: s.storeId, name: s.storeName, region: s.regionCode }));
+            const latestInspections = await QscService.getDashboardStats(storesForStats);
 
-                if (!myStoresData || myStoresData.length === 0) {
-                    // Fallback to manual ID filter if service fails
-                    const { MOCK_STORES } = require('@/lib/mock/mockData');
-                    myStoresData = MOCK_STORES.filter((s: any) => [1, 4, 12].includes(s.id));
-                }
-            } catch (e) {
-                console.error('QSC My Stores Error:', e);
-                // Fallback catch
-                const { MOCK_STORES } = require('@/lib/mock/mockData');
-                myStoresData = MOCK_STORES.filter((s: any) => [1, 4, 12].includes(s.id));
-            }
-            const inspections = QscService.getInspections();
             const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
-            const storesWithStatus = myStoresData.map(store => {
-                // Find latest inspection
-                const storeInspections = inspections.filter((i: any) => i.storeId === store.id.toString());
-                const latestInspection = storeInspections.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            // 3. Merge Data
+            const storesWithStatus = myStores.map((store: any) => {
+                const latest = latestInspections.find(i => i.storeId === store.storeId.toString());
 
-                const isInspectedThisMonth = storeInspections.some((i: any) => i.date.startsWith(currentMonth));
+                // Determine if inspected this month
+                const isInspectedThisMonth = latest && latest.date.startsWith(currentMonth);
 
                 let status = '미점검';
-                if (isInspectedThisMonth && latestInspection) {
-                    if (latestInspection.grade === 'S' || latestInspection.grade === 'A') status = '양호';
-                    else if (latestInspection.grade === 'B') status = '점검요망';
+                if (isInspectedThisMonth && latest) {
+                    if (['S', 'A'].includes(latest.grade)) status = '양호';
+                    else if (latest.grade === 'B') status = '점검요망';
                     else status = '위험';
+                } else if (latest) {
+                    // Has inspection but not this month -> Still show last grade?
+                    // Usually Status reflects "Current Month Status". If not inspected this month, it is "Not Inspected".
+                    // But we want to show Last Grade.
+                    // The 'status' column in UI usually means "Action Required?".
                 }
 
                 return {
-                    storeId: store.id,
-                    storeName: store.name,
-                    region: store.region,
-                    address: store.region,
+                    storeId: store.storeId,
+                    storeName: store.storeName,
+                    region: store.regionCode || '-',
+                    address: store.regionCode || '-',
                     status: status,
-                    lastGrade: latestInspection ? latestInspection.grade : '-',
-                    lastDate: latestInspection ? latestInspection.date : '-',
-                    score: latestInspection ? latestInspection.score : 0,
+                    lastGrade: latest ? latest.grade : '-',
+                    lastDate: latest ? latest.date : '-',
+                    score: latest ? latest.score : 0,
                     uninspected: !isInspectedThisMonth
                 };
             });
+
             setStores(storesWithStatus);
             setLoading(false);
         };

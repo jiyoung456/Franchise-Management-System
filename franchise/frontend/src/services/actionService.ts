@@ -81,6 +81,8 @@ export const ActionService = {
     },
 
     getActionEffect: async (actionId: string) => {
+        // [Backend Issue] API returns 500. Using Mock Data until backend is fixed.
+        /*
         try {
             const response = await api.get(`/actions/${actionId}/effect`);
             return response.data.data || response.data;
@@ -88,6 +90,30 @@ export const ActionService = {
             console.error(`Failed to fetch action effect ${actionId}:`, error);
             return null;
         }
+        */
+        return {
+            actionId: Number(actionId),
+            actionTitle: 'QSC 위생 개선 조치',
+            targetMetricCode: 'QSC',
+            preActionValue: 75.0,
+            postActionValue: 88.5,
+            improvementRate: 18.0,
+            analysisComment: '조치 수행 후 QSC 점수가 유의미하게 상승했습니다.',
+            storeSeries: [
+                { date: '2025-01-01', value: 74 },
+                { date: '2025-01-08', value: 75 },
+                { date: '2025-01-15', value: 76 },
+                { date: '2025-01-22', value: 85 }, // Action Taken
+                { date: '2025-01-29', value: 88 }
+            ],
+            baselineSeries: [
+                { date: '2025-01-01', value: 80 },
+                { date: '2025-01-08', value: 80 },
+                { date: '2025-01-15', value: 80 },
+                { date: '2025-01-22', value: 80 },
+                { date: '2025-01-29', value: 80 }
+            ]
+        };
     },
 
     createAction: async (data: ActionCreateRequest): Promise<number | null> => {
