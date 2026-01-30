@@ -103,7 +103,7 @@ export interface StoreUpdateRequest {
     storeName?: string;
     ownerName?: string;
     ownerPhone?: string;
-    currentSupervisorId?: string; // Was supervisorLoginId
+    supervisorLoginId?: string; // Was supervisorLoginId
     currentState?: string; // 'NORMAL' | 'WATCHLIST' | 'RISK'
     adminMemo?: string; // Kept just in case, though not in Java DTO shown
 }
@@ -175,6 +175,7 @@ export interface EventRule {
 export interface EventLog {
     id: string;
     type: EventType;
+    title?: string;
     storeId: string;
     storeName: string;
     timestamp: string;

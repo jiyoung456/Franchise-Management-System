@@ -2,8 +2,11 @@
 
 import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Camera } from 'lucide-react';
+import { ArrowLeft, Camera, X } from 'lucide-react';
 import { ActionService } from '@/services/actionService';
+import { StoreService } from '@/services/storeService';
+import { EventService } from '@/services/eventService';
+import { AuthService } from '@/services/authService';
 
 export default function ActionExecutionPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -13,19 +16,83 @@ export default function ActionExecutionPage({ params }: { params: Promise<{ id: 
     const [loading, setLoading] = useState(true);
     const [executionDate, setExecutionDate] = useState(new Date().toISOString().split('T')[0]);
     const [resultContent, setResultContent] = useState('');
+    const [selectedImages, setSelectedImages] = useState<string[]>([]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files);
+            const newUrls = newFiles.map(file => URL.createObjectURL(file));
+            setSelectedImages(prev => [...prev, ...newUrls]);
+        }
+    };
+
+    const handleRemoveImage = (index: number) => {
+        setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    };
 
     useEffect(() => {
-        const fetchForm = async () => {
+        const fetchAllData = async () => {
             try {
-                const data = await ActionService.getResultForm(id);
-                setFormData(data);
+                // Fetch Form and Action Detail in parallel
+                const [formResponse, actionDetail] = await Promise.all([
+                    ActionService.getResultForm(id).catch(() => null),
+                    ActionService.getAction(id).catch(() => undefined)
+                ]);
+
+                // Base data is formResponse if it's a valid object, otherwise empty object
+                const mergedData = (formResponse && typeof formResponse === 'object') ? formResponse : {};
+
+                if (actionDetail) {
+                    // Populate missing fields from actionDetail
+                    if (!mergedData.storeName || mergedData.storeName === '-') mergedData.storeName = actionDetail.storeName;
+                    if (!mergedData.problemMessage) mergedData.problemMessage = actionDetail.description;
+                    if (!mergedData.actionTitle) mergedData.actionTitle = actionDetail.title;
+                    if (!mergedData.actionType) mergedData.actionType = actionDetail.type;
+
+                    // Add manager info if missing
+                    mergedData.assigneeName = actionDetail.assigneeName;
+
+                    // Fetch fallback data in parallel
+                    const fallbackPromises = [];
+
+                    // 1. Fallback for storeName using StoreService
+                    if ((!mergedData.storeName || mergedData.storeName === '-') && actionDetail.storeId) {
+                        fallbackPromises.push(
+                            StoreService.getStore(actionDetail.storeId)
+                                .then(store => {
+                                    if (store) mergedData.storeName = store.name;
+                                })
+                                .catch(e => console.error("Failed to fetch store fallback", e))
+                        );
+                    }
+
+                    // 2. Fallback for assigneeName using Actions List lookup
+                    if ((!mergedData.assigneeName || mergedData.assigneeName === '-') && actionDetail.assignee) {
+                        fallbackPromises.push(
+                            ActionService.getActions()
+                                .then(list => {
+                                    const match = list.find(a => String(a.id) === String(id));
+                                    if (match && match.assigneeName) {
+                                        mergedData.assigneeName = match.assigneeName;
+                                    }
+                                })
+                                .catch(e => console.error("Failed to fetch assignee fallback", e))
+                        );
+                    }
+
+                    await Promise.all(fallbackPromises);
+                }
+
+                if (Object.keys(mergedData).length > 0) {
+                    setFormData(mergedData);
+                }
             } catch (error) {
-                console.error("Failed to fetch result form", error);
+                console.error("Failed to fetch data", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchForm();
+        fetchAllData();
     }, [id]);
 
     const handleSubmit = async () => {
@@ -34,9 +101,13 @@ export default function ActionExecutionPage({ params }: { params: Promise<{ id: 
             return;
         }
 
+        const user = await AuthService.getCurrentUser();
+
         const success = await ActionService.saveExecution(id, {
-            resultContent,
-            completedAt: executionDate + 'T' + new Date().toISOString().split('T')[1]
+            resultComment: resultContent,
+            performedAt: executionDate + 'T' + new Date().toTimeString().split(' ')[0],
+            userId: user ? Number(user.id) : 0,
+            attachments: [] // Image upload functionality to be implemented fully later
         });
 
         if (success) {
@@ -56,6 +127,7 @@ export default function ActionExecutionPage({ params }: { params: Promise<{ id: 
         problemCause: formData.problemMessage || '-',
         actionName: formData.actionTitle || '-',
         actionType: formData.actionType || '-',
+        manager: formData.assigneeName || '-',
     };
 
     return (
@@ -103,6 +175,10 @@ export default function ActionExecutionPage({ params }: { params: Promise<{ id: 
                                 <span className="text-gray-900">{actionData.problemCause}</span>
                             </div>
                             <div className="border border-gray-300 rounded p-3 flex items-center bg-gray-50">
+                                <span className="font-bold text-gray-700 w-24 flex-shrink-0">담당자 :</span>
+                                <span className="text-gray-900">{actionData.manager}</span>
+                            </div>
+                            <div className="border border-gray-300 rounded p-3 flex items-center bg-gray-50">
                                 <span className="font-bold text-gray-700 w-24 flex-shrink-0">수행 조치 :</span>
                                 <span className="text-gray-900">{actionData.actionName}</span>
                             </div>
@@ -127,15 +203,38 @@ export default function ActionExecutionPage({ params }: { params: Promise<{ id: 
                 {/* Right Column: Photo Attachment */}
                 <div className="w-1/3 flex flex-col gap-2">
                     <label className="block text-sm font-bold text-gray-700">사진 첨부</label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg flex-1 min-h-[400px] flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
-                        <Camera className="w-12 h-12 text-gray-400 mb-2" />
-                        <span className="text-gray-500 font-medium">사진을 드래그하거나 클릭하여 업로드</span>
-                        <div className="mt-4 grid grid-cols-2 gap-2 w-full px-4">
-                            {/* Mock uploaded images placeholder */}
-                            <div className="bg-gray-200 h-24 rounded flex items-center justify-center text-xs text-gray-500">사진 1</div>
-                            <div className="bg-gray-200 h-24 rounded flex items-center justify-center text-xs text-gray-500">사진 2</div>
+                    <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        id="file-upload"
+                        onChange={handleFileChange}
+                    />
+                    <label
+                        htmlFor="file-upload"
+                        className="border-2 border-dashed border-gray-300 rounded-lg flex-1 min-h-[400px] flex flex-col items-center justify-start p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                    >
+                        <Camera className="w-12 h-12 text-gray-400 mb-2 mt-10" />
+                        <span className="text-gray-500 font-medium mb-4">사진을 드래그하거나 클릭하여 업로드</span>
+
+                        <div className="grid grid-cols-2 gap-2 w-full">
+                            {selectedImages.map((url, idx) => (
+                                <div key={idx} className="relative group aspect-square bg-gray-200 rounded overflow-hidden">
+                                    <img src={url} alt="preview" className="w-full h-full object-cover" />
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault(); // Prevent triggering file input
+                                            handleRemoveImage(idx);
+                                        }}
+                                        className="absolute top-1 right-1 bg-black bg-opacity-50 text-white rounded-full p-1 hover:bg-opacity-70 transition-opacity opacity-0 group-hover:opacity-100"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            ))}
                         </div>
-                    </div>
+                    </label>
                 </div>
             </div>
 

@@ -2,8 +2,11 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { StorageService, User, Attachment, Notice } from '@/lib/storage';
+import { BoardService } from '@/services/boardService';
+import { AuthService } from '@/services/authService';
+import { User } from '@/types';
 import { ArrowLeft, Save, AlertTriangle, Paperclip, X } from 'lucide-react';
+import { Attachment } from '@/lib/storage'; // Reusing Attachment type for now
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -12,30 +15,46 @@ interface Props {
 export default function BoardEditPage({ params }: Props) {
     const { id } = use(params);
     const router = useRouter();
-    const currentUser = StorageService.getCurrentUser();
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
 
     const [isLoading, setIsLoading] = useState(true);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [isImportant, setIsImportant] = useState(false);
+    // Attachments might not be supported by backend yet, keeping UI but might not save
     const [attachments, setAttachments] = useState<Attachment[]>([]);
-    const [originalAuthor, setOriginalAuthor] = useState('');
-    const [viewCount, setViewCount] = useState(0);
 
     useEffect(() => {
-        const notice = StorageService.getNotice(id);
-        if (notice) {
-            setTitle(notice.title);
-            setContent(notice.content);
-            setIsImportant(notice.isImportant);
-            setAttachments(notice.attachments || []);
-            setOriginalAuthor(notice.author);
-            setViewCount(notice.viewCount);
-            setIsLoading(false);
-        } else {
-            alert('게시글을 찾을 수 없습니다.');
-            router.back();
-        }
+        const init = async () => {
+            try {
+                setIsLoading(true);
+
+                // Fetch User & Post in parallel
+                const [user, post] = await Promise.all([
+                    AuthService.getCurrentUser(),
+                    BoardService.getPost(Number(id))
+                ]);
+
+                setCurrentUser(user);
+
+                if (post) {
+                    setTitle(post.title);
+                    setContent(post.content);
+                    setIsImportant(post.isPinned);
+                    // Attachments logic would go here if backend supported it
+                } else {
+                    alert('게시글을 찾을 수 없습니다.');
+                    router.back();
+                }
+            } catch (error) {
+                console.error('Failed to load edit page:', error);
+                alert('데이터를 불러오는 중 오류가 발생했습니다.');
+                router.back();
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        init();
     }, [id, router]);
 
     // Guard: Only ADMIN
@@ -52,9 +71,10 @@ export default function BoardEditPage({ params }: Props) {
         );
     }
 
-    if (isLoading) return <div className="p-8 text-center">Loading...</div>;
+    if (isLoading) return <div className="p-8 text-center text-gray-500">데이터를 불러오는 중...</div>;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Mock attachment logic for UI demo
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
             const newAttachment: Attachment = {
@@ -70,27 +90,26 @@ export default function BoardEditPage({ params }: Props) {
         setAttachments(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!title.trim() || !content.trim()) {
             alert('제목과 내용을 모두 입력해주세요.');
             return;
         }
 
-        const updatedNotice: Notice = {
-            id: id,
-            title: title,
-            content: content,
-            author: originalAuthor, // Keep original author
-            date: new Date().toISOString(), // Update date on edit? Usually updated_at, but replacing date for now
-            role: 'ADMIN',
-            isImportant: isImportant,
-            viewCount: viewCount,
-            attachments: attachments
-        };
+        const success = await BoardService.updatePost(id, {
+            title,
+            content,
+            isPinned: isImportant,
+            // Backend doesn't support attachments in PUT likely, ignoring for now
+        });
 
-        StorageService.saveNotice(updatedNotice);
-        alert('게시글이 수정되었습니다.');
-        router.push(`/board/${id}`);
+        if (success) {
+            alert('게시글이 수정되었습니다.');
+            router.push(`/board/${id}`);
+            router.refresh();
+        } else {
+            alert('게시글 수정에 실패했습니다.');
+        }
     };
 
     return (
@@ -138,7 +157,7 @@ export default function BoardEditPage({ params }: Props) {
                     />
                 </div>
 
-                {/* Attachments */}
+                {/* Attachments (Mock UI) */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">첨부파일</label>
                     <div className="flex items-center gap-4 mb-3">
@@ -147,6 +166,7 @@ export default function BoardEditPage({ params }: Props) {
                             파일 추가
                             <input type="file" onChange={handleFileChange} className="hidden" />
                         </label>
+                        <span className="text-xs text-gray-500">* Mock UI Only</span>
                     </div>
 
                     {attachments.length > 0 && (

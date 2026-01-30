@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 import com.franchise.backend.board.dto.BoardPostDetailResponse;
 import org.springframework.web.bind.annotation.PathVariable;
 
-
 import java.util.List;
 
 @RestController

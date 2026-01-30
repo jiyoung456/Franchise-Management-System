@@ -10,7 +10,7 @@ import { Logo } from '@/components/common/Logo';
 const navigation = [
     { name: '홈', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'], section: 1 },
     { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, roles: ['SUPERVISOR'], section: 1 },
-    { name: '점포관리', href: '/stores', icon: Store, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
+    { name: '점포관리', href: '/stores/my', icon: Store, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: 'QSC 관리', href: '/qsc', icon: ClipboardCheck, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: 'POS 관리', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: '위험현황', href: '/ai-insight', icon: AlertTriangle, roles: ['ADMIN'], section: 3 },

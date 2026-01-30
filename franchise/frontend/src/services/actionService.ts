@@ -23,9 +23,10 @@ export interface ActionUpdateRequest {
 }
 
 export interface ActionExecutionSaveRequest {
-    resultContent: string;
-    completedAt: string;
-    // other fields if needed
+    performedAt: string;
+    resultComment: string;
+    attachments: { photoUrl: string; photoName: string }[];
+    userId: number;
 }
 
 const STORAGE_KEY = 'fms_actions';

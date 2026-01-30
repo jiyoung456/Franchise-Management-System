@@ -14,6 +14,14 @@ const nextConfig = {
     async rewrites() {
         return [
             {
+                source: '/api/actions/:id/execution',
+                destination: 'http://localhost:8080/actions/:id/execution',
+            },
+            {
+                source: '/api/actions/summary',
+                destination: 'http://localhost:8080/actions/summary',
+            },
+            {
                 source: '/api/:path*',
                 destination: 'http://localhost:8080/api/:path*',
             },

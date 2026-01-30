@@ -187,7 +187,9 @@ export default function StoreDetailContent() {
     if (!store) return <div className="p-8">Loading...</div>;
 
     const handleSaveStore = (updatedStore: Store) => {
-        setStore(updatedStore);
+        if (updatedStore) {
+            setStore(updatedStore);
+        }
         setIsEditModalOpen(false);
     };
 
@@ -378,7 +380,7 @@ export default function StoreDetailContent() {
                                     </div>
                                     <div className="grid grid-cols-3 gap-4 py-4">
                                         <span className="font-bold text-gray-600">점주 연락처</span>
-                                        <span className="col-span-2 text-gray-900">010-1234-5678 (안심번호)</span>
+                                        <span className="col-span-2 text-gray-900">{store.ownerPhone || '-'}</span>
                                     </div>
                                     <div className="grid grid-cols-3 gap-4 py-4">
                                         <span className="font-bold text-gray-600">점포 주소</span>

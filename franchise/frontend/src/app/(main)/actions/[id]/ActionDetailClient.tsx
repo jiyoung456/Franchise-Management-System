@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ActionService } from '@/services/actionService';
+import { StoreService } from '@/services/storeService';
+import { EventService } from '@/services/eventService';
 import { ActionItem } from '@/types';
 import { AuthService } from '@/services/authService';
 
@@ -27,7 +29,47 @@ export default function ActionDetailClient({ id }: ActionDetailClientProps) {
 
                 if (currentUser) setRole(currentUser.role);
                 if (actionData) {
-                    setAction(actionData);
+                    // Fetch supplementary data in parallel if needed
+                    const promises = [];
+
+                    // 1. Fetch Store Name if missing
+                    if ((!actionData.storeName || actionData.storeName === '-') && actionData.storeId) {
+                        promises.push(
+                            StoreService.getStore(actionData.storeId)
+                                .then(store => {
+                                    if (store) actionData.storeName = store.name;
+                                })
+                                .catch(() => { })
+                        );
+                    }
+
+                    // 2. Fetch Event Name if linkedEventId exists
+                    if (actionData.linkedEventId) {
+                        promises.push(
+                            EventService.getEvent(actionData.linkedEventId)
+                                .then(event => {
+                                    if (event) (actionData as any).linkedEventName = event.title; // Add custom field linkedEventName
+                                })
+                                .catch(() => { })
+                        );
+                    }
+
+                    // 3. Fetch Assignee Name if missing
+                    if ((!actionData.assigneeName || actionData.assigneeName === '-') && actionData.assignee) {
+                        promises.push(
+                            ActionService.getActions()
+                                .then(list => {
+                                    const match = list.find(a => String(a.id) === String(id));
+                                    if (match && match.assigneeName) {
+                                        actionData.assigneeName = match.assigneeName;
+                                    }
+                                })
+                                .catch(() => { })
+                        );
+                    }
+
+                    await Promise.all(promises);
+                    setAction({ ...actionData }); // Create new object reference
                 } else {
                     // Handle 404 or missing action
                 }
@@ -66,7 +108,7 @@ export default function ActionDetailClient({ id }: ActionDetailClientProps) {
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">연관 이벤트</div>
-                        <div className="flex-1 p-4 text-gray-900">{action.linkedEventId || '-'}</div>
+                        <div className="flex-1 p-4 text-gray-900">{((action as any).linkedEventName) ? `${(action as any).linkedEventName} (#${action.linkedEventId})` : (action.linkedEventId || '-')}</div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">조치 유형</div>
@@ -142,6 +184,6 @@ export default function ActionDetailClient({ id }: ActionDetailClientProps) {
                     목록
                 </button>
             </div>
-        </div>
+        </div >
     );
 }

@@ -89,7 +89,6 @@ export default function EventDetailClient({ id }: { id: string }) {
             </div>
 
 
-
             {/* Footer Buttons */}
             <div className="flex justify-end mt-8">
                 {(role === 'MANAGER' || role === 'ADMIN') && (

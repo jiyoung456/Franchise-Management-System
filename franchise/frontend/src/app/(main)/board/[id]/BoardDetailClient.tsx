@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, notFound } from 'next/navigation';
 import { BoardService, BoardDetail } from '@/services/boardService';
 import { AuthService } from '@/services/authService';
 import { User as UserType } from '@/types';
-import { ArrowLeft, Calendar, User as UserIcon, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User as UserIcon, Eye, Trash2, Edit } from 'lucide-react';
 
 interface Props {
     id: string;
@@ -18,7 +18,12 @@ export default function BoardDetailClient({ id }: Props) {
     const [currentUser, setCurrentUser] = useState<UserType | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const hasFetched = useRef(false);
+
     useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
+
         const init = async () => {
             try {
                 setLoading(true);
@@ -82,6 +87,13 @@ export default function BoardDetailClient({ id }: Props) {
 
                 {currentUser?.role === 'ADMIN' && (
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => router.push(`/board/${id}/edit`)}
+                            className="flex items-center px-3 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg text-sm font-bold hover:bg-blue-50 hover:border-blue-300"
+                        >
+                            <Edit className="w-4 h-4 mr-1.5" />
+                            수정
+                        </button>
                         <button
                             onClick={handleDelete}
                             className="flex items-center px-3 py-2 bg-white text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-50 hover:border-red-300"

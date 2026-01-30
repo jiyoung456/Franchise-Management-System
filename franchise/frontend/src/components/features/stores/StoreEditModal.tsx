@@ -15,7 +15,7 @@ export function StoreEditModal({ isOpen, onClose, store, onSave }: StoreEditModa
         storeName: store.name,
         ownerName: store.ownerName,
         ownerPhone: store.ownerPhone,
-        currentSupervisorId: store.currentSupervisorId,
+        supervisorLoginId: store.currentSupervisorId,
         currentState: store.currentState,
         storeOperationStatus: store.operationStatus
     });
@@ -25,7 +25,7 @@ export function StoreEditModal({ isOpen, onClose, store, onSave }: StoreEditModa
             storeName: store.name,
             ownerName: store.ownerName,
             ownerPhone: store.ownerPhone,
-            currentSupervisorId: store.currentSupervisorId,
+            supervisorLoginId: store.currentSupervisorId,
             currentState: store.currentState,
             storeOperationStatus: store.operationStatus
         });
@@ -42,8 +42,12 @@ export function StoreEditModal({ isOpen, onClose, store, onSave }: StoreEditModa
         e.preventDefault();
         // Call API
         try {
-            await StoreService.updateStore(store.id, formData);
-            onSave();
+            const updated = await StoreService.updateStore(store.id, formData);
+            if (updated) {
+                onSave(updated);
+            } else {
+                alert('저장 실패: 데이터를 불러올 수 없습니다.');
+            }
         } catch (error) {
             console.error(error);
             alert('저장 실패');
@@ -104,9 +108,9 @@ export function StoreEditModal({ isOpen, onClose, store, onSave }: StoreEditModa
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">담당 SV (ID)</label>
                                 <input
-                                    name="currentSupervisorId"
+                                    name="supervisorLoginId"
                                     type="text"
-                                    value={formData.currentSupervisorId || ''}
+                                    value={formData.supervisorLoginId || ''}
                                     onChange={handleChange}
                                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
                                     placeholder="user_login_id"
