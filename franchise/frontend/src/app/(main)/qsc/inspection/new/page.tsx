@@ -153,7 +153,7 @@ export default function NewInspectionPage() {
     }, [scores, templateItems]);
 
 
-    const handleSave = (status: 'DRAFT' | 'COMPLETED') => {
+    const handleSave = async (status: 'DRAFT' | 'COMPLETED') => {
         if (!selectedStoreId) { alert('점포를 선택해주세요.'); return; }
         if (!currentTemplate) { alert('템플릿을 선택해주세요.'); return; }
 
@@ -170,7 +170,7 @@ export default function NewInspectionPage() {
             storeId: selectedStoreId,
             storeName: selectedStore?.name,
             region: selectedStore?.region,
-            sv: inspectorName,
+            sv: inspectorName, // Use loaded inspector name
             type: currentTemplate.type,
             score: result.totalScore,
             grade: result.finalGrade,
@@ -184,11 +184,15 @@ export default function NewInspectionPage() {
             templateId: currentTemplate.id
         };
 
-        // Use StorageService for saving
-        StorageService.saveInspection(newInspection);
+        // Call Backend
+        const success = await QscService.saveInspection(newInspection);
 
-        alert(`${status === 'DRAFT' ? '임시 저장' : '점검 완료'} 되었습니다.`);
-        router.push(status === 'COMPLETED' ? `/qsc/report/${newInspection.id}` : `/qsc`);
+        if (success) {
+            alert(`${status === 'DRAFT' ? '임시 저장' : '점검 완료'} 되었습니다.`);
+            router.push(`/qsc`);
+        } else {
+            alert('저장에 실패했습니다. 다시 시도해주세요.');
+        }
     };
 
     // STEP 1: TEMPLATE SELECTION

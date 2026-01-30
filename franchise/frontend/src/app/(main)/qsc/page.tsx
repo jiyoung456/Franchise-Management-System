@@ -42,114 +42,65 @@ function SvQscDashboard() {
             const user = await AuthService.getCurrentUser();
             if (!user) return;
 
-            // 1. Get My Stores
-            const myStores = await StoreService.getStoresBySv(user.id);
-            if (myStores.length === 0) {
-                setLoading(false);
-                return;
-            }
-
-            // 2. Fetch Inspections (Real Backend Data)
-            // Use getDashboardStats as a workaround to fetch latest/list from backend
-            // For dashboard we need history for timeline, but getDashboardStats only fetches latest per store currently
-            // To render timeline correctly we might need 'list' for each store, but that's too heavy (N*20+ requests).
-            // Compromise: Use 'latest' for stats/ranking, and Timeline might need to be mocked or just show current month
-            // actually user said "qsc_master data", so let's try to get list for timeline if possible or accept latest limitation.
-            // Let's modify getDashboardStats in service to optionally fetch list? 
-            // Scaling issue: fetching list for ALL stores is bad. 
-            // But for SV (few stores), we can fetch lists.
-
-            // Let's assume getDashboardStats returns *recent* inspections.
-            // Actually I defined getDashboardStats to fetch 'latest'. 
-            // For Timeline, we really need history. 
-            // SV usually manages ~20 stores. fetching list for 20 stores is acceptable (20 requests).
-
-            const myStoreIds = myStores.map(s => s.id);
-
-            // Parallel fetch lists for all my stores
-            const promises = myStoreIds.map(id => QscService.getStoreQscList(id));
-            const results = await Promise.all(promises);
-            const myInspections = results.flat(); // Flatten [ [inspections for store 1], [inspections for store 2] ]
-
-            const getAvgScore = (monthStr: string) => {
-                const target = myInspections.filter(i => i.date.startsWith(monthStr));
-                if (target.length === 0) return 0;
-                const total = target.reduce((acc, cur) => acc + cur.score, 0);
-                return Math.round((total / target.length) * 10) / 10;
-            };
-
-            // 1. Current Month
             const now = new Date();
-            const currentMonthStr = now.toISOString().slice(0, 7);
-            const avgScore = getAvgScore(currentMonthStr);
+            const currentMonthStr = now.toISOString().slice(0, 7); // yyyy-MM
 
-            // Prev Month
-            const prevDate = new Date();
-            prevDate.setMonth(prevDate.getMonth() - 1);
-            const prevMonthStr = prevDate.toISOString().slice(0, 7);
-            const prevAvgScore = getAvgScore(prevMonthStr);
-            const avgScoreChange = prevAvgScore > 0 ? Math.round((avgScore - prevAvgScore) * 10) / 10 : 0;
+            // Parallel Fetch
+            const [summary, trend, topRank, bottomRank] = await Promise.all([
+                QscService.getDashboardSummary(currentMonthStr),
+                QscService.getDashboardTrend(currentMonthStr, 6),
+                QscService.getDashboardRanking(currentMonthStr, 'top', 3),
+                QscService.getDashboardRanking(currentMonthStr, 'bottom', 3)
+            ]);
 
-            // 2. Completion Rate
-            const currentMonthInspections = myInspections.filter(i => i.date.startsWith(currentMonthStr));
-            const inspectedStoreCount = new Set(currentMonthInspections.map(i => i.storeId)).size;
-            const completionRate = myStores.length > 0 ? Math.round((inspectedStoreCount / myStores.length) * 100) : 0;
-            const completionTargetDiff = completionRate - 90;
+            // 1. Stats
+            if (summary) {
+                // Determine Score Change from Trend if available
+                let scoreChange = 0;
+                if (trend && trend.rows && trend.rows.length >= 2) {
+                    const rows = trend.rows;
+                    // Sort just in case backend doesn't
+                    rows.sort((a: any, b: any) => a.month.localeCompare(b.month));
+                    const current = rows[rows.length - 1]; // This month (or latest available)
+                    const prev = rows[rows.length - 2];
 
-            // 3. Risk & S Grade
-            // Get latest inspection per store for current status
-            const latestInfo: Record<string, Inspection> = {};
-            myInspections.forEach(i => {
-                if (!latestInfo[i.storeId] || i.date > latestInfo[i.storeId].date) {
-                    latestInfo[i.storeId] = i;
+                    // If current month matches requested month and we have prev
+                    if (current && prev && current.avgScore != null && prev.avgScore != null) {
+                        scoreChange = Number((current.avgScore - prev.avgScore).toFixed(1));
+                    }
                 }
-            });
 
-            let riskCount = 0;
-            let sCount = 0;
-            Object.values(latestInfo).forEach(i => {
-                if (['C', 'D'].includes(i.grade)) riskCount++;
-                if (i.grade === 'S') sCount++;
-            });
-
-            setStats({
-                avgScore,
-                avgScoreChange,
-                completionRate,
-                completionTargetDiff,
-                riskStoreCount: riskCount,
-                sGradeCount: sCount
-            });
-
-            // 4. Timeline (Last 6 Months)
-            const timeline = [];
-            for (let i = 5; i >= 0; i--) {
-                const d = new Date();
-                d.setMonth(d.getMonth() - i);
-                const mStr = d.toISOString().slice(0, 7);
-                const score = getAvgScore(mStr);
-                timeline.push({
-                    month: `${d.getMonth() + 1}월`,
-                    score: score
+                setStats({
+                    avgScore: summary.avgScore || 0,
+                    avgScoreChange: scoreChange,
+                    completionRate: Math.round((summary.completionRate || 0) * 100),
+                    completionTargetDiff: Math.round((summary.completionDelta || 0) * 100),
+                    riskStoreCount: summary.riskStoreCount || 0,
+                    sGradeCount: summary.sStoreCount || 0
                 });
             }
-            setTimelineData(timeline);
 
-            // 5. Ranking
-            const storeScores = Object.values(latestInfo).map(i => {
-                // Find store name from myStores
-                const storeName = myStores.find(s => s.id.toString() === i.storeId.toString())?.name || i.storeName;
-                return {
-                    name: storeName,
-                    score: i.score,
-                    items: i.grade === 'S' ? ['관리 상태 우수'] : ['개선 필요']
-                };
-            });
-            storeScores.sort((a, b) => b.score - a.score);
+            // 2. Timeline
+            if (trend && trend.rows) {
+                const chartData = trend.rows.map((row: any) => ({
+                    month: row.month.substring(5) + '월', // 2026-01 -> 01월
+                    score: row.avgScore || 0
+                }));
+                setTimelineData(chartData);
+            }
 
+            // 3. Ranking
             setRankingStores({
-                TOP: storeScores.slice(0, 3),
-                BOTTOM: [...storeScores].reverse().slice(0, 3)
+                TOP: topRank?.items?.map((item: any) => ({
+                    name: item.storeName,
+                    score: item.score,
+                    items: item.grade === 'S' ? ['관리 상태 우수'] : ['양호']
+                })) || [],
+                BOTTOM: bottomRank?.items?.map((item: any) => ({
+                    name: item.storeName,
+                    score: item.score,
+                    items: item.summaryComment ? [item.summaryComment] : ['개선 필요']
+                })) || []
             });
 
             setLoading(false);

@@ -164,6 +164,64 @@ export interface Inspection {
     summaryComment?: string;
 }
 
+export interface QscDashboardSummaryResponse {
+    month: string;
+    avgScore?: number;
+    completionRate?: number;
+    completionTargetRate?: number;
+    completionDelta?: number;
+    riskStoreCount?: number;
+    sStoreCount?: number;
+    doneInspectionCount?: number;
+    plannedInspectionCount?: number;
+    supervisorStoreCount?: number;
+}
+
+export interface QscDashboardTrendRow {
+    month: string;
+    avgScore?: number;
+    inspectionCount?: number;
+}
+
+export interface QscDashboardTrendResponse {
+    endMonth: string;
+    months: number;
+    rows: QscDashboardTrendRow[];
+}
+
+export interface QscDashboardRankingItem {
+    storeId: number;
+    storeName: string;
+    score: number;
+    grade: string;
+    summaryComment?: string;
+    confirmedAt?: string;
+}
+
+export interface QscDashboardRankingResponse {
+    month: string;
+    type: string;
+    limit: number;
+    items: QscDashboardRankingItem[];
+}
+
+export interface SvStoreQscStatusItem {
+    storeId: number;
+    storeName: string;
+    regionCode: string;
+    latestGrade?: string;
+    latestConfirmedAt?: string;
+    thisMonthInspectionCount?: number;
+    underInspected?: boolean;
+}
+
+export interface SvStoreQscStatusResponse {
+    month: string;
+    totalStoreCount: number;
+    underInspectedCount: number;
+    items: SvStoreQscStatusItem[];
+}
+
 // Events
 export type EventSeverity = 'CRITICAL' | 'WARNING' | 'INFO';
 export type EventType = 'QSC' | 'POS' | 'RISK' | 'STORE';
