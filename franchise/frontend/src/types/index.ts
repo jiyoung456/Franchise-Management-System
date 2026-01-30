@@ -168,6 +168,11 @@ export interface Inspection {
 export type EventSeverity = 'CRITICAL' | 'WARNING' | 'INFO';
 export type EventType = 'QSC' | 'POS' | 'RISK' | 'STORE';
 export type EventStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+export interface EventDashboardSummary {
+    openEventCount: number;
+    criticalEventCount: number;
+    actionInProgressCount: number;
+}
 
 export interface EventRule {
     id: string;

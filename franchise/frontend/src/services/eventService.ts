@@ -11,26 +11,26 @@ const mapBackendEventToFrontend = (backendEvent: any): EventLog => {
         id: String(data.eventId || data.id),
         storeId: String(data.storeId),
         storeName: data.storeName || backendEvent.storeName || '',
-        
+
         // [핵심 수정] 백엔드의 summary를 프론트엔드의 message/title로 매핑
         title: data.summary || data.title || '제목 없음',
         content: data.summary || data.content || '',
-        message: data.summary || data.message || '', 
-        
+        message: data.summary || data.message || '',
+
         // 날짜 및 상태 매핑
         timestamp: data.occurredAt || data.timestamp || new Date().toISOString(),
         occurredAt: data.occurredAt || data.timestamp || new Date().toISOString(), // 정렬 호환성 유지
-        
+
         // Enum 타입 매핑
         type: data.eventType || data.type || 'INFO',
         status: data.status || 'OPEN',
         severity: data.severity || 'INFO',
         priority: data.priority || 'MEDIUM',
-        
+
         isHandled: data.isHandled || false,
-        
+
         // 나머지 데이터 보존
-        ...data 
+        ...data
     };
 };
 
@@ -41,7 +41,7 @@ export const EventService = {
             const response = await api.get('/events', { params });
             const backendData = response.data.data || response.data || [];
             const list = Array.isArray(backendData) ? backendData : (backendData.content || []);
-            
+
             return list.map(mapBackendEventToFrontend);
         } catch (error) {
             console.error('Failed to fetch events:', error);
@@ -54,7 +54,7 @@ export const EventService = {
         try {
             const response = await api.get(`/events/${id}`);
             const backendData = response.data.data || response.data;
-            
+
             if (!backendData) return null;
             return mapBackendEventToFrontend(backendData);
         } catch (error) {
@@ -68,7 +68,7 @@ export const EventService = {
         try {
             const response = await api.get(`/stores/${storeId}/events`);
             const backendData = response.data.data || response.data || [];
-            
+
             return backendData.map(mapBackendEventToFrontend);
         } catch (error) {
             console.error(`Failed to fetch store events for store ${storeId}:`, error);
@@ -94,7 +94,7 @@ export const EventService = {
                 // await api.patch(`/events/${event.id}`, event);
             }
             console.warn('saveEvent: API 엔드포인트가 확인되지 않아 실제 요청은 생략되었습니다.');
-            return true; 
+            return true;
         } catch (error) {
             console.error('Failed to save event:', error);
             return false;
