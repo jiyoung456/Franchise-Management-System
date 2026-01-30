@@ -237,6 +237,18 @@ export interface EffectAnalysis {
     status: 'IMPROVED' | 'MAINTAINED' | 'WORSENED';
 }
 
+export interface ActionEffectResponse {
+    actionId: number;
+    actionTitle: string;
+    targetMetricCode: string; // SALES or QSC
+    preActionValue: number;
+    postActionValue: number;
+    improvementRate: number;
+    storeSeries: { date: string; value: number }[];
+    baselineSeries: { date: string; value: number }[];
+    analysisComment: string;
+}
+
 // Notices & Policy
 export interface Attachment {
     name: string;
