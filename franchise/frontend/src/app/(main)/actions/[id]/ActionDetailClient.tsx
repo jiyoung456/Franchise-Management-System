@@ -150,12 +150,14 @@ export default function ActionDetailClient({ id }: ActionDetailClientProps) {
                                 조치 수행 결과 작성
                             </button>
                         )}
-                        <button
-                            onClick={() => router.push(`/actions/${id}/effect`)}
-                            className="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 shadow-sm"
-                        >
-                            효과보기
-                        </button>
+                        {action.status === 'CLOSED' && (
+                            <button
+                                onClick={() => router.push(`/actions/${id}/effect`)}
+                                className="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 shadow-sm"
+                            >
+                                효과보기
+                            </button>
+                        )}
                     </>
                 )}
 
