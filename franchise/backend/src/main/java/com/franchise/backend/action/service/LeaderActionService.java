@@ -8,6 +8,7 @@ import com.franchise.backend.pos.repository.PosDailyRepository;
 import com.franchise.backend.qsc.entity.QscMaster;
 import com.franchise.backend.qsc.repository.QscMasterRepository;
 import com.franchise.backend.store.repository.StoreRepository;
+import com.franchise.backend.user.entity.Role;
 import com.franchise.backend.user.entity.User;
 import com.franchise.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,44 +31,57 @@ public class LeaderActionService {
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
 
-    // 팀장 조치관리 탭 목록:
-    // - 팀장 부서와 같은 SV가 담당하는 점포(storeIds) 범위
-    // - 이벤트 연계 조치만(relatedEventId not null)  -> (ActionRepository.findManagerScopedActions에서 처리)
-    // - status 옵션(OPEN/IN_PROGRESS/CLOSED 모두 가능하도록)
+    // 조치관리  목록:
+    // - SUPERVISOR: 본인 담당 점포(storeIds) + 이벤트 연계(relatedEventId not null)
+    // - 팀장: 팀장 부서 SV 점포(storeIds) + 이벤트 연계
+    // - 관리자: 전체 + 이벤트 연계
     @Transactional(readOnly = true)
-    public List<ActionListResponse> getActionList(String managerLoginId, String status, int limit) {
+    public List<ActionListResponse> getActionList(String loginId, Role role, String status, int limit) {
 
-        String loginId = (managerLoginId == null ? null : managerLoginId.trim());
-        if (loginId == null || loginId.isBlank()) return List.of();
+        String safeLoginId = (loginId == null ? null : loginId.trim());
+        if (safeLoginId == null || safeLoginId.isBlank()) return List.of();
 
-        // 1) 팀장 department 조회
-        String department = userRepository.findByLoginId(loginId)
-                .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
-                .orElse(null);
+        Role safeRole = (role == null ? Role.SUPERVISOR : role);
 
-        if (department == null || department.isBlank()) {
-            return List.of();
-        }
-
-        // 2) 팀장 부서 SV들이 담당하는 점포 id들
-        List<Long> storeIds = storeRepository.findStoreIdsBySupervisorDepartment(department);
-        if (storeIds == null || storeIds.isEmpty()) return List.of();
-
-        // 3) status normalize
-        // - null이면 전체(OPEN/IN_PROGRESS/CLOSED 전부)
-        // - 값 있으면 해당 status만
+        // 1) status normalize
         String statusFilter = (status == null || status.isBlank()) ? null : status.trim().toUpperCase();
 
-        // 4) 조회 (스코프 + 이벤트연계 + status는 repo에서 처리)
-        List<Action> actions = actionRepository.findManagerScopedActions(storeIds, statusFilter);
-
-        // 5) limit 적용
+        // 2) limit normalize
         int safeLimit = Math.max(1, Math.min(limit <= 0 ? 50 : limit, 200));
+
+        List<Action> actions;
+
+        if (safeRole == Role.SUPERVISOR) {
+            // SV: 내 담당 점포 id들
+            List<Long> storeIds = storeRepository.findStoreIdsBySupervisorLoginId(safeLoginId);
+            if (storeIds == null || storeIds.isEmpty()) return List.of();
+
+            actions = actionRepository.findManagerScopedActions(storeIds, statusFilter);
+
+        } else if (safeRole == Role.MANAGER) {
+            // 팀장 : 기존 로직 유지(팀장 부서 -> 부서 SV 점포)
+            String department = userRepository.findByLoginId(safeLoginId)
+                    .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
+                    .orElse(null);
+
+            if (department == null || department.isBlank()) return List.of();
+
+            List<Long> storeIds = storeRepository.findStoreIdsBySupervisorDepartment(department);
+            if (storeIds == null || storeIds.isEmpty()) return List.of();
+
+            actions = actionRepository.findManagerScopedActions(storeIds, statusFilter);
+
+        } else {
+            // 관리자 : 전체(이벤트 연계만)
+            actions = actionRepository.findAllEventLinkedActions(statusFilter);
+        }
+
+        // 3) limit 적용
         if (actions.size() > safeLimit) {
             actions = actions.subList(0, safeLimit);
         }
 
-        // 담당자 이름 매핑 (assignedToUserId -> userName) : N+1 방지
+        // 4) 담당자 이름 매핑 (assignedToUserId -> userName) : N+1 방지
         List<Long> assignedUserIds = actions.stream()
                 .map(Action::getAssignedToUserId)
                 .filter(Objects::nonNull)
@@ -86,7 +100,7 @@ public class LeaderActionService {
                         (a, b) -> a
                 ));
 
-        // 응답 DTO 변환 (assignedToUserName 추가)
+        // 5) 응답 DTO 변환
         return actions.stream()
                 .map(a -> {
                     Long assignedId = a.getAssignedToUserId();
@@ -106,33 +120,49 @@ public class LeaderActionService {
                 .toList();
     }
 
+    // 진행중 조치 수 요약 : 이벤트 연계 조치만 집계
     @Transactional(readOnly = true)
-    public ActionCountSummaryResponse getSummary(String managerLoginId) {
+    public ActionCountSummaryResponse getSummary(String loginId, Role role) {
 
-        String loginId = (managerLoginId == null ? null : managerLoginId.trim());
-        if (loginId == null || loginId.isBlank()) {
+        String safeLoginId = (loginId == null ? null : loginId.trim());
+        if (safeLoginId == null || safeLoginId.isBlank()) {
             return new ActionCountSummaryResponse(0);
         }
 
-        String department = userRepository.findByLoginId(loginId)
-                .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
-                .orElse(null);
+        Role safeRole = (role == null ? Role.SUPERVISOR : role);
+        List<String> statuses = List.of("OPEN", "IN_PROGRESS");
 
-        if (department == null || department.isBlank()) {
-            return new ActionCountSummaryResponse(0);
+        long count;
+
+        if (safeRole == Role.SUPERVISOR) {
+            List<Long> storeIds = storeRepository.findStoreIdsBySupervisorLoginId(safeLoginId);
+            if (storeIds == null || storeIds.isEmpty()) return new ActionCountSummaryResponse(0);
+
+            count = actionRepository.countInProgressEventLinkedActionsByScope(storeIds, statuses);
+
+        } else if (safeRole == Role.MANAGER) {
+            String department = userRepository.findByLoginId(safeLoginId)
+                    .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
+                    .orElse(null);
+
+            if (department == null || department.isBlank()) {
+                return new ActionCountSummaryResponse(0);
+            }
+
+            List<Long> storeIds = storeRepository.findStoreIdsBySupervisorDepartment(department);
+            if (storeIds == null || storeIds.isEmpty()) {
+                return new ActionCountSummaryResponse(0);
+            }
+
+            count = actionRepository.countInProgressEventLinkedActionsByScope(storeIds, statuses);
+
+        } else {
+            count = actionRepository.countAllInProgressEventLinkedActions(statuses);
         }
-
-        List<Long> storeIds = storeRepository.findStoreIdsBySupervisorDepartment(department);
-        if (storeIds == null || storeIds.isEmpty()) {
-            return new ActionCountSummaryResponse(0);
-        }
-
-        long count = actionRepository
-                .findManagerScopedActions(storeIds, "IN_PROGRESS")
-                .size();
 
         return new ActionCountSummaryResponse(count);
     }
+
 
 
 

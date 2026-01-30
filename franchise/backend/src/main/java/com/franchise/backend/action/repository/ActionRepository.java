@@ -47,4 +47,27 @@ public interface ActionRepository extends JpaRepository<Action, Long> {
             @Param("storeIds") List<Long> storeIds,
             @Param("statuses") List<String> statuses
     );
+
+    // ADMIN 전체 조치관리 목록: "이벤트 연계" + "상태(옵션)"
+    @Query("""
+        SELECT a
+        FROM Action a
+        WHERE a.relatedEventId IS NOT NULL
+          AND (:status IS NULL OR a.status = :status)
+        ORDER BY a.priority ASC, a.dueDate ASC
+    """)
+    List<Action> findAllEventLinkedActions(
+            @Param("status") String status
+    );
+
+    // ADMIN 전체 요약: 이벤트 연계 + 진행중(open/in_progress)
+    @Query("""
+        SELECT COUNT(a)
+        FROM Action a
+        WHERE a.relatedEventId IS NOT NULL
+          AND a.status IN :statuses
+    """)
+    long countAllInProgressEventLinkedActions(
+            @Param("statuses") List<String> statuses
+    );
 }
