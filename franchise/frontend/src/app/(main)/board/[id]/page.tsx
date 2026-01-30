@@ -1,11 +1,6 @@
-import { MOCK_NOTICES } from '@/lib/storage';
 import BoardDetailClient from './BoardDetailClient';
 
-export function generateStaticParams() {
-    return MOCK_NOTICES.map((notice) => ({
-        id: notice.id,
-    }));
-}
+export const dynamic = 'force-dynamic';
 
 export default async function BoardDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

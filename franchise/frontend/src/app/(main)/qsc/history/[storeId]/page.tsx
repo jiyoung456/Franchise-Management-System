@@ -1,31 +1,67 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, Filter, Search, Calendar, ChevronDown } from 'lucide-react';
-import { MOCK_INSPECTIONS } from '@/lib/mock/mockQscData';
-import { MOCK_STORES } from '@/lib/mock/mockData';
-import { ScoreBar } from '@/components/common/ScoreBar';
+import { ArrowLeft, Filter } from 'lucide-react';
+import { QscService } from '@/services/qscService';
+import { StoreService } from '@/services/storeService';
+import { Store } from '@/types';
 
 export default function QscHistoryPage() {
     const router = useRouter();
     const params = useParams();
     const storeId = params.storeId as string;
-    // Fix: storeId is number in mockData
-    const store = MOCK_STORES.find(s => s.id.toString() === storeId);
 
-    // Filters
+    // State
+    const [store, setStore] = useState<Store | null>(null);
+    const [inspections, setInspections] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState<'3M' | '6M' | '1Y'>('3M');
+
+    // Fetch Data
+    useEffect(() => {
+        const loadData = async () => {
+            if (!storeId) return;
+            try {
+                // 1. Fetch Store Info
+                const storeData = await StoreService.getStore(storeId);
+                setStore(storeData);
+
+                // 2. Fetch QSC Inspections
+                // Assuming QscService.getStoreQscList(storeId) returns list of inspections
+                const qscList = await QscService.getStoreQscList(Number(storeId));
+                setInspections(qscList);
+            } catch (error) {
+                console.error("Failed to load QSC history data", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, [storeId]);
 
     // Filter Data
     const history = useMemo(() => {
-        return MOCK_INSPECTIONS
-            .filter(i => i.storeId === storeId)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        // In real app, apply date filtering based on 'period' here
-    }, [storeId, period]);
+        let filtered = [...inspections];
 
-    if (!store) return <div className="p-8">Store not found</div>;
+        // Date Logic for Period (Simplified)
+        const now = new Date();
+        const cutoffDate = new Date();
+        if (period === '3M') cutoffDate.setMonth(now.getMonth() - 3);
+        else if (period === '6M') cutoffDate.setMonth(now.getMonth() - 6);
+        else cutoffDate.setFullYear(now.getFullYear() - 1);
+
+        filtered = filtered.filter(i => {
+            const d = new Date(i.date || i.inspectedAt); // Handle different field names if necessary
+            return d >= cutoffDate;
+        });
+
+        // Sort by date desc
+        return filtered.sort((a, b) => new Date(b.date || b.inspectedAt).getTime() - new Date(a.date || a.inspectedAt).getTime());
+    }, [inspections, period]);
+
+    if (loading) return <div className="p-20 text-center">로딩중...</div>;
+    if (!store) return <div className="p-20 text-center">점포 정보를 찾을 수 없습니다.</div>;
 
     return (
         <div className="space-y-6 pb-20">
@@ -43,10 +79,9 @@ export default function QscHistoryPage() {
                 </div>
             </div>
 
-            {/* Filter Bar (Wireframe style) */}
+            {/* Filter Bar */}
             <div className="flex gap-4 items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-
-                {/* Store Name (Read only or Selector) */}
+                {/* Store Name */}
                 <div className="flex-none w-48 border border-gray-300 rounded px-3 py-2 bg-gray-50 text-gray-700 font-bold text-center">
                     {store.name}
                 </div>
@@ -75,7 +110,7 @@ export default function QscHistoryPage() {
                     </div>
                 </div>
 
-                {/* Generic Filter (Mock) */}
+                {/* Generic Filter */}
                 <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-gray-700">
                     <Filter className="w-4 h-4" />
                     필터
@@ -87,24 +122,24 @@ export default function QscHistoryPage() {
                 <div className="divide-y divide-gray-200">
                     {history.map((inspection) => (
                         <div
-                            key={inspection.id}
-                            onClick={() => router.push(`/qsc/report/${inspection.id}`)}
+                            key={inspection.inspectionId || inspection.id}
+                            onClick={() => router.push(`/qsc/report/${inspection.inspectionId || inspection.id}`)}
                             className="p-6 hover:bg-gray-50 transition-colors cursor-pointer group"
                         >
                             <div className="flex items-center justify-between">
                                 {/* Left: Info Line */}
                                 <div className="flex items-center gap-3 text-lg">
-                                    <span className="font-bold text-gray-900">{inspection.date}</span>
+                                    <span className="font-bold text-gray-900">{(inspection.date || inspection.inspectedAt || '').split('T')[0]}</span>
                                     <span className="text-gray-300">|</span>
-                                    <span className="font-medium text-gray-700">{inspection.type}</span>
+                                    <span className="font-medium text-gray-700">{inspection.type || '정기점검'}</span>
                                     <span className="text-gray-300">|</span>
 
                                     {/* Status Badge */}
-                                    <span className={`px-2 py-0.5 rounded text-sm font-bold ${inspection.status === '완료' ? 'bg-blue-100 text-blue-700' :
-                                        inspection.status === '점주확인' ? 'bg-purple-100 text-purple-700' :
+                                    <span className={`px-2 py-0.5 rounded text-sm font-bold ${inspection.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
+                                        inspection.status === 'CONFIRMED' ? 'bg-purple-100 text-purple-700' :
                                             'bg-gray-100 text-gray-600'
                                         }`}>
-                                        {inspection.status}
+                                        {inspection.status === 'COMPLETED' ? '완료' : inspection.status === 'CONFIRMED' ? '점주확인' : inspection.status || '미완료'}
                                     </span>
 
                                     <span className="text-gray-300">|</span>
@@ -117,7 +152,8 @@ export default function QscHistoryPage() {
                                     )}
 
                                     {/* Reinspection Needed */}
-                                    {inspection.isReinspectionNeeded && (
+                                    {/* Assuming backend returns a field for this or we infer from !isPassed */}
+                                    {!inspection.isPassed && (
                                         <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded font-bold ml-2">재점검 필요</span>
                                     )}
 

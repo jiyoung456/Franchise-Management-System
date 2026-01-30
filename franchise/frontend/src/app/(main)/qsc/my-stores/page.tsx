@@ -16,25 +16,28 @@ export default function QscMyStoresPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        const user = AuthService.getCurrentUser();
-        if (!user) {
-            setLoading(false);
-            return;
-        }
-
-        // Use StorageService to get stores logic (mock)
-        const loadStores = async () => {
-            // In mock, getStoresBySv returns Promise or direct array if I look at my previous overrides
-            // But StorageService.getStoresBySv in storage.ts returns Store[] (sync)
-            const svStores = StorageService.getStoresBySv(user.id);
-            return svStores;
-        }
-
         const loadData = async () => {
+            const user = await AuthService.getCurrentUser();
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
             console.log('QSC My Stores: User:', user);
             let myStoresData: any[] = [];
             try {
-                myStoresData = await StoreService.getStoresBySv(user.loginId);
+                // Assuming StoreService.getStoresBySv takes userId or loginId. 
+                // The original code used user.loginId for StoreService and user.id for StorageService (mock).
+                // Let's stick to what worked or seems intended. 
+                // Previous code:
+                // const svStores = StorageService.getStoresBySv(user.id); (unused variable)
+                // myStoresData = await StoreService.getStoresBySv(user.loginId);
+
+                // We'll use user.id (numeric) if StoreService expects it, or loginId (string).
+                // StoreService.getStoresBySv signature likely expects number or string. 
+                // Given previous usage: StoreService.getStoresBySv(user.loginId)
+                myStoresData = await StoreService.getStoresBySv(user.id);
+
                 if (!myStoresData || myStoresData.length === 0) {
                     // Fallback to manual ID filter if service fails
                     const { MOCK_STORES } = require('@/lib/mock/mockData');
@@ -50,7 +53,6 @@ export default function QscMyStoresPage() {
             const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
             const storesWithStatus = myStoresData.map(store => {
-                // ... same logic ...
                 // Find latest inspection
                 const storeInspections = inspections.filter((i: any) => i.storeId === store.id.toString());
                 const latestInspection = storeInspections.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];

@@ -5,6 +5,7 @@ import com.franchise.backend.event.repository.EventDetailRepository;
 import com.franchise.backend.pos.repository.PosDailyRepository;
 import com.franchise.backend.qsc.entity.QscMaster;
 import com.franchise.backend.qsc.repository.QscMasterRepository;
+import com.franchise.backend.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -21,15 +22,22 @@ public class EventDetailService {
     private final EventDetailRepository eventDetailRepository;
     private final QscMasterRepository qscMasterRepository;
     private final PosDailyRepository posDailyRepository;
+    private final EventScopeService eventScopeService;
 
     // 이벤트 상세
     @Transactional(readOnly = true)
-    public EventDetailResponse getEventDetail(Long eventId) {
+    public EventDetailResponse getEventDetail(UserPrincipal principal, Long eventId) {
 
-        EventDetailResponse base = eventDetailRepository.findEventDetail(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이벤트입니다. eventId=" + eventId));
+        List<Long> storeIds = eventScopeService.resolveAccessibleStoreIds(principal);
 
-        // QSC 이벤트: 기존 로직 유지 + 생성자 변경(필드 추가) 반영
+        // SV/팀장인데 점포 0개면 접근 불가
+        if (storeIds != null && storeIds.isEmpty()) {
+            throw new IllegalArgumentException("권한이 없거나 존재하지 않는 이벤트입니다. eventId=" + eventId);
+        }
+
+        EventDetailResponse base = eventDetailRepository.findEventDetail(eventId, storeIds)
+                .orElseThrow(() -> new IllegalArgumentException("권한이 없거나 존재하지 않는 이벤트입니다. eventId=" + eventId));
+
         if ("QSC".equals(base.getIssueType())) {
 
             EventDetailResponse.AnalysisResponse analysis =
@@ -50,7 +58,6 @@ public class EventDetailService {
             );
         }
 
-        // POS 이벤트: 주간 매출/전주 대비 변화/원인카테고리 채우기
         if ("POS".equals(base.getIssueType())) {
 
             EventDetailResponse.AnalysisResponse analysis =
@@ -71,9 +78,10 @@ public class EventDetailService {
             );
         }
 
-        // POS/QSC 외는 일단 analysis null (추후 확장)
         return base;
     }
+
+
 
 
     // QSC 분석: 최근 점검/직전 점검 비교 + 취약 카테고리

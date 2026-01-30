@@ -35,11 +35,14 @@ public interface EventManagementRepository extends Repository<EventLog, Long> {
         WHERE e.storeId = s.id
           AND (:status IS NULL OR e.status = :status)
           AND (:keyword IS NULL OR s.storeName LIKE %:keyword%)
+          AND (:storeIds IS NULL OR e.storeId IN :storeIds)
         ORDER BY e.occurredAt DESC
     """)
     List<EventListItemResponse> searchEvents(
+            @Param("storeIds") List<Long> storeIds,
             @Param("status") String status,
             @Param("keyword") String keyword,
             Pageable pageable
     );
+
 }

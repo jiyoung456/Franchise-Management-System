@@ -1,7 +1,11 @@
 package com.franchise.backend.store.service;
 
 import com.franchise.backend.pos.repository.PosDailyRepository;
+import com.franchise.backend.qsc.entity.QscMaster;
+import com.franchise.backend.qsc.repository.QscMasterRepository;
 import com.franchise.backend.store.dto.StoreDetailResponse;
+import com.franchise.backend.store.dto.StoreListResponse;
+import com.franchise.backend.store.dto.StoreSearchRequest;
 import com.franchise.backend.store.dto.StoreUpdateRequest;
 import com.franchise.backend.store.entity.Store;
 import com.franchise.backend.store.entity.StoreState;
@@ -15,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +29,7 @@ public class StoreService {
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
     private final PosDailyRepository posDailyRepository;
+    private final QscMasterRepository qscMasterRepository;
 
     // 점포 상세(가게 정보 탭 포함)
     @Transactional(readOnly = true)
@@ -115,6 +122,96 @@ public class StoreService {
         return getStoreDetail(storeId);
     }
 
+    // sv 점포 목록 (+ 필터 / 정렬 / 검색)
+    @Transactional(readOnly = true)
+    public List<StoreListResponse> getStoresForSupervisor(String supervisorLoginId, StoreSearchRequest condition) {
+
+        String loginId = (supervisorLoginId == null ? null : supervisorLoginId.trim());
+        if (loginId == null || loginId.isBlank()) {
+            return List.of();
+        }
+
+        // 안전한 limit
+        int safeLimit = normalizeLimit(condition != null ? condition.getLimit() : 50);
+
+        StoreState state = (condition != null ? condition.getState() : null);
+        String keyword = normalizeKeyword(condition != null ? condition.getKeyword() : null);
+
+        // 1) DB에서 후보 점포 조회 (내 담당 + 상태 + 키워드)
+        List<Store> stores = storeRepository.searchStoresForSupervisor(loginId, state, keyword);
+
+        // 2) storeIds
+        List<Long> storeIds = stores.stream().map(Store::getId).toList();
+
+        // 3) 점포별 최신 COMPLETED QSC (점수/점검일)
+        Map<Long, QscMaster> latestQscMap = storeIds.isEmpty()
+                ? Map.of()
+                : qscMasterRepository.findLatestCompletedByStoreIds(storeIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        QscMaster::getStoreId,
+                        q -> q,
+                        (a, b) -> {
+                            if (a.getInspectedAt() == null) return b;
+                            if (b.getInspectedAt() == null) return a;
+                            return a.getInspectedAt().isAfter(b.getInspectedAt()) ? a : b;
+                        }
+                ));
+
+        // 4) DTO 변환
+        List<StoreListResponse> rows = stores.stream()
+                .map(s -> {
+                    QscMaster q = latestQscMap.get(s.getId());
+
+                    Integer qscScore = (q != null ? q.getTotalScore() : 0);
+                    LocalDate lastInspectionDate =
+                            (q != null && q.getInspectedAt() != null)
+                                    ? q.getInspectedAt().toLocalDate()
+                                    : null;
+
+                    // UI 지역: users.region(담당 SV 기준)을 우선 사용 (없으면 store.regionCode)
+                    String regionDisplay = (s.getSupervisor() != null
+                            && s.getSupervisor().getRegion() != null
+                            && !s.getSupervisor().getRegion().isBlank())
+                            ? s.getSupervisor().getRegion().trim()
+                            : (s.getRegionCode() == null || s.getRegionCode().isBlank() ? "-" : s.getRegionCode());
+
+                    // 담당 SV: 이름 우선, 없으면 loginId
+                    String supervisorDisplay = "-";
+                    if (s.getSupervisor() != null) {
+                        String userName = s.getSupervisor().getUserName();
+                        if (userName != null && !userName.isBlank()) {
+                            supervisorDisplay = userName.trim();
+                        } else {
+                            String svLogin = s.getSupervisor().getLoginId();
+                            supervisorDisplay = (svLogin == null || svLogin.isBlank()) ? "-" : svLogin;
+                        }
+                    }
+
+                    return new StoreListResponse(
+                            s.getId(),
+                            s.getStoreName(),
+                            s.getCurrentState().name(),
+                            regionDisplay,
+                            supervisorDisplay,
+                            qscScore,
+                            lastInspectionDate
+                    );
+                })
+                .collect(Collectors.toList());
+
+        // 5) 정렬
+        StoreSort sort = normalizeSort(condition != null ? condition.getSort() : null);
+        rows.sort(sort.getComparator());
+
+        // 6) limit
+        if (rows.size() > safeLimit) {
+            return rows.subList(0, safeLimit);
+        }
+        return rows;
+    }
+
+
     // DTO 변환 (생성자 시그니처 정확히 맞춤)
     private StoreDetailResponse toDetailResponse(Store store, Long weeklyAvgSalesAmount) {
 
@@ -145,5 +242,58 @@ public class StoreService {
                 store.getContractType(),
                 store.getContractEndDate()
         );
+    }
+
+    // nomalize + sort
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) return null;
+        return keyword.trim();
+    }
+
+    private int normalizeLimit(Integer limit) {
+        int v = (limit == null ? 50 : limit);
+        return Math.max(1, Math.min(v, 200));
+    }
+
+    private StoreSort normalizeSort(String sort) {
+        if (sort == null || sort.isBlank()) {
+            // SV 화면 기본값이 "QSC 점수 높은순"이라면 이게 더 자연스러움
+            return StoreSort.QSC_SCORE_DESC;
+        }
+        try {
+            return StoreSort.valueOf(sort.trim().toUpperCase());
+        } catch (Exception e) {
+            return StoreSort.QSC_SCORE_DESC;
+        }
+    }
+
+    private enum StoreSort {
+        QSC_SCORE_DESC(Comparator
+                .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed()
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+
+        QSC_SCORE_ASC(Comparator
+                .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+
+        INSPECTED_AT_DESC(Comparator
+                .comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed()
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+
+        INSPECTED_AT_ASC(Comparator
+                .comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        private final Comparator<StoreListResponse> comparator;
+
+        StoreSort(Comparator<StoreListResponse> comparator) {
+            this.comparator = comparator;
+        }
+
+        public Comparator<StoreListResponse> getComparator() {
+            return comparator;
+        }
     }
 }

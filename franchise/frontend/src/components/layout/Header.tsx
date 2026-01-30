@@ -3,8 +3,8 @@
 import { Bell, Search, Menu, LogOut, User, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { AuthService } from '@/services/authService';
-import { EventService } from '@/services/eventService'; // Import EventService
-import { User as UserType, EventLog } from '@/types'; // Import EventLog
+import { EventService } from '@/services/eventService';
+import { User as UserType, EventLog } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -24,18 +24,26 @@ export function Header() {
 
     useEffect(() => {
         const init = async () => {
-            // Initialize Storage (if needed) and get current user
             await AuthService.init();
             const currentUser = await AuthService.getCurrentUser();
             setUser(currentUser);
 
-            // Fetch Events for Notifications
-            // Note: EventService is still synchronous (Mock only) for now.
-            // If EventService becomes async, this will need await.
-            const allEvents = EventService.getEvents();
-            // Filter for Critical/High Open events
-            const notis = allEvents.filter(e => e.status === 'OPEN' && (e.severity === 'CRITICAL' || e.severity === 'WARNING'));
-            setNotifications(notis);
+            try {
+                const allEvents = await EventService.getEvents();
+
+                if (Array.isArray(allEvents)) {
+                    const notis = allEvents.filter(e =>
+                        e.status === 'OPEN' &&
+                        (e.severity === 'CRITICAL' || e.severity === 'WARNING')
+                    );
+                    setNotifications(notis);
+                } else {
+                    setNotifications([]);
+                }
+            } catch (error) {
+                console.error('헤더 알림 로드 실패:', error);
+                setNotifications([]);
+            }
         };
         init();
     }, []);
@@ -44,36 +52,28 @@ export function Header() {
         AuthService.logout();
     };
 
-    const hasUnread = notifications.some(n => n.status === 'OPEN'); // Update unread logic
+    const hasUnread = notifications.some(n => n.status === 'OPEN');
 
-    const handleNotificationClick = (evt: EventLog) => {
-        // 1. Update Status to ACKNOWLEDGED if it was OPEN
+    const handleNotificationClick = async (evt: EventLog) => {
         if (evt.status === 'OPEN') {
             const updatedEvent = { ...evt, status: 'ACKNOWLEDGED' as const };
-            EventService.saveEvent(updatedEvent);
+            await EventService.saveEvent(updatedEvent);
             setNotifications(prev => prev.map(e => e.id === evt.id ? updatedEvent : e));
         }
 
-        // 2. Do NOT remove from list
-        // 3. Close Dropdown (Optional: user might want to keep it open? usually close is better)
         setIsNotiOpen(false);
-
-        // 4. Navigate
         router.push(`/events/${evt.id}`);
     };
 
     const handleDeleteNotification = (id: string) => {
-        // Remove from local list
         setNotifications(prev => prev.filter(e => e.id !== id));
-        // Optional: Call service to mark as deleted/archived if persistence is needed
     };
 
     return (
         <header className="h-16 bg-[#46B3E6] border-b border-[#3AA0D0] fixed w-full top-0 right-0 z-10 pl-64">
             <div className="h-full px-6 flex items-center justify-end">
-                {/* Search Removed */}
-
                 <div className="flex items-center gap-4">
+                    {/* Notification Bell */}
                     <div className="relative">
                         <button
                             className="p-2 hover:bg-white/10 rounded-lg relative transition-colors"
@@ -102,7 +102,7 @@ export function Header() {
                                                 className={`group relative block px-4 py-3 border-b border-gray-50 last:border-0 transition-colors ${evt.status === 'OPEN' ? 'bg-blue-50/30 hover:bg-blue-50' : 'bg-white hover:bg-gray-50'}`}
                                             >
                                                 <div
-                                                    className="flex items-start gap-3 cursor-pointer pr-6" // Add padding right for delete button
+                                                    className="flex items-start gap-3 cursor-pointer pr-6"
                                                     onClick={() => handleNotificationClick(evt)}
                                                 >
                                                     <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${evt.status === 'OPEN' ? 'text-red-500' : 'text-gray-400'}`} />
@@ -113,15 +113,15 @@ export function Header() {
                                                         <p className={`text-xs line-clamp-2 ${evt.status === 'OPEN' ? 'text-gray-700' : 'text-gray-400'}`}>
                                                             {evt.message}
                                                         </p>
-                                                        <p className="text-[10px] text-gray-400 mt-1">{evt.timestamp.slice(5, 16).replace('T', ' ')}</p>
+                                                        {/* [수정됨] timestamp 사용 */}
+                                                        <p className="text-[10px] text-gray-400 mt-1">{(evt.timestamp || '').slice(5, 16).replace('T', ' ')}</p>
                                                     </div>
                                                 </div>
 
-                                                {/* Delete Button - Only show if ACKNOWLEDGED */}
                                                 {evt.status === 'ACKNOWLEDGED' && (
                                                     <button
                                                         onClick={(e) => {
-                                                            e.stopPropagation(); // Prevent navigation
+                                                            e.stopPropagation();
                                                             handleDeleteNotification(evt.id);
                                                         }}
                                                         className="absolute top-3 right-3 text-gray-300 hover:text-red-500 transition-colors"
@@ -146,6 +146,7 @@ export function Header() {
 
                     <div className="h-6 w-[1px] bg-white/20 mx-2"></div>
 
+                    {/* Profile Dropdown */}
                     <div className="relative">
                         <button
                             className="flex items-center gap-2 cursor-pointer hover:bg-white/10 p-1 rounded-lg text-left transition-colors"
@@ -167,7 +168,6 @@ export function Header() {
 
                         {isProfileOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50">
-
                                 <button
                                     onClick={handleLogout}
                                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"

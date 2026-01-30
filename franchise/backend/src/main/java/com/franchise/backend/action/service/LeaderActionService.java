@@ -1,58 +1,142 @@
 package com.franchise.backend.action.service;
 
-import com.franchise.backend.action.dto.ActionListResponse;
+import com.franchise.backend.action.dto.*;
 import com.franchise.backend.action.entity.Action;
 import com.franchise.backend.action.repository.ActionRepository;
-import org.springframework.stereotype.Service;
-import com.franchise.backend.action.dto.ActionDetailResponse;
-import com.franchise.backend.action.dto.ActionCreateRequest;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Transactional;
-import com.franchise.backend.action.dto.ActionUpdateRequest;
-
-
-import java.util.List;
-import com.franchise.backend.action.dto.ActionEffectResponse;
 import com.franchise.backend.pos.entity.PosDaily;
+import com.franchise.backend.pos.repository.PosDailyRepository;
 import com.franchise.backend.qsc.entity.QscMaster;
+import com.franchise.backend.qsc.repository.QscMasterRepository;
+import com.franchise.backend.store.repository.StoreRepository;
+import com.franchise.backend.user.entity.User;
+import com.franchise.backend.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.*;
 import java.util.*;
-import com.franchise.backend.pos.repository.PosDailyRepository;
-import com.franchise.backend.qsc.repository.QscMasterRepository;
+import java.util.stream.Collectors;
+
 @Service
+@RequiredArgsConstructor
 public class LeaderActionService {
 
     private final ActionRepository actionRepository;
     private final PosDailyRepository posDailyRepository;
     private final QscMasterRepository qscMasterRepository;
+    private final UserRepository userRepository;
+    private final StoreRepository storeRepository;
 
-    public LeaderActionService(ActionRepository actionRepository,
-                               PosDailyRepository posDailyRepository,
-                               QscMasterRepository qscMasterRepository) {
-        this.actionRepository = actionRepository;
-        this.posDailyRepository = posDailyRepository;
-        this.qscMasterRepository = qscMasterRepository;
-    }
+    // 팀장 조치관리 탭 목록:
+    // - 팀장 부서와 같은 SV가 담당하는 점포(storeIds) 범위
+    // - 이벤트 연계 조치만(relatedEventId not null)  -> (ActionRepository.findManagerScopedActions에서 처리)
+    // - status 옵션(OPEN/IN_PROGRESS/CLOSED 모두 가능하도록)
+    @Transactional(readOnly = true)
+    public List<ActionListResponse> getActionList(String managerLoginId, String status, int limit) {
 
-    public List<ActionListResponse> getActionList() {
-        List<Action> actions = actionRepository.findAllByOrderByPriorityAscDueDateAsc();
+        String loginId = (managerLoginId == null ? null : managerLoginId.trim());
+        if (loginId == null || loginId.isBlank()) return List.of();
 
+        // 1) 팀장 department 조회
+        String department = userRepository.findByLoginId(loginId)
+                .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
+                .orElse(null);
+
+        if (department == null || department.isBlank()) {
+            return List.of();
+        }
+
+        // 2) 팀장 부서 SV들이 담당하는 점포 id들
+        List<Long> storeIds = storeRepository.findStoreIdsBySupervisorDepartment(department);
+        if (storeIds == null || storeIds.isEmpty()) return List.of();
+
+        // 3) status normalize
+        // - null이면 전체(OPEN/IN_PROGRESS/CLOSED 전부)
+        // - 값 있으면 해당 status만
+        String statusFilter = (status == null || status.isBlank()) ? null : status.trim().toUpperCase();
+
+        // 4) 조회 (스코프 + 이벤트연계 + status는 repo에서 처리)
+        List<Action> actions = actionRepository.findManagerScopedActions(storeIds, statusFilter);
+
+        // 5) limit 적용
+        int safeLimit = Math.max(1, Math.min(limit <= 0 ? 50 : limit, 200));
+        if (actions.size() > safeLimit) {
+            actions = actions.subList(0, safeLimit);
+        }
+
+        // 담당자 이름 매핑 (assignedToUserId -> userName) : N+1 방지
+        List<Long> assignedUserIds = actions.stream()
+                .map(Action::getAssignedToUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, String> userNameMap = assignedUserIds.isEmpty()
+                ? Map.of()
+                : userRepository.findAllById(assignedUserIds).stream()
+                .collect(Collectors.toMap(
+                        User::getId,
+                        u -> {
+                            String name = u.getUserName();
+                            return (name == null || name.isBlank()) ? "-" : name.trim();
+                        },
+                        (a, b) -> a
+                ));
+
+        // 응답 DTO 변환 (assignedToUserName 추가)
         return actions.stream()
-                .map(a -> new ActionListResponse(
-                        a.getId(),
-                        a.getTitle(),
-                        a.getStoreId(),
-                        a.getPriority(),
-                        a.getStatus(),
-                        a.getDueDate(),
-                        a.getAssignedToUserId()
-                ))
+                .map(a -> {
+                    Long assignedId = a.getAssignedToUserId();
+                    String assignedName = (assignedId == null) ? "-" : userNameMap.getOrDefault(assignedId, "-");
+
+                    return new ActionListResponse(
+                            a.getId(),
+                            a.getTitle(),
+                            a.getStoreId(),
+                            a.getPriority(),
+                            a.getStatus(),
+                            a.getDueDate(),
+                            a.getAssignedToUserId(),
+                            assignedName
+                    );
+                })
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public ActionCountSummaryResponse getSummary(String managerLoginId) {
+
+        String loginId = (managerLoginId == null ? null : managerLoginId.trim());
+        if (loginId == null || loginId.isBlank()) {
+            return new ActionCountSummaryResponse(0);
+        }
+
+        String department = userRepository.findByLoginId(loginId)
+                .map(u -> u.getDepartment() == null ? null : u.getDepartment().trim())
+                .orElse(null);
+
+        if (department == null || department.isBlank()) {
+            return new ActionCountSummaryResponse(0);
+        }
+
+        List<Long> storeIds = storeRepository.findStoreIdsBySupervisorDepartment(department);
+        if (storeIds == null || storeIds.isEmpty()) {
+            return new ActionCountSummaryResponse(0);
+        }
+
+        long count = actionRepository
+                .findManagerScopedActions(storeIds, "IN_PROGRESS")
+                .size();
+
+        return new ActionCountSummaryResponse(count);
+    }
+
+
+
+    @Transactional(readOnly = true)
     public ActionDetailResponse getActionDetail(Long actionId) {
         Action action = actionRepository.findById(actionId)
                 .orElseThrow(() -> new IllegalArgumentException("조치가 존재하지 않습니다. id=" + actionId));
@@ -77,7 +161,6 @@ public class LeaderActionService {
 
     @Transactional
     public Long createAction(ActionCreateRequest req, Long createdByUserId) {
-
         Action action = new Action(
                 req.getStoreId(),
                 req.getRelatedEventId(),
@@ -90,11 +173,9 @@ public class LeaderActionService {
                 req.getDescription(),
                 createdByUserId
         );
-
         Action saved = actionRepository.save(action);
         return saved.getId();
     }
-
 
     @Transactional
     public void updateAction(Long actionId, ActionUpdateRequest req) {
@@ -111,6 +192,7 @@ public class LeaderActionService {
         );
     }
 
+    @Transactional(readOnly = true)
     public ActionEffectResponse getActionEffect(Long actionId) {
         Action action = actionRepository.findById(actionId)
                 .orElseThrow(() -> new IllegalArgumentException("조치가 없습니다. id=" + actionId));
@@ -122,11 +204,9 @@ public class LeaderActionService {
         LocalDate startDate = base.minusDays(14);
         LocalDate endDate = base.plusDays(13);
 
-        // labels 28개
         List<LocalDate> labels = new ArrayList<>();
         for (int i = 0; i < 28; i++) labels.add(startDate.plusDays(i));
 
-        // 날짜별 값 맵
         Map<LocalDate, BigDecimal> valueMap = new HashMap<>();
 
         if (metric.startsWith("POS_")) {
@@ -148,10 +228,9 @@ public class LeaderActionService {
                 valueMap.put(r.getBusinessDate(), v);
             }
         } else if (metric.startsWith("QSC_")) {
-            // QSC는 inspectedAt이 OffsetDateTime이라 범위를 OffsetDateTime으로 잡음
-            ZoneOffset offset = ZoneOffset.ofHours(9); // KST 기준(필요시 UTC로 바꿔도 됨)
+            ZoneOffset offset = ZoneOffset.ofHours(9);
             OffsetDateTime from = startDate.atStartOfDay().atOffset(offset);
-            OffsetDateTime to = endDate.plusDays(1).atStartOfDay().atOffset(offset); // endDate 포함
+            OffsetDateTime to = endDate.plusDays(1).atStartOfDay().atOffset(offset);
 
             List<QscMaster> rows = qscMasterRepository
                     .findByStoreIdAndInspectedAtBetweenOrderByInspectedAtAsc(storeId, from, to);
@@ -165,12 +244,10 @@ public class LeaderActionService {
             throw new IllegalArgumentException("지원하지 않는 metricCode: " + metric);
         }
 
-        // storeSeries (28개)
         List<BigDecimal> storeSeries = labels.stream()
                 .map(d -> valueMap.getOrDefault(d, null))
                 .toList();
 
-        // ✅ 조치 전 14일 평균 계산 (startDate ~ base-1)
         LocalDate preStart = startDate;
         LocalDate preEnd = base.minusDays(1);
 
@@ -186,7 +263,6 @@ public class LeaderActionService {
             baselineValue = sum.divide(BigDecimal.valueOf(preValues.size()), 2, RoundingMode.HALF_UP);
         }
 
-        // baselineSeries: 28개 전부 baselineValue (없으면 null)
         BigDecimal finalBaselineValue = baselineValue;
         List<BigDecimal> baselineSeries = labels.stream()
                 .map(d -> finalBaselineValue)
@@ -197,7 +273,4 @@ public class LeaderActionService {
                 labels, storeSeries, baselineSeries, baselineValue
         );
     }
-
-
-
 }

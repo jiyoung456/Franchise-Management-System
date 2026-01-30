@@ -1,98 +1,112 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StoreDetail } from '@/types';
 import { X, ChevronRight, TrendingUp, TrendingDown, Info, ArrowLeft } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ComposedChart, Line, Bar } from 'recharts';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { useRouter } from 'next/navigation';
+import { PosService, PosKpiDashboardResponse } from '@/services/posService';
 
 interface StoreKPICardProps {
     store: StoreDetail;
-    onBack?: () => void; // Changed from onClose to onBack (optional)
+    onBack?: () => void;
     isModal?: boolean;
+    embedded?: boolean;
 }
 
-export function StoreKPICard({ store, onBack, isModal = false }: StoreKPICardProps) {
+export function StoreKPICard({ store, onBack, isModal = false, embedded = false }: StoreKPICardProps) {
     const router = useRouter();
-    const [filter, setFilter] = useState<'WEEK' | 'MONTH'>('WEEK'); // Default Week as per mock visual usually
+    const [filter, setFilter] = useState<'WEEK' | 'MONTH'>('WEEK');
     const [showBaseline, setShowBaseline] = useState(true);
     const [activeChartTab, setActiveChartTab] = useState<'SALES' | 'GROWTH' | 'ORDERS'>('SALES');
+    const [dashboardData, setDashboardData] = useState<PosKpiDashboardResponse | null>(null);
+    const [loading, setLoading] = useState(false);
 
     const handleBack = () => {
         if (onBack) onBack();
         else router.back();
     };
 
-    // Mock Data Generator based on requirements
-    const generateTrendData = () => {
-        return Array.from({ length: 12 }, (_, i) => ({
-            name: `${i + 1} 주`,
-            sales: Math.floor(Math.random() * 5000000) + 3000000,
-            lastSales: Math.floor(Math.random() * 5000000) + 3000000,
-            orders: Math.floor(Math.random() * 200) + 100,
-            atv: Math.floor(Math.random() * 10000) + 15000,
-            growth: Math.floor(Math.random() * 40) - 20,
-        }));
+    useEffect(() => {
+        const loadData = async () => {
+            setLoading(true);
+            const data = await PosService.getDashboard(Number(store.id), filter);
+            setDashboardData(data);
+            setLoading(false);
+        };
+        loadData();
+    }, [store.id, filter]);
+
+    // Prepare Chart Data
+    const chartData = dashboardData ? (() => {
+        if (activeChartTab === 'SALES') {
+            return dashboardData.salesTrend.map(t => ({ name: t.label, sales: t.value }));
+        } else if (activeChartTab === 'GROWTH') {
+            return dashboardData.salesChangeTrend.map(t => ({ name: t.label, growth: t.value }));
+        } else {
+            return dashboardData.ordersAndAovTrend.map(t => ({ name: t.label, orders: t.orders, atv: t.aov }));
+        }
+    })() : [];
+
+    // Metrics Fallback (if loading or error)
+    const metrics = dashboardData ? {
+        sales: dashboardData.summary.totalSales,
+        salesGrowth: dashboardData.summary.totalSalesRate,
+        atv: dashboardData.summary.aov,
+        atvGrowth: dashboardData.summary.aovRate,
+        orders: dashboardData.summary.totalOrders,
+        ordersGrowth: dashboardData.summary.totalOrdersRate
+    } : {
+        sales: 0, salesGrowth: 0,
+        atv: 0, atvGrowth: 0,
+        orders: 0, ordersGrowth: 0
     };
 
-    const data = generateTrendData();
-
-    // Mock Summary Metrics
-    const metrics = {
-        sales: 45000000,
-        salesGrowth: -15, // Negative for "Analysis" point
-        atv: 21500,
-        atvGrowth: 5.2,
-        orders: 450,
-        ordersGrowth: -8.5
-    };
+    // Baseline Data
+    const baseline = dashboardData?.baseline;
 
     return (
-        <div className={`bg-gray-50 flex flex-col ${isModal ? 'h-[85vh] rounded-xl overflow-hidden' : 'min-h-screen'}`}>
+        <div className={`flex flex-col ${isModal ? 'h-[85vh] rounded-xl overflow-hidden bg-gray-50' : embedded ? 'w-full h-full bg-transparent' : 'min-h-screen bg-gray-50'}`}>
             {/* Header */}
-            <div className={`bg-white border-b border-gray-200 px-8 py-5 flex justify-between items-center z-10 shadow-sm ${isModal ? 'sticky top-0' : 'sticky top-0'}`}>
-                <div className="flex items-center gap-6">
-                    {!isModal && (
-                        <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <ArrowLeft className="w-6 h-6 text-gray-600" />
-                        </button>
-                    )}
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                            {store.name}
-                            <StatusBadge
-                                status={store.currentState === 'NORMAL' ? '정상' : store.currentState === 'WATCHLIST' ? '관찰' : '위험'}
-                                type={store.currentState === 'NORMAL' ? 'success' : store.currentState === 'WATCHLIST' ? 'warning' : 'danger'}
-                            />
-                        </h2>
-                        <p className="text-sm text-gray-500 mt-1">KPI 상세 분석 대시보드</p>
+            <div className={`px-8 py-5 flex justify-between items-center z-10 shadow-sm ${isModal || !embedded ? 'bg-white border-b border-gray-200 sticky top-0' : 'bg-transparent mb-4 p-0 shadow-none justify-end'}`}>
+                {!embedded && (
+                    <div className="flex items-center gap-6">
+                        {!isModal && (
+                            <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                            </button>
+                        )}
+                        <div>
+                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                                {store.name}
+                                <StatusBadge
+                                    status={store.currentState === 'NORMAL' ? '정상' : store.currentState === 'WATCHLIST' ? '관찰' : '위험'}
+                                    type={store.currentState === 'NORMAL' ? 'success' : store.currentState === 'WATCHLIST' ? 'warning' : 'danger'}
+                                />
+                            </h2>
+                            <p className="text-sm text-gray-500 mt-1">KPI 상세 분석 대시보드</p>
+                        </div>
                     </div>
+                )}
 
-                    <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium relative ml-4">
-                        {/* Segmented Control */}
-                        <button
-                            onClick={() => setFilter('WEEK')}
-                            className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'WEEK' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-                                }`}
-                        >
-                            주간
-                        </button>
-                        <button
-                            onClick={() => setFilter('MONTH')}
-                            className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'MONTH' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-                                }`}
-                        >
-                            월간
-                        </button>
-                    </div>
+                <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium relative ml-auto">
+                    <button
+                        onClick={() => setFilter('WEEK')}
+                        className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'WEEK' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                        주간
+                    </button>
+                    <button
+                        onClick={() => setFilter('MONTH')}
+                        className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'MONTH' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                        월간
+                    </button>
                 </div>
-                {/* Right side empty or for actions if needed later */}
-                {/* <div className="flex items-center gap-4"></div> */}
             </div>
 
-            <div className="flex-1 p-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start overflow-y-auto">
+            <div className={`flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start overflow-y-auto ${embedded ? 'p-0' : 'p-8'}`}>
                 {/* Left Column: Metrics & Analysis */}
                 <div className="lg:col-span-4 space-y-6">
                     {/* Metrics Grid */}
@@ -140,24 +154,26 @@ export function StoreKPICard({ store, onBack, isModal = false }: StoreKPICardPro
                     </div>
 
                     {/* Status Description Card */}
-                    <div className="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
-                        <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center gap-2">
-                            <Info className="w-5 h-5 text-red-600" />
-                            <h3 className="font-bold text-red-800">상태 분석 요약</h3>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <p className="text-sm text-gray-500 mb-1">주요 이슈</p>
-                                <p className="text-gray-900 font-bold text-lg">최근 연속 2주 하락세</p>
+                    {dashboardData?.statusSummary && (
+                        <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${dashboardData.statusSummary.level === 'ALERT' ? 'border-red-100' : dashboardData.statusSummary.level === 'WARN' ? 'border-orange-100' : 'border-blue-100'}`}>
+                            <div className={`px-6 py-4 border-b flex items-center gap-2 ${dashboardData.statusSummary.level === 'ALERT' ? 'bg-red-50 border-red-100 text-red-800' : dashboardData.statusSummary.level === 'WARN' ? 'bg-orange-50 border-orange-100 text-orange-800' : 'bg-blue-50 border-blue-100 text-blue-800'}`}>
+                                <Info className="w-5 h-5" />
+                                <h3 className="font-bold">상태 분석 요약</h3>
                             </div>
-                            <div>
-                                <p className="text-sm text-gray-500 mb-1">세부 내용</p>
-                                <p className="text-gray-900 text-base">
-                                    기준선(전분기 평균) 대비 매출 <span className="text-blue-600 font-bold">15% 하락</span> 상태가 지속되고 있습니다.
-                                </p>
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <p className="text-sm text-gray-500 mb-1">주요 이슈</p>
+                                    <p className="text-gray-900 font-bold text-lg">{dashboardData.statusSummary.title}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500 mb-1">세부 내용</p>
+                                    <p className="text-gray-900 text-base">
+                                        {dashboardData.statusSummary.detail}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Right Column: Trend Graphs with Tabs */}
@@ -166,8 +182,7 @@ export function StoreKPICard({ store, onBack, isModal = false }: StoreKPICardPro
                     <div className="flex border-b border-gray-200 bg-gray-50/30">
                         <button
                             onClick={() => setActiveChartTab('SALES')}
-                            className={`flex-1 py-5 text-center font-bold text-base transition-all relative ${activeChartTab === 'SALES' ? 'text-blue-700 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                }`}
+                            className={`flex-1 py-5 text-center font-bold text-base transition-all relative ${activeChartTab === 'SALES' ? 'text-blue-700 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                         >
                             매출 추이
                             {activeChartTab === 'SALES' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
@@ -175,8 +190,7 @@ export function StoreKPICard({ store, onBack, isModal = false }: StoreKPICardPro
                         <div className="w-px bg-gray-200 my-4" />
                         <button
                             onClick={() => setActiveChartTab('GROWTH')}
-                            className={`flex-1 py-5 text-center font-bold text-base transition-all relative ${activeChartTab === 'GROWTH' ? 'text-blue-700 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                }`}
+                            className={`flex-1 py-5 text-center font-bold text-base transition-all relative ${activeChartTab === 'GROWTH' ? 'text-blue-700 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                         >
                             매출 증감률 추이
                             {activeChartTab === 'GROWTH' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
@@ -184,8 +198,7 @@ export function StoreKPICard({ store, onBack, isModal = false }: StoreKPICardPro
                         <div className="w-px bg-gray-200 my-4" />
                         <button
                             onClick={() => setActiveChartTab('ORDERS')}
-                            className={`flex-1 py-5 text-center font-bold text-base transition-all relative ${activeChartTab === 'ORDERS' ? 'text-blue-700 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                                }`}
+                            className={`flex-1 py-5 text-center font-bold text-base transition-all relative ${activeChartTab === 'ORDERS' ? 'text-blue-700 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                         >
                             주문수 & 객단가
                             {activeChartTab === 'ORDERS' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
@@ -211,68 +224,70 @@ export function StoreKPICard({ store, onBack, isModal = false }: StoreKPICardPro
                                     checked={showBaseline}
                                     onChange={() => setShowBaseline(!showBaseline)}
                                 />
-                                <div className={`w-12 h-7 rounded-full transition-colors border-2 ${showBaseline ? 'bg-blue-600 border-blue-600' : 'bg-gray-200 border-gray-200'
-                                    }`} />
-                                <div className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-200 transform ${showBaseline ? 'translate-x-5' : 'translate-x-0'
-                                    }`} />
+                                <div className={`w-12 h-7 rounded-full transition-colors border-2 ${showBaseline ? 'bg-blue-600 border-blue-600' : 'bg-gray-200 border-gray-200'}`} />
+                                <div className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-200 transform ${showBaseline ? 'translate-x-5' : 'translate-x-0'}`} />
                             </div>
                         </label>
                     </div>
 
                     {/* Chart Area */}
                     <div className="p-6 h-[450px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart data={data} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                    formatter={(value: any, name: any) => [
-                                        name === 'sales' || name === 'atv' ? `${(value).toLocaleString()} 원` : name === 'orders' ? `${value} 건` : `${value}% `,
-                                        name === 'sales' ? '매출' : name === 'atv' ? '객단가' : name === 'orders' ? '주문수' : '증감률'
-                                    ]}
-                                />
+                        {loading ? (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">Loading...</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 10 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} dy={10} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        formatter={(value: any, name: any) => [
+                                            name === 'sales' || name === 'atv' ? `${(value).toLocaleString()} 원` : name === 'orders' ? `${value} 건` : `${value}% `,
+                                            name === 'sales' ? '매출' : name === 'atv' ? '객단가' : name === 'orders' ? '주문수' : '증감률'
+                                        ]}
+                                    />
 
-                                {activeChartTab === 'SALES' && (
-                                    <>
-                                        <YAxis tickFormatter={(val) => `${val / 10000} 만`} axisLine={false} tickLine={false} fontSize={12} />
-                                        <Area type="monotone" dataKey="sales" stroke="#46B3E6" fill="url(#colorSales)" strokeWidth={3} />
-                                        <defs>
-                                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#46B3E6" stopOpacity={0.2} />
-                                                <stop offset="95%" stopColor="#46B3E6" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        {showBaseline && (
-                                            <ReferenceLine y={4000000} stroke="#999" strokeDasharray="3 3" label={{ position: 'right', value: '기준선', fontSize: 10, fill: '#999' }} />
-                                        )}
-                                    </>
-                                )}
+                                    {activeChartTab === 'SALES' && (
+                                        <>
+                                            <YAxis tickFormatter={(val) => `${val / 10000} 만`} axisLine={false} tickLine={false} fontSize={12} />
+                                            <Area type="monotone" dataKey="sales" stroke="#46B3E6" fill="url(#colorSales)" strokeWidth={3} />
+                                            <defs>
+                                                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#46B3E6" stopOpacity={0.2} />
+                                                    <stop offset="95%" stopColor="#46B3E6" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            {showBaseline && baseline?.salesBaseline && (
+                                                <ReferenceLine y={baseline.salesBaseline} stroke="#999" strokeDasharray="3 3" label={{ position: 'right', value: '기준선', fontSize: 10, fill: '#999' }} />
+                                            )}
+                                        </>
+                                    )}
 
-                                {activeChartTab === 'GROWTH' && (
-                                    <>
-                                        <YAxis tickFormatter={(val) => `${val}% `} axisLine={false} tickLine={false} fontSize={12} />
-                                        <ReferenceLine y={0} stroke="#666" />
-                                        <Line type="monotone" dataKey="growth" stroke="#ff7300" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                        {showBaseline && (
-                                            <ReferenceLine y={-10} stroke="#ff0000" strokeDasharray="3 3" label={{ position: 'right', value: '경고 기준', fontSize: 10, fill: '#f00' }} />
-                                        )}
-                                    </>
-                                )}
+                                    {activeChartTab === 'GROWTH' && (
+                                        <>
+                                            <YAxis tickFormatter={(val) => `${val}% `} axisLine={false} tickLine={false} fontSize={12} />
+                                            <ReferenceLine y={0} stroke="#666" />
+                                            <Line type="monotone" dataKey="growth" stroke="#ff7300" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                            {showBaseline && baseline?.salesWarnRate && (
+                                                <ReferenceLine y={baseline.salesWarnRate} stroke="#ff0000" strokeDasharray="3 3" label={{ position: 'right', value: '경고 기준', fontSize: 10, fill: '#f00' }} />
+                                            )}
+                                        </>
+                                    )}
 
-                                {activeChartTab === 'ORDERS' && (
-                                    <>
-                                        <YAxis yAxisId="left" axisLine={false} tickLine={false} fontSize={12} />
-                                        <YAxis yAxisId="right" orientation="right" tickFormatter={(val) => `${val / 10000} 만`} axisLine={false} tickLine={false} fontSize={12} />
-                                        <Bar yAxisId="left" dataKey="orders" fill="#82ca9d" radius={[4, 4, 0, 0]} barSize={30} name="orders" />
-                                        <Line yAxisId="right" type="monotone" dataKey="atv" stroke="#8884d8" strokeWidth={3} name="atv" />
-                                        {showBaseline && (
-                                            <ReferenceLine yAxisId="left" y={150} stroke="#999" strokeDasharray="3 3" label="기준 주문수" />
-                                        )}
-                                    </>
-                                )}
-                            </ComposedChart>
-                        </ResponsiveContainer>
+                                    {activeChartTab === 'ORDERS' && (
+                                        <>
+                                            <YAxis yAxisId="left" axisLine={false} tickLine={false} fontSize={12} />
+                                            <YAxis yAxisId="right" orientation="right" tickFormatter={(val) => `${val / 10000} 만`} axisLine={false} tickLine={false} fontSize={12} />
+                                            <Bar yAxisId="left" dataKey="orders" fill="#82ca9d" radius={[4, 4, 0, 0]} barSize={30} name="orders" />
+                                            <Line yAxisId="right" type="monotone" dataKey="atv" stroke="#8884d8" strokeWidth={3} name="atv" />
+                                            {showBaseline && baseline?.ordersBaseline && (
+                                                <ReferenceLine yAxisId="left" y={baseline.ordersBaseline} stroke="#999" strokeDasharray="3 3" label="기준 주문수" />
+                                            )}
+                                        </>
+                                    )}
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>

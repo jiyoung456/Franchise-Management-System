@@ -12,6 +12,8 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     long countByCurrentState(StoreState currentState);
 
+    long countByCurrentStateAndIdIn(StoreState currentState, List<Long> ids);
+
     // 팀장 홈 : "팀장 부서(department)" 기준 점포 목록 조회
     // - 같은 부서의 SV가 담당(supervisor)인 점포만
     @Query("""
@@ -40,16 +42,47 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
         JOIN s.supervisor u
         WHERE u.loginId = :loginId
     """)
-
     List<Store> findBySupervisorLoginId(@Param("loginId") String loginId);
 
-    //전체 목록 검색용
-    List<Store> findBySupervisor_Id(Long supervisorId);
-
-
-    //sv가 담당하는 점포 검색용(qsc 점검 매장 선택시 필요함)
-    List<Store> findBySupervisor_IdAndStoreNameContaining(
-            Long supervisorId,
-            String storeName
+    // SV 점포 관리 : 상태/키워드 필터 포함
+    @Query("""
+        SELECT s
+        FROM Store s
+        JOIN s.supervisor u
+        WHERE u.loginId = :loginId
+          AND (:state IS NULL OR s.currentState = :state)
+          AND (
+                :keyword IS NULL
+                OR s.storeName LIKE %:keyword%
+          )
+        ORDER BY s.updatedAt DESC
+    """)
+    List<Store> searchStoresForSupervisor(
+            @Param("loginId") String loginId,
+            @Param("state") StoreState state,
+            @Param("keyword") String keyword
     );
+
+    // sv 기준 : 본인이 담당하는 점포 ID들
+    @Query("""
+        SELECT s.id
+        FROM Store s
+        JOIN s.supervisor u
+        WHERE u.loginId = :loginId
+    """)
+    List<Long> findStoreIdsBySupervisorLoginId(@Param("loginId") String loginId);
+
+    // 팀장 기준 : 해당 부서 SV들이 담당하는 점포 ID들
+    @Query("""
+        SELECT s.id
+        FROM Store s
+        JOIN s.supervisor u
+        WHERE u.department = :department
+    """)
+    List<Long> findStoreIdsBySupervisorDepartment(@Param("department") String department);
+
+    List<Store> findBySupervisor_Id(Long supervisorId);
 }
+
+
+

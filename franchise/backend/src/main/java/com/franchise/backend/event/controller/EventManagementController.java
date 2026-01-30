@@ -6,7 +6,9 @@ import com.franchise.backend.event.dto.EventDetailResponse;
 import com.franchise.backend.event.dto.EventListItemResponse;
 import com.franchise.backend.event.service.EventDetailService;
 import com.franchise.backend.event.service.EventManagementService;
+import com.franchise.backend.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,28 +21,41 @@ public class EventManagementController {
     private final EventManagementService eventManagementService;
     private final EventDetailService eventDetailService;
 
-    // 이벤트 관리 - 상단 카드 요약
+    // 이벤트 관리 - 상단 카드 요약 (스코프 적용)
     @GetMapping("/summary")
-    public ApiResponse<EventDashboardSummaryResponse> summary() {
-        return ApiResponse.ok(eventManagementService.getSummary());
+    public ApiResponse<EventDashboardSummaryResponse> summary(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ApiResponse.ok(
+                eventManagementService.getSummary(principal.getRole(), principal.getLoginId())
+        );
     }
 
-    // 이벤트 관리 - 리스트 조회
-    // - keyword: 점포명 검색
-    // - status: OPEN / ACK / CLOSED (없으면 전체)
-    // - limit: 기본 50
+    // 이벤트 관리 - 리스트 조회 (스코프 적용)
     @GetMapping
     public ApiResponse<List<EventListItemResponse>> list(
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "50") int limit
     ) {
-        return ApiResponse.ok(eventManagementService.getEvents(keyword, status, limit));
+        return ApiResponse.ok(
+                eventManagementService.getEvents(
+                        principal.getRole(),
+                        principal.getLoginId(),
+                        keyword,
+                        status,
+                        limit
+                )
+        );
     }
 
-    // 이벤트 상세 조회
+    // 이벤트 상세 조회 (Role 스코프 적용 + 보안)
     @GetMapping("/{eventId}")
-    public ApiResponse<EventDetailResponse> detail(@PathVariable Long eventId) {
-        return ApiResponse.ok(eventDetailService.getEventDetail(eventId));
+    public ApiResponse<EventDetailResponse> detail(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long eventId
+    ) {
+        return ApiResponse.ok(eventDetailService.getEventDetail(principal, eventId));
     }
 }

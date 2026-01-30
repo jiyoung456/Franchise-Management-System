@@ -50,4 +50,46 @@ public interface EventLogRepository extends JpaRepository<EventLog, Long> {
           AND e.severity = 'CRITICAL'
     """)
     long countCriticalOpenEvents();
+
+    // 이벤트 관리 : OPEN 이벤트 수 (팀장 department 범위)
+    @Query("""
+        SELECT COUNT(e)
+        FROM EventLog e
+        JOIN com.franchise.backend.store.entity.Store s ON e.storeId = s.id
+        JOIN s.supervisor u
+        WHERE e.status = 'OPEN'
+          AND u.department = :department
+    """)
+    long countOpenEventsByDepartment(@Param("department") String department);
+
+    // 이벤트 관리 : CRITICAL(OPEN 기준) 이벤트 수 (팀장 department 범위)
+    @Query("""
+        SELECT COUNT(e)
+        FROM EventLog e
+        JOIN com.franchise.backend.store.entity.Store s ON e.storeId = s.id
+        JOIN s.supervisor u
+        WHERE e.status = 'OPEN'
+          AND e.severity = 'CRITICAL'
+          AND u.department = :department
+    """)
+    long countCriticalOpenEventsByDepartment(@Param("department") String department);
+
+    // 점포목록 기준 OPEN 이벤트 수
+    @Query("""
+    SELECT COUNT(e)
+    FROM EventLog e
+    WHERE e.status = 'OPEN'
+      AND e.storeId IN :storeIds
+""")
+    long countOpenEventsByStoreIds(@Param("storeIds") List<Long> storeIds);
+
+    // 점포목록 기준 CRITICAL(OEPN) 이벤트 수
+    @Query("""
+    SELECT COUNT(e)
+    FROM EventLog e
+    WHERE e.status = 'OPEN'
+      AND e.severity = 'CRITICAL'
+      AND e.storeId IN :storeIds
+""")
+    long countCriticalOpenEventsByStoreIds(@Param("storeIds") List<Long> storeIds);
 }

@@ -192,23 +192,27 @@ export interface EventLog {
 
 // Actions
 export type ActionType = 'TRAINING' | 'VISIT' | 'PROMOTION' | 'FACILITY' | 'PERSONNEL';
-export type ActionStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'CANCELLED';
+export type ActionStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE' | 'CANCELLED' | 'CLOSED';
 export type ActionPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface ActionItem {
     id: string;
     storeId: string;
+    storeName?: string;
     title: string;
     type: ActionType;
     status: ActionStatus;
     priority: ActionPriority;
     assignee: string;
+    assigneeName?: string;
     dueDate: string;
     description: string;
     completedAt?: string;
     completionNote?: string;
     linkedEventId?: string;
     linkedRiskId?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface EffectAnalysis {
@@ -255,6 +259,57 @@ export interface DailyBriefing {
         criticalIssues: number;
         pendingApprovals: number;
     };
+}
+
+// --- Dashboard DTOs (Matched with Backend) ---
+export interface ManagerDashboardSummary {
+    riskStoreCount: number;
+    newEventCount: number;
+    managementGapCount: number;
+}
+
+export interface TrendPoint {
+    label: string;
+    value: number;
+}
+
+export interface StateDistribution {
+    normalCount: number;
+    watchCount: number;
+    riskCount: number;
+}
+
+export interface VisitStatus {
+    completedCount: number;
+    totalCount: number;
+    completionRatePct: number;
+}
+
+export interface RecentVisitedStore {
+    storeId: number;
+    storeName: string;
+    visitedAt: string;
+}
+
+export interface SupervisorDashboardSummary {
+    // Top Cards
+    assignedStoreCount: number;
+    riskStoreCount: number;
+    recentEventCount: number;
+    pendingActionCount: number;
+
+    // Charts
+    weeklyAvgRiskScoreTrend: TrendPoint[];
+    monthlyAvgSalesChangeRateTrend: TrendPoint[];
+
+    // Distribution
+    stateDistribution: StateDistribution;
+
+    // Visit Status
+    visitStatus: VisitStatus;
+
+    // List
+    recentVisitedStores: RecentVisitedStore[];
 }
 
 export interface Notice {

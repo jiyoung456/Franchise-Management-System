@@ -2,31 +2,61 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { StorageService, Notice, User } from '@/lib/storage';
+import { BoardService, BoardPost } from '@/services/boardService';
+import { AuthService } from '@/services/authService';
+import { User as UserType } from '@/types';
 import { Search, Megaphone, Eye, Calendar, Pin } from 'lucide-react';
 
 export default function BoardListPage() {
-    const [notices, setNotices] = useState<Notice[]>([]);
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [posts, setPosts] = useState<BoardPost[]>([]);
+    const [users, setUsers] = useState<UserType[]>([]);
+    const [currentUser, setCurrentUser] = useState<UserType | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const data = StorageService.getNotices();
-        setNotices(data);
-        setCurrentUser(StorageService.getCurrentUser());
+        const init = async () => {
+            try {
+                setLoading(true);
+                // Fetch posts and current user as high priority
+                const [postData, user] = await Promise.all([
+                    BoardService.getPosts(),
+                    AuthService.getCurrentUser()
+                ]);
+                setPosts(postData);
+                setCurrentUser(user);
+
+                // Fetch all users for name mapping as low priority (may 403)
+                try {
+                    const userData = await AuthService.getUsers();
+                    setUsers(userData);
+                } catch (userError) {
+                    console.warn('Failed to fetch user list for name mapping (possibly 403):', userError);
+                    // Continue without users list
+                }
+            } catch (error) {
+                console.error('Failed to load board data:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
     }, []);
 
-    const filteredNotices = notices.filter(n =>
-        n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.author.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredPosts = posts.filter(n =>
+        n.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Sort: Important first, then Date desc
-    const sortedNotices = [...filteredNotices].sort((a, b) => {
-        if (a.isImportant && !b.isImportant) return -1;
-        if (!a.isImportant && b.isImportant) return 1;
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
+    // Backend handles sorting (isPinned first, then date desc), but we can re-verify or sort here too
+    const sortedPosts = [...filteredPosts];
+
+    // Helper to get username from ID
+    const getAuthorName = (userId: number) => {
+        const found = users.find(u => u.id.toString() === userId.toString());
+        return found ? found.userName : `사용자(${userId})`;
+    };
+
+    if (loading) return <div className="p-8 text-center text-gray-500">게시물을 불러오는 중...</div>;
 
     return (
         <div className="space-y-6">
@@ -51,7 +81,7 @@ export default function BoardListPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="제목, 작성자 검색..."
+                        placeholder="제목 검색..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -72,28 +102,28 @@ export default function BoardListPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {sortedNotices.length > 0 ? (
-                            sortedNotices.map((notice, idx) => (
-                                <tr key={notice.id} className={`hover:bg-gray-50 transition-colors ${notice.isImportant ? 'bg-red-50/30' : ''}`}>
+                        {sortedPosts.length > 0 ? (
+                            sortedPosts.map((post, idx) => (
+                                <tr key={post.id} className={`hover:bg-gray-50 transition-colors ${post.isPinned ? 'bg-red-50/30' : ''}`}>
                                     <td className="px-6 py-4 text-center">
-                                        {notice.isImportant ? (
+                                        {post.isPinned ? (
                                             <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-red-100 text-red-600">
                                                 <Megaphone className="w-3 h-3" />
                                             </span>
                                         ) : (
-                                            <span className="text-gray-400">{filteredNotices.length - idx}</span>
+                                            <span className="text-gray-400">{post.id}</span>
                                         )}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Link href={`/board/${notice.id}`} className="group flex items-center">
-                                            {notice.isImportant && (
+                                        <Link href={`/board/${post.id}`} className="group flex items-center">
+                                            {post.isPinned && (
                                                 <span className="text-red-600 font-bold mr-2">[중요]</span>
                                             )}
                                             <span className="text-gray-900 group-hover:text-blue-600 group-hover:underline font-medium">
-                                                {notice.title}
+                                                {post.title}
                                             </span>
                                             {/* New Badge Logic (Example: within 3 days) */}
-                                            {new Date().getTime() - new Date(notice.date).getTime() < 3 * 24 * 60 * 60 * 1000 && (
+                                            {post.createdAt && new Date().getTime() - new Date(post.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000 && (
                                                 <span className="ml-2 px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-[10px] font-bold rounded">
                                                     N
                                                 </span>
@@ -101,14 +131,13 @@ export default function BoardListPage() {
                                         </Link>
                                     </td>
                                     <td className="px-6 py-4 text-gray-600">
-                                        {notice.author}
-                                        {notice.role === 'ADMIN' && <span className="text-xs text-blue-500 ml-1">(본사)</span>}
+                                        {getAuthorName(post.createdByUserId)}
                                     </td>
                                     <td className="px-6 py-4 text-gray-500">
-                                        {new Date(notice.date).toISOString().split('T')[0]}
+                                        {post.createdAt ? post.createdAt.split('T')[0] : '-'}
                                     </td>
                                     <td className="px-6 py-4 text-center text-gray-500">
-                                        {notice.viewCount}
+                                        {post.viewCount}
                                     </td>
                                 </tr>
                             ))

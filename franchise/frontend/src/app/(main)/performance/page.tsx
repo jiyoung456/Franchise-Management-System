@@ -12,6 +12,7 @@ import {
 import { TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Percent, Filter, ChevronDown, ChevronUp, Search, Minus, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { PosService } from '@/services/posService';
 
 export default function PerformanceDashboardPage() {
     const [role, setRole] = useState<'ADMIN' | 'SUPERVISOR' | 'MANAGER' | null>(null);
@@ -42,15 +43,41 @@ function SvPerformanceView() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [svStores, setSvStores] = useState<any[]>([]);
+    const [posDataMap, setPosDataMap] = useState<Record<number, any>>({});
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const user = StorageService.getCurrentUser();
-        if (user) {
-            // Updated to use user.id for SV lookup as per new schema
-            const myStores = StoreService.getStoresBySv(user.id);
-            // Async handling
-            myStores.then(stores => setSvStores(stores));
-        }
+        const loadStoresAndPos = async () => {
+            const user = StorageService.getCurrentUser();
+            if (user) {
+                try {
+                    // 1. Load Stores
+                    const stores = await StoreService.getStoresBySv(user.id);
+                    setSvStores(stores);
+
+                    // 2. Load POS Data Parallel (N+1 but necessary without bulk API)
+                    const posPromises = stores.map(store =>
+                        PosService.getDashboard(store.id, 'MONTH')
+                            .then(data => ({ id: store.id, data }))
+                            .catch(() => ({ id: store.id, data: null }))
+                    );
+
+                    const results = await Promise.all(posPromises);
+                    const newMap: Record<number, any> = {};
+                    results.forEach(res => {
+                        if (res.data) {
+                            newMap[res.id] = res.data;
+                        }
+                    });
+                    setPosDataMap(newMap);
+                } catch (e) {
+                    console.error("Failed to load SV dashboard data", e);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        loadStoresAndPos();
     }, []);
 
     // Filter Stores
@@ -58,13 +85,6 @@ function SvPerformanceView() {
         return svStores.filter(store => {
             const matchesSearch = store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 store.region.includes(searchTerm);
-
-            // Logic for status filter could be added here if 'status' or 'grade' was part of store obj or performance mock.
-            // For now, assuming just search.
-            if (filterStatus !== 'ALL') {
-                // Mock filtering logic if needed, or skip for now as per previous simple logic
-            }
-
             return matchesSearch;
         });
     }, [searchTerm, filterStatus, svStores]);
@@ -73,6 +93,8 @@ function SvPerformanceView() {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount).replace('₩', '') + '원';
     };
+
+    if (loading) return <div className="p-12 text-center">Loading...</div>;
 
     return (
         <div className="space-y-6 pb-20">
@@ -117,70 +139,63 @@ function SvPerformanceView() {
             {/* Store List Table */}
             <div className="border-t border-gray-400">
                 {/* Table Header */}
-                <div className="grid grid-cols-12 gap-4 bg-gray-50 border-b border-gray-200 py-3 px-4 text-sm font-bold text-gray-600 text-center">
-                    <div className="col-span-2 text-left pl-2">점포명 / 지역</div>
-                    <div className="col-span-2 text-right">월 매출</div>
-                    <div className="col-span-7 pl-6 text-left">성과 지표 (매출 / 주문수 / 객단가 증감)</div>
-                    <div className="col-span-1">상세</div>
+                <div className="grid grid-cols-12 gap-4 bg-gray-50 border-b border-gray-200 py-3 px-4 text-sm font-bold text-gray-600">
+                    <div className="col-span-3 text-left pl-2">점포명 / 지역</div>
+                    <div className="col-span-3 text-right">월 매출 (전월비)</div>
+                    <div className="col-span-2 text-right">월 주문수 (전월비)</div>
+                    <div className="col-span-3 text-right">객단가 (전월비)</div>
+                    <div className="col-span-1 text-center">상세</div>
                 </div>
 
                 {/* Table Body */}
                 <div className="bg-white">
                     {filteredStores.map(store => {
-                        const storeIdStr = store.id.toString();
-                        const perf = MOCK_PERFORMANCE[storeIdStr] || MOCK_PERFORMANCE['1'];
-                        const summary = perf.monthlySummary || {
-                            totalSales: 0, salesGrowth: 0, orderGrowth: 0, aovGrowth: 0
+                        const posData = posDataMap[store.id];
+                        const summary = posData ? posData.summary : {
+                            totalSales: 0, totalSalesRate: 0, totalOrders: 0, totalOrdersRate: 0, aov: 0, aovRate: 0
                         };
 
+                        const getRateColor = (rate: number) => rate > 0 ? 'text-red-500' : rate < 0 ? 'text-blue-500' : 'text-gray-500';
+                        const formatRate = (rate: number) => `${rate > 0 ? '+' : ''}${Number(rate).toFixed(1)}%`;
+
                         return (
-                            <div key={store.id} className="grid grid-cols-12 gap-4 border-b border-gray-200 py-5 px-4 items-center hover:bg-blue-50 transition-colors">
+                            <div key={store.id} className="grid grid-cols-12 gap-4 border-b border-gray-200 py-4 px-4 items-center hover:bg-blue-50 transition-colors">
                                 {/* Store Name & Region */}
-                                <div className="col-span-2 flex flex-col pl-2">
+                                <div className="col-span-3 flex flex-col pl-2">
                                     <span className="font-bold text-gray-900 text-base">{store.name}</span>
-                                    <span className="text-sm text-gray-500">{store.region}</span>
+                                    <span className="text-sm text-gray-500 mt-0.5">{store.region}</span>
                                 </div>
 
                                 {/* Monthly Sales */}
-                                <div className="col-span-2 text-right font-bold text-gray-900 text-lg">
-                                    {formatCurrency(summary.totalSales)}
+                                <div className="col-span-3 text-right flex flex-col justify-center">
+                                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(summary.totalSales)}</span>
+                                    <span className={`text-xs font-bold flex items-center justify-end mt-1 ${getRateColor(summary.totalSalesRate)}`}>
+                                        {formatRate(summary.totalSalesRate)}
+                                        {summary.totalSalesRate > 0 ? <TrendingUp className="w-3 h-3 ml-1" /> : summary.totalSalesRate < 0 ? <TrendingDown className="w-3 h-3 ml-1" /> : <Minus className="w-3 h-3 ml-1" />}
+                                    </span>
                                 </div>
 
-                                {/* Growth Metrics */}
-                                <div className="col-span-7 flex flex-wrap gap-x-6 gap-y-2 pl-6 items-center">
-                                    {/* Sales Growth */}
-                                    <div className="flex items-center gap-1.5 min-w-[120px]">
-                                        <span className="text-sm text-gray-600 font-medium">매출:</span>
-                                        <span className={`text-sm font-bold flex items-center ${summary.salesGrowth > 0 ? 'text-red-500' : summary.salesGrowth < 0 ? 'text-blue-500' : 'text-gray-500'}`}>
-                                            {summary.salesGrowth > 0 ? '+' : ''}{summary.salesGrowth}%
-                                            {summary.salesGrowth > 0 ? <TrendingUp className="w-3 h-3 ml-1" /> : summary.salesGrowth < 0 ? <TrendingDown className="w-3 h-3 ml-1" /> : <Minus className="w-3 h-3 ml-1" />}
-                                        </span>
-                                    </div>
+                                {/* Monthly Orders */}
+                                <div className="col-span-2 text-right flex flex-col justify-center">
+                                    <span className="font-bold text-gray-900 text-base">{summary.totalOrders?.toLocaleString() || '0'}건</span>
+                                    <span className={`text-xs font-bold mt-1 ${getRateColor(summary.totalOrdersRate)}`}>
+                                        {formatRate(summary.totalOrdersRate)}
+                                    </span>
+                                </div>
 
-                                    {/* Order Growth */}
-                                    <div className="flex items-center gap-1.5 min-w-[170px]">
-                                        <span className="text-sm text-gray-600 font-medium whitespace-nowrap">주문수:</span>
-                                        <span className={`text-sm font-bold flex items-center ${summary.orderGrowth > 0 ? 'text-red-500' : summary.orderGrowth < 0 ? 'text-blue-500' : 'text-gray-500'}`}>
-                                            {summary.orderGrowth > 0 ? '+' : ''}{summary.orderGrowth}%
-                                            <span className="text-xs text-gray-400 font-normal ml-1">(전월비)</span>
-                                        </span>
-                                    </div>
-
-                                    {/* AOV Growth */}
-                                    <div className="flex items-center gap-1.5 min-w-[170px]">
-                                        <span className="text-sm text-gray-600 font-medium whitespace-nowrap">객단가:</span>
-                                        <span className={`text-sm font-bold flex items-center ${summary.aovGrowth > 0 ? 'text-red-500' : summary.aovGrowth < 0 ? 'text-blue-500' : 'text-gray-500'}`}>
-                                            {summary.aovGrowth > 0 ? '+' : ''}{summary.aovGrowth}%
-                                            <span className="text-xs text-gray-400 font-normal ml-1">(전월비)</span>
-                                        </span>
-                                    </div>
+                                {/* AOV */}
+                                <div className="col-span-3 text-right flex flex-col justify-center">
+                                    <span className="font-bold text-gray-900 text-base">{summary.aov?.toLocaleString() || '0'}원</span>
+                                    <span className={`text-xs font-bold mt-1 ${getRateColor(summary.aovRate)}`}>
+                                        {formatRate(summary.aovRate)}
+                                    </span>
                                 </div>
 
                                 {/* Detail Button */}
-                                <div className="col-span-1 text-right">
+                                <div className="col-span-1 text-center">
                                     <button
-                                        onClick={() => router.push(`/performance/${store.id}`)}
-                                        className="py-2 px-4 border border-gray-300 text-gray-700 font-bold rounded hover:bg-gray-100 hover:text-gray-900 transition-colors text-sm"
+                                        onClick={() => router.push(`/stores/${store.id}/pos`)}
+                                        className="py-1.5 px-3 border border-gray-300 text-gray-700 font-bold rounded hover:bg-gray-100 hover:text-gray-900 transition-colors text-sm"
                                     >
                                         상세
                                     </button>

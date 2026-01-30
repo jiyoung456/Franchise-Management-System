@@ -4,7 +4,9 @@ import com.franchise.backend.common.response.ApiResponse;
 import com.franchise.backend.store.dto.DashboardSummaryResponse;
 import com.franchise.backend.store.dto.SupervisorDashboardSummaryResponse;
 import com.franchise.backend.store.service.DashboardService;
+import com.franchise.backend.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,8 +18,10 @@ public class DashboardController {
 
     // 팀장 홈 대시보드 카드 조회
     @GetMapping("/summary")
-    public ApiResponse<DashboardSummaryResponse> summary() {
-        return ApiResponse.ok(dashboardService.getSummary());
+    public ApiResponse<DashboardSummaryResponse> summary(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        return ApiResponse.ok(dashboardService.getSummary(principal));
     }
 
     // SV 홈 대시보드

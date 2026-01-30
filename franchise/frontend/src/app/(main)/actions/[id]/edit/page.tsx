@@ -1,30 +1,67 @@
 'use client';
 
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { ActionService } from '@/services/actionService';
+import { ActionItem } from '@/types';
+import { AuthService } from '@/services/authService';
 
-// Mock Data (Should be fetched via API in real app)
-const MOCK_ACTION_DETAIL = {
-    id: 1,
-    title: '위생 점검 재이행',
-    store: '강남점',
-    relatedEvent: '이벤트11',
-    type: '방문',
-    assignee: '김슈퍼',
-    metric: '위생점수',
-    deadline: '2026-01-15',
-    priority: 'HIGH',
-    description: '지난 QSC 점검에서 식자재 보관 상태가 미흡하여 재점검이 필요합니다. 방문하여 냉장/냉동고 온도를 확인하고 식자재 라벨링 상태를 전수 조사해주시기 바랍니다.'
-};
-
-export default function ActionEditPage({ params }: { params: { id: string } }) {
+export default function ActionEditPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
-    const [formData, setFormData] = useState(MOCK_ACTION_DETAIL);
+    const { id } = use(params);
+    const [formData, setFormData] = useState<ActionItem | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const data = await ActionService.getAction(id);
+                if (data) {
+                    setFormData(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch action for edit", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [id]);
 
     const handleChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                [field]: value
+            } as ActionItem;
+        });
     };
+
+    const handleSave = async () => {
+        if (!formData) return;
+
+        const success = await ActionService.updateAction(id, {
+            title: formData.title,
+            description: formData.description,
+            actionType: formData.type,
+            priority: formData.priority,
+            dueDate: formData.dueDate,
+            assignedToUserId: Number(formData.assignee),
+            status: formData.status
+        });
+
+        if (success) {
+            alert('저장되었습니다.');
+            router.push(`/actions/${id}`);
+        } else {
+            alert('저장 중 오류가 발생했습니다.');
+        }
+    };
+
+    if (loading) return <div className="p-12 text-center text-gray-500 font-bold">정보를 불러오는 중...</div>;
+    if (!formData) return <div className="p-12 text-center text-red-500 font-bold">수정할 정보를 찾을 수 없습니다.</div>;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-20">
@@ -42,11 +79,11 @@ export default function ActionEditPage({ params }: { params: { id: string } }) {
                     {/* Read Only Fields */}
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">대상 점포</div>
-                        <div className="flex-1 p-4 text-gray-500 bg-gray-50">{formData.store} (자동 등록)</div>
+                        <div className="flex-1 p-4 text-gray-500 bg-gray-50">{formData.storeName || formData.storeId} (자동 등록)</div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">연관 이벤트</div>
-                        <div className="flex-1 p-4 text-gray-500 bg-gray-50">{formData.relatedEvent} (자동 등록)</div>
+                        <div className="flex-1 p-4 text-gray-500 bg-gray-50">{formData.linkedEventId || '-'} (자동 등록)</div>
                     </div>
 
                     {/* Editable Fields */}
@@ -58,32 +95,17 @@ export default function ActionEditPage({ params }: { params: { id: string } }) {
                                 value={formData.type}
                                 onChange={(e) => handleChange('type', e.target.value)}
                             >
-                                <option value="교육">교육</option>
-                                <option value="방문">방문</option>
-                                <option value="재점검">재점검</option>
-                                <option value="프로모션">프로모션</option>
-                                <option value="시설 개선">시설 개선</option>
-                                <option value="인력 보강">인력 보강</option>
+                                <option value="TRAINING">교육 (TRAINING)</option>
+                                <option value="VISIT">방문 (VISIT)</option>
+                                <option value="PROMOTION">프로모션 (PROMOTION)</option>
+                                <option value="FACILITY">시설 개선 (FACILITY)</option>
+                                <option value="PERSONNEL">인력 보강 (PERSONNEL)</option>
                             </select>
                         </div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">담당자</div>
-                        <div className="flex-1 p-4 text-gray-500 bg-gray-50">{formData.assignee} (자동 등록)</div>
-                    </div>
-                    <div className="flex">
-                        <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">목표 지표</div>
-                        <div className="flex-1 p-2">
-                            <select
-                                className="w-full border border-gray-300 p-2 rounded"
-                                value={formData.metric}
-                                onChange={(e) => handleChange('metric', e.target.value)}
-                            >
-                                <option value="QSC">QSC</option>
-                                <option value="매출">매출</option>
-                                <option value="위생점수">위생점수</option>
-                            </select>
-                        </div>
+                        <div className="flex-1 p-4 text-gray-500 bg-gray-50">{formData.assigneeName || formData.assignee} (자동 등록)</div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">기한</div>
@@ -91,8 +113,8 @@ export default function ActionEditPage({ params }: { params: { id: string } }) {
                             <input
                                 type="date"
                                 className="w-full border border-gray-300 p-2 rounded"
-                                value={formData.deadline}
-                                onChange={(e) => handleChange('deadline', e.target.value)}
+                                value={formData.dueDate}
+                                onChange={(e) => handleChange('dueDate', e.target.value)}
                             />
                         </div>
                     </div>
@@ -141,10 +163,7 @@ export default function ActionEditPage({ params }: { params: { id: string } }) {
             {/* Footer Buttons */}
             <div className="flex justify-end gap-2 mt-4">
                 <button
-                    onClick={() => {
-                        alert('저장되었습니다.');
-                        router.push(`/actions/${params.id}`);
-                    }}
+                    onClick={handleSave}
                     className="px-8 py-3 border border-gray-400 bg-white text-gray-900 font-bold text-lg rounded hover:bg-gray-50 shadow-sm"
                 >
                     저장

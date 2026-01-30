@@ -3,24 +3,45 @@
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { StorageService } from '@/lib/storage';
+import { ActionService } from '@/services/actionService';
+import { ActionItem } from '@/types';
+import { AuthService } from '@/services/authService';
 
 interface ActionDetailClientProps {
-    action: any;
     id: string;
 }
 
-export default function ActionDetailClient({ action, id }: ActionDetailClientProps) {
+export default function ActionDetailClient({ id }: ActionDetailClientProps) {
     const router = useRouter();
     const [role, setRole] = useState<'ADMIN' | 'SUPERVISOR' | 'MANAGER' | null>(null);
+    const [action, setAction] = useState<ActionItem | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        StorageService.init();
-        const user = StorageService.getCurrentUser();
-        if (user) {
-            setRole(user.role);
-        }
-    }, []);
+        const init = async () => {
+            try {
+                const [currentUser, actionData] = await Promise.all([
+                    AuthService.getCurrentUser(),
+                    ActionService.getAction(id)
+                ]);
+
+                if (currentUser) setRole(currentUser.role);
+                if (actionData) {
+                    setAction(actionData);
+                } else {
+                    // Handle 404 or missing action
+                }
+            } catch (error) {
+                console.error("Failed to load action detail", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
+    }, [id]);
+
+    if (loading) return <div className="p-12 text-center text-gray-500 font-bold">조치 정보를 불러오는 중...</div>;
+    if (!action) return <div className="p-12 text-center text-red-500 font-bold">조치 정보를 찾을 수 없습니다.</div>;
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-20">
@@ -41,11 +62,11 @@ export default function ActionDetailClient({ action, id }: ActionDetailClientPro
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">대상 점포</div>
-                        <div className="flex-1 p-4 text-gray-900">{action.storeId || action.store}</div>
+                        <div className="flex-1 p-4 text-gray-900">{action.storeName || action.storeId || '-'}</div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">연관 이벤트</div>
-                        <div className="flex-1 p-4 text-gray-900">{action.linkedRiskId || action.relatedEvent || '-'}</div>
+                        <div className="flex-1 p-4 text-gray-900">{action.linkedEventId || '-'}</div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">조치 유형</div>
@@ -53,15 +74,11 @@ export default function ActionDetailClient({ action, id }: ActionDetailClientPro
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">담당자</div>
-                        <div className="flex-1 p-4 text-gray-900">{action.assignee}</div>
-                    </div>
-                    <div className="flex">
-                        <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">목표 지표</div>
-                        <div className="flex-1 p-4 text-gray-900">{action.metric || '-'}</div>
+                        <div className="flex-1 p-4 text-gray-900">{action.assigneeName || action.assignee || '-'}</div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">기한</div>
-                        <div className="flex-1 p-4 text-gray-900">{action.dueDate || action.deadline}</div>
+                        <div className="flex-1 p-4 text-gray-900">{action.dueDate || '-'}</div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">우선순위</div>

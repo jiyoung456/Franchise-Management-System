@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 // Environment variable to toggle mock/real API
-export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true'; // Default to false (use real API)
+// Mock data is no longer supported as per user request.
 
 const api = axios.create({
-    baseURL: 'http://localhost:8080/api',
+    baseURL: '/api',
     timeout: 10000,
     withCredentials: true,  // Enable sending cookies with requests
     headers: {
