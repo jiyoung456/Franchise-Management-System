@@ -31,7 +31,7 @@ public class SecurityConfig {
     @Order(0) // ✅ 가장 먼저 적용
     public SecurityFilterChain executionChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/qsc/stores/test/**") // ✅ 이 경로만 따로 잡기
+                .securityMatcher("/api/qsc/inspections/**") // ✅ 이 경로만 따로 잡기
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()

@@ -1,5 +1,6 @@
 package com.franchise.backend.qsc.controller;
 
+import com.franchise.backend.qsc.dto.QscInspectionDetailResponse;
 import com.franchise.backend.qsc.dto.QscInspectionSaveRequest;
 import com.franchise.backend.qsc.service.QscInspectionCommandService;
 import com.franchise.backend.user.security.UserPrincipal;
@@ -30,5 +31,10 @@ public class QscInspectionController {
         Long inspectionId = commandService.save(1L, req);
         return Map.of("inspectionId", inspectionId);
     }
+
+//    @GetMapping("/{inspectionId}")
+//    public QscInspectionDetailResponse getDetail(@PathVariable Long inspectionId) {
+//        return queryService.getDetail(inspectionId);
+//    }
 
 }

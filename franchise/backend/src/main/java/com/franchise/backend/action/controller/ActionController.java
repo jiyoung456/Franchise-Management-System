@@ -2,6 +2,7 @@ package com.franchise.backend.action.controller;
 
 import com.franchise.backend.action.dto.*;
 import com.franchise.backend.action.service.LeaderActionService;
+import com.franchise.backend.user.entity.Role;
 import com.franchise.backend.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,9 +20,7 @@ public class ActionController {
 
     private final LeaderActionService leaderActionService;
 
-    // 팀장 조치관리
-    // - 팀장 부서 SV 점포의 "이벤트 연계된 조치"만
-    // - 기본: 처리된 내역만 보이게 CLOSED로
+    // 조치관리 목록 (SV/MANAGER/ADMIN 모두 여기로 들어오게 하고 Role별 분기)
     @GetMapping
     public List<ActionListResponse> getActions(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -29,29 +28,38 @@ public class ActionController {
             @RequestParam(required = false, defaultValue = "50") int limit
     ) {
         if (principal == null) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
                     "Unauthorized: login required"
             );
         }
-        return leaderActionService.getActionList(principal.getLoginId(), status, limit);
+
+        return leaderActionService.getActionList(
+                principal.getLoginId(),
+                principal.getRole(),
+                status,
+                limit
+        );
     }
 
 
-     // 팀장 대시보드 - 진행중 조치 수 요약
-     @GetMapping("/summary")
-     public ActionCountSummaryResponse getSummary(
-             @AuthenticationPrincipal UserPrincipal principal
-     ) {
-         if (principal == null) {
-             throw new ResponseStatusException(
-                     HttpStatus.UNAUTHORIZED,
-                     "Unauthorized: login required"
-             );
-         }
+    // 진행중 조치 수 요약 (SV/MANAGER/ADMIN Role별 스코프 분기)
+    @GetMapping("/summary")
+    public ActionCountSummaryResponse getSummary(
+            @AuthenticationPrincipal UserPrincipal principal
+    ) {
+        if (principal == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Unauthorized: login required"
+            );
+        }
 
-         return leaderActionService.getSummary(principal.getLoginId());
-     }
+        return leaderActionService.getSummary(
+                principal.getLoginId(),
+                principal.getRole()
+        );
+    }
 
 
     @GetMapping("/{actionId}")
