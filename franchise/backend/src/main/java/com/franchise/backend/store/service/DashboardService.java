@@ -77,7 +77,60 @@ public class DashboardService {
             newEventCount = eventLogRepository.countNewEventsSinceForStores(scopedStoreIds, since48h);
         }
 
-        long managementGapCount = 0; // TODO
+        // 4) 관리 공백 점포 수 (최근 QSC 점검이 30일 초과이거나, 점검 기록이 없는 점포)
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.ofHours(9));
+        OffsetDateTime gapThreshold = now.minusDays(30);
+
+        long managementGapCount;
+        if (scopedStoreIds == null) {
+            // ADMIN 전체 기준
+            // (전체 storeIds를 구해서 처리)
+            List<Long> allStoreIds = storeRepository.findAll().stream()
+                    .map(Store::getId)
+                    .toList();
+
+            if (allStoreIds.isEmpty()) {
+                managementGapCount = 0;
+            } else {
+                Map<Long, OffsetDateTime> lastInspectedAtMap = qscMasterRepository
+                        .findLatestCompletedByStoreIds(allStoreIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                QscMaster::getStoreId,
+                                QscMaster::getInspectedAt,
+                                (a, b) -> a
+                        ));
+
+                managementGapCount = allStoreIds.stream()
+                        .filter(storeId -> {
+                            OffsetDateTime last = lastInspectedAtMap.get(storeId);
+                            return (last == null) || last.isBefore(gapThreshold);
+                        })
+                        .count();
+            }
+
+        } else if (scopedStoreIds.isEmpty()) {
+            managementGapCount = 0;
+
+        } else {
+            // MANAGER / SUPERVISOR 스코프 기준
+            Map<Long, OffsetDateTime> lastInspectedAtMap = qscMasterRepository
+                    .findLatestCompletedByStoreIds(scopedStoreIds)
+                    .stream()
+                    .collect(Collectors.toMap(
+                            QscMaster::getStoreId,
+                            QscMaster::getInspectedAt,
+                            (a, b) -> a
+                    ));
+
+            managementGapCount = scopedStoreIds.stream()
+                    .filter(storeId -> {
+                        OffsetDateTime last = lastInspectedAtMap.get(storeId);
+                        return (last == null) || last.isBefore(gapThreshold);
+                    })
+                    .count();
+        }
+
 
         return new DashboardSummaryResponse(riskCount, newEventCount, managementGapCount);
     }
