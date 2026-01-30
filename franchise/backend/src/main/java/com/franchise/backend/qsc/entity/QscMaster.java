@@ -36,7 +36,7 @@ public class QscMaster {
     @Column(name = "total_score")
     private Integer totalScore;
 
-    @Column(name = "grade", columnDefinition = "char(1)", nullable = false)
+    @Column(name = "grade", columnDefinition = "char(1)")
     private String grade;
 
     @Column(name = "is_passed")
@@ -56,4 +56,62 @@ public class QscMaster {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        OffsetDateTime now = OffsetDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    /**
+     * 점검 마스터 생성 (필수값 세팅)
+     */
+    public static QscMaster create(
+            Long storeId,
+            Long templateId,
+            Long inspectorId,
+            OffsetDateTime inspectedAt,
+            String status,
+            String summaryComment
+    ) {
+        QscMaster m = new QscMaster();
+        m.storeId = storeId;
+        m.templateId = templateId;
+        m.inspectorId = inspectorId;
+        m.inspectedAt = inspectedAt;
+        m.status = status;
+        m.summaryComment = summaryComment;
+
+        // DRAFT이면 결과값들은 비워둔다(null)
+        m.totalScore = null;
+        m.grade = null;
+        m.isPassed = null;
+        m.needsReinspection = null;
+        m.confirmedAt = null;
+
+        return m;
+    }
+
+    /**
+     * COMPLETED 저장 시 계산된 결과 반영
+     */
+    public void applyResult(
+            Integer totalScore,
+            String grade,
+            Boolean isPassed,
+            Boolean needsReinspection,
+            OffsetDateTime confirmedAt
+    ) {
+        this.totalScore = totalScore;
+        this.grade = grade;
+        this.isPassed = isPassed;
+        this.needsReinspection = needsReinspection;
+        this.confirmedAt = confirmedAt;
+    }
 }
