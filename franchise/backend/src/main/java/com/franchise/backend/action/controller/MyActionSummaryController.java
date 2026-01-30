@@ -17,6 +17,5 @@ public class MyActionSummaryController {
         return new MyActionSummaryResponse(inProgressCount);
     }
 
-    public record MyActionSummaryResponse(long inProgressCount) {
-    }
+    public record MyActionSummaryResponse(long inProgressCount) {}
 }

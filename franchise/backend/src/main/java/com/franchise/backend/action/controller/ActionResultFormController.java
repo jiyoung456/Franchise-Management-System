@@ -28,7 +28,7 @@ public class ActionResultFormController {
 
     @PostMapping("/{actionId}/execution")
     public ResponseEntity<Void> saveExecution(@PathVariable Long actionId,
-            @RequestBody ActionExecutionSaveRequest request) {
+                                              @RequestBody ActionExecutionSaveRequest request) {
         actionExecutionCommandService.saveExecutionAndClose(actionId, request);
         return ResponseEntity.ok().build();
     }
