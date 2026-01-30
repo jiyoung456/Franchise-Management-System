@@ -56,4 +56,37 @@ public class QscMaster {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        OffsetDateTime now = OffsetDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    // 생성용 편의 메서드 (서비스에서 사용)
+    public static QscMaster create(Long storeId, Long templateId, Long inspectorId,
+                                   OffsetDateTime inspectionDate, String status, String summaryComment) {
+        QscMaster m = new QscMaster();
+        m.storeId = storeId;
+        m.templateId = templateId;
+        m.inspectorId = inspectorId;
+        m.inspectionDate = inspectionDate;
+        m.status = status;
+        m.summaryComment = summaryComment;
+        return m;
+    }
+
+    public void applyResult(Integer totalScore, String grade, boolean isPassed, boolean needsReinspection, OffsetDateTime confirmedAt) {
+        this.totalScore = totalScore;
+        this.grade = grade;
+        this.isPassed = isPassed;
+        this.needsReinspection = needsReinspection;
+        this.confirmedAt = confirmedAt;
+    }
 }
