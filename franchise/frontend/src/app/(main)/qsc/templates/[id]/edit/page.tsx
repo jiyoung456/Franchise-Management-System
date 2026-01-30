@@ -108,7 +108,7 @@ export default function EditTemplatePage() {
     return (
         <div className="max-w-5xl mx-auto pb-24 space-y-8 relative">
             {/* Header */}
-            <div className="flex items-center justify-between border-b pb-4 border-gray-200 sticky top-0 bg-gray-50/95 backdrop-blur z-10 pt-4">
+            <div className="flex items-center justify-between border-b pb-4 border-gray-200 sticky top-16 bg-gray-50/95 backdrop-blur z-10 pt-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">템플릿 수정</h1>
                     <p className="text-sm text-gray-500 mt-1">기존 템플릿의 항목을 수정하거나 추가합니다.</p>

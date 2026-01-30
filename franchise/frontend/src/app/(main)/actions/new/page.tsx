@@ -5,21 +5,26 @@ import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect, Suspense } from 'react';
 
 import { StorageService } from '@/lib/storage';
-import { EventLog } from '@/types';
-
-// ... (other imports)
+import { ActionService } from '@/services/actionService';
+import { AuthService } from '@/services/authService';
+import { EventService } from '@/services/eventService';
+import { StoreService } from '@/services/storeService';
+import { EventLog, User } from '@/types';
 
 function ActionNewForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const eventId = searchParams.get('eventId');
     const [event, setEvent] = useState<EventLog | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [supervisors, setSupervisors] = useState<User[]>([]);
 
     const [formData, setFormData] = useState({
         store: '',
         relatedEvent: '',
-        type: '방문',
-        assignee: '김슈퍼 (자동)',
+        type: 'VISIT', // Use ActionType enum values
+        assignee: '', // This will be assignedToUserId
+        assigneeName: '자동 지정',
         metric: 'QSC',
         deadline: '',
         priority: 'HIGH',
@@ -28,19 +33,121 @@ function ActionNewForm() {
     });
 
     useEffect(() => {
-        StorageService.init();
-        if (eventId) {
-            const found = StorageService.getEvent(eventId);
-            if (found) {
-                setEvent(found);
+        const loadInitialData = async () => {
+            StorageService.init();
+
+            // 1. Get current user
+            const user = await AuthService.getCurrentUser();
+            setCurrentUser(user);
+            if (user && user.role === 'SUPERVISOR') {
                 setFormData(prev => ({
                     ...prev,
-                    store: found.storeName,
-                    relatedEvent: `이벤트 #${found.id} (${found.type})`,
-                    priority: found.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH'
+                    assignee: user.id || '',
+                    assigneeName: user.userName || ''
                 }));
             }
-        }
+
+            // 2. Load supervisors if manager
+            let svList: User[] = [];
+            if (user && user.role === 'MANAGER') {
+                const allUsers = await AuthService.getUsers();
+                svList = allUsers.filter(u => u.role === 'SUPERVISOR');
+
+                // [Fallback] If users cannot be fetched (e.g. 403 Forbidden), collect SVs from other sources
+                if (svList.length === 0) {
+                    console.log('Fetching supervisors from fallback sources...');
+
+                    // a) From current and recent actions
+                    try {
+                        const actions = await ActionService.getActions();
+                        const uniqueSvs = new Map<string, User>();
+                        actions.forEach(act => {
+                            if (act.assignee && act.assigneeName) {
+                                uniqueSvs.set(act.assignee, {
+                                    id: act.assignee,
+                                    userName: act.assigneeName,
+                                    loginId: '', email: '', role: 'SUPERVISOR', accountStatus: true,
+                                    createdAt: '', updatedAt: ''
+                                } as User);
+                            }
+                        });
+
+                        // b) From recent events
+                        const events = await EventService.getEvents({ limit: 50 });
+                        events.forEach(evt => {
+                            // If event data has assignedToUserId and it's not the manager
+                            if (evt.assignedToUserId && evt.assignedToUserId.toString() !== user.id) {
+                                const id = evt.assignedToUserId.toString();
+                                if (!uniqueSvs.has(id)) {
+                                    uniqueSvs.set(id, {
+                                        id: id,
+                                        userName: '담당자 (ID: ' + id + ')',
+                                        loginId: '', email: '', role: 'SUPERVISOR', accountStatus: true,
+                                        createdAt: '', updatedAt: ''
+                                    } as User);
+                                }
+                            }
+                        });
+
+                        svList = Array.from(uniqueSvs.values());
+                    } catch (err) {
+                        console.error('Fallback fetch failed', err);
+                    }
+                }
+                setSupervisors(svList);
+            }
+
+            // 3. Load event and store data
+            if (eventId) {
+                try {
+                    // Try to get real event data first
+                    const realEvent = await EventService.getEvent(eventId);
+                    if (realEvent) {
+                        setEvent(realEvent);
+                        setFormData(prev => ({
+                            ...prev,
+                            store: realEvent.storeName,
+                            relatedEvent: `이벤트 #${realEvent.id} (${realEvent.type})`,
+                            priority: realEvent.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH'
+                        }));
+
+                        // If manager, try to find the supervisor of this store
+                        if (user?.role === 'MANAGER' && realEvent.storeId) {
+                            const storeDetail = await StoreService.getStoreDetail(realEvent.storeId);
+                            if (storeDetail) {
+                                // If the store has a supervisor login Id, check if we found them in our list
+                                // Actually, we don't have IDs for most unless they appear in actions/events.
+                                // But if the event itself has an assignee, use it!
+                                if (realEvent.assignedToUserId) {
+                                    const svId = realEvent.assignedToUserId.toString();
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        assignee: svId,
+                                        assigneeName: svList.find(s => s.id === svId)?.userName || `담당자 (ID: ${svId})`
+                                    }));
+                                }
+                            }
+                        }
+                    } else {
+                        // Fallback to storage service for demo data
+                        const found = StorageService.getEvent(eventId);
+                        if (found) {
+                            setEvent(found);
+                            setFormData(prev => ({
+                                ...prev,
+                                store: found.storeName,
+                                relatedEvent: `이벤트 #${found.id} (${found.type})`,
+                                priority: found.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH'
+                            }));
+                        }
+                    }
+                } catch (err) {
+                    console.error('Failed to load event detail', err);
+                }
+            }
+        };
+
+        loadInitialData();
     }, [eventId]);
 
     const handleChange = (field: string, value: string) => {
@@ -90,7 +197,33 @@ function ActionNewForm() {
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">담당자</div>
-                        <div className="flex-1 p-4 text-gray-500 bg-gray-50">{formData.assignee}</div>
+                        <div className="flex-1 p-2">
+                            {currentUser?.role === 'MANAGER' ? (
+                                <select
+                                    className="w-full border border-gray-300 p-2 rounded bg-white"
+                                    value={formData.assignee}
+                                    onChange={(e) => {
+                                        const sv = supervisors.find(s => s.id === e.target.value);
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            assignee: e.target.value,
+                                            assigneeName: sv?.userName || ''
+                                        }));
+                                    }}
+                                >
+                                    <option value="">담당자를 선택하세요</option>
+                                    {supervisors.map(sv => (
+                                        <option key={sv.id} value={sv.id}>
+                                            {sv.userName} ({sv.team || 'SV'})
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div className="p-2 text-gray-500 bg-gray-50 h-full flex items-center">
+                                    {formData.assigneeName} (자동)
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="flex">
                         <div className="w-40 bg-gray-50 p-4 font-bold text-gray-700 border-r border-gray-200 flex items-center">목표 지표</div>
@@ -163,32 +296,47 @@ function ActionNewForm() {
             {/* Footer Buttons */}
             <div className="flex justify-end gap-2 mt-4">
                 <button
-                    onClick={() => {
-                        // 1. Create Action Object
-                        const newAction: any = {
-                            id: `act_${Date.now()}`,
-                            storeId: event ? event.storeId : 'unknown', // Fallback
-                            title: formData.title,
-                            type: formData.type,
-                            status: 'OPEN',
-                            priority: formData.priority,
-                            assignee: formData.assignee,
-                            dueDate: formData.deadline,
-                            description: formData.description,
-                            linkedEventId: event ? event.id : undefined
-                        };
-
-                        // 2. Save Action
-                        StorageService.saveAction(newAction);
-
-                        // 3. Update Event Status if linked
-                        if (event) {
-                            const updatedEvent = { ...event, status: 'ACKNOWLEDGED' as any }; // Change status
-                            StorageService.saveEvent(updatedEvent);
+                    onClick={async () => {
+                        if (currentUser?.role === 'MANAGER' && !formData.assignee) {
+                            alert('담당자를 선택해주세요.');
+                            return;
+                        }
+                        if (!formData.title) {
+                            alert('제목을 입력해주세요.');
+                            return;
                         }
 
-                        alert('조치가 등록되었습니다. (이벤트 상태가 "처리중"으로 변경되었습니다.)');
-                        router.push(`/events`); // Back to Events list
+                        // 1. Create Action Request for Backend
+                        const actionReq = {
+                            storeId: Number(event?.storeId || 0),
+                            title: formData.title,
+                            description: formData.description,
+                            actionType: formData.type === '방문' ? 'VISIT' :
+                                formData.type === '교육' ? 'TRAINING' :
+                                    formData.type === '프로모션' ? 'PROMOTION' :
+                                        formData.type === '시설 개선' ? 'FACILITY' :
+                                            formData.type === '인력 보강' ? 'PERSONNEL' : 'VISIT',
+                            priority: formData.priority,
+                            dueDate: formData.deadline,
+                            assignedToUserId: Number(formData.assignee),
+                            relatedEventId: event ? Number(event.id) : undefined
+                        };
+
+                        // 2. Save Action via ActionService
+                        const result = await ActionService.createAction(actionReq);
+
+                        if (result) {
+                            // 3. Update Event Status (Local storage for sync)
+                            if (event) {
+                                const updatedEvent = { ...event, status: 'ACKNOWLEDGED' as any };
+                                StorageService.saveEvent(updatedEvent);
+                            }
+
+                            alert('조치가 등록되었습니다.');
+                            router.push(`/events`);
+                        } else {
+                            alert('조치 등록에 실패했습니다.');
+                        }
                     }}
                     className="px-8 py-3 bg-blue-600 text-white font-bold text-lg rounded hover:bg-blue-700 shadow-sm"
                 >

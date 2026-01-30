@@ -6,8 +6,8 @@ export const AuthService = {
     },
 
     getUsers: async (): Promise<User[]> => {
-        const response = await api.get('/users');
-        return response.data;
+        // Backend endpoint /users does not exist. Returning empty array to prevent 404 errors.
+        return [];
     },
 
 

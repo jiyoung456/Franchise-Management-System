@@ -111,7 +111,7 @@ export const ActionService = {
 
     getResultForm: async (id: string) => {
         try {
-            const response = await api.get(`/actions/${id}/execution`);
+            const response = await api.get(`/actions/${id}/execution`, { baseURL: '' });
             return response.data.data || response.data;
         } catch (error) {
             console.error(`Failed to fetch result form for action ${id}:`, error);
@@ -121,7 +121,7 @@ export const ActionService = {
 
     saveExecution: async (id: string, data: ActionExecutionSaveRequest): Promise<boolean> => {
         try {
-            await api.post(`/actions/${id}/execution`, data);
+            await api.post(`/actions/${id}/execution`, data, { baseURL: '' });
             return true;
         } catch (error) {
             console.error(`Failed to save execution for action ${id}:`, error);
@@ -131,7 +131,7 @@ export const ActionService = {
 
     getSummary: async (): Promise<number> => {
         try {
-            const response = await api.get('/actions/summary');
+            const response = await api.get('/actions/summary', { baseURL: '' });
             return response.data.data?.inProgressCount || response.data.inProgressCount || 0;
         } catch (error) {
             console.error('Failed to fetch action summary:', error);
@@ -141,7 +141,7 @@ export const ActionService = {
 
     getUserSummary: async (userId: string | number): Promise<number> => {
         try {
-            const response = await api.get(`/users/${userId}/actions/summary`);
+            const response = await api.get(`/users/${userId}/actions/summary`, { baseURL: '' });
             return response.data.data?.inProgressCount || response.data.inProgressCount || 0;
         } catch (error) {
             console.error(`Failed to fetch user action summary for ${userId}:`, error);

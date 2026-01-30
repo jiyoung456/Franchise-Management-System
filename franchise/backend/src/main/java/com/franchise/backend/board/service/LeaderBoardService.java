@@ -11,7 +11,6 @@ import java.util.List;
 
 import org.springframework.transaction.annotation.Transactional;
 
-
 @Service
 public class LeaderBoardService {
 
@@ -21,18 +20,17 @@ public class LeaderBoardService {
         this.postRepository = postRepository;
     }
 
-    //전체 목록 조회
+    // 전체 목록 조회
     public List<BoardPostListResponse> getAllPosts() {
         List<Post> posts = postRepository.findAllByOrderByIsPinnedDescCreatedAtDesc();
         return toDtoList(posts);
     }
 
-    //검색 조회
+    // 검색 조회
     public List<BoardPostListResponse> searchPosts(String keyword) {
         List<Post> posts = postRepository
                 .findByTitleContainingIgnoreCaseOrCreatedByUserIdOrderByIsPinnedDescCreatedAtDesc(
-                        keyword, -1L
-                );
+                        keyword, -1L);
         return toDtoList(posts);
     }
 
@@ -44,8 +42,7 @@ public class LeaderBoardService {
                         p.getCreatedByUserId(),
                         p.getCreatedAt(),
                         p.getViewCount(),
-                        p.getIsPinned()
-                ))
+                        p.getIsPinned()))
                 .toList();
     }
 
@@ -64,8 +61,7 @@ public class LeaderBoardService {
                 post.getCreatedByUserId(),
                 post.getCreatedAt(),
                 post.getViewCount(),
-                post.getIsPinned()
-        );
+                post.getIsPinned());
     }
 
 }

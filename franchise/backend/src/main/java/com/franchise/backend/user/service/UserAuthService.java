@@ -40,8 +40,10 @@ public class UserAuthService {
         String department = req.getDepartment();
 
         if (req.getRole() == Role.ADMIN) {
-            if (department == null || department.isBlank()) department = "운영본부";
-            if (region == null || region.isBlank()) region = "ALL";
+            if (department == null || department.isBlank())
+                department = "운영본부";
+            if (region == null || region.isBlank())
+                region = "ALL";
         }
 
         String encodedPassword = passwordEncoder.encode(req.getPassword());
@@ -53,8 +55,7 @@ public class UserAuthService {
                 encodedPassword,
                 department,
                 req.getEmail(),
-                region
-        );
+                region);
 
         return userRepository.save(user).getId();
     }
@@ -88,10 +89,8 @@ public class UserAuthService {
                 user.getRole(),
                 user.getLoginId(),
                 user.getDepartment(),
-                user.getRegion()
-        );
+                user.getRegion());
     }
-
 
     // 내 정보 조회 (로그인 유지 확인용)
     @Transactional(readOnly = true)
@@ -109,31 +108,41 @@ public class UserAuthService {
                 user.getRole(),
                 user.getLoginId(),
                 user.getDepartment(),
-                user.getRegion()
-        );
+                user.getRegion());
     }
 
     private void validateSignup(SignupRequest req) {
-        if (req.getRole() == null) throw new IllegalArgumentException("role은 필수입니다.");
-        if (isBlank(req.getLoginId())) throw new IllegalArgumentException("아이디는 필수입니다.");
-        if (isBlank(req.getPassword())) throw new IllegalArgumentException("비밀번호는 필수입니다.");
-        if (isBlank(req.getPasswordConfirm())) throw new IllegalArgumentException("비밀번호 확인은 필수입니다.");
+        if (req.getRole() == null)
+            throw new IllegalArgumentException("role은 필수입니다.");
+        if (isBlank(req.getLoginId()))
+            throw new IllegalArgumentException("아이디는 필수입니다.");
+        if (isBlank(req.getPassword()))
+            throw new IllegalArgumentException("비밀번호는 필수입니다.");
+        if (isBlank(req.getPasswordConfirm()))
+            throw new IllegalArgumentException("비밀번호 확인은 필수입니다.");
         if (!req.getPassword().equals(req.getPasswordConfirm())) {
             throw new IllegalArgumentException("비밀번호와 비밀번호 확인이 일치하지 않습니다.");
         }
-        if (isBlank(req.getUserName())) throw new IllegalArgumentException("이름은 필수입니다.");
-        if (isBlank(req.getEmail())) throw new IllegalArgumentException("이메일은 필수입니다.");
+        if (isBlank(req.getUserName()))
+            throw new IllegalArgumentException("이름은 필수입니다.");
+        if (isBlank(req.getEmail()))
+            throw new IllegalArgumentException("이메일은 필수입니다.");
 
         if (req.getRole() == Role.SUPERVISOR || req.getRole() == Role.MANAGER) {
-            if (isBlank(req.getRegion())) throw new IllegalArgumentException("담당 지역은 필수입니다.");
-            if (isBlank(req.getDepartment())) throw new IllegalArgumentException("부서는 필수입니다.");
+            if (isBlank(req.getRegion()))
+                throw new IllegalArgumentException("담당 지역은 필수입니다.");
+            if (isBlank(req.getDepartment()))
+                throw new IllegalArgumentException("부서는 필수입니다.");
         }
     }
 
     private void validateLoginRequest(LoginRequest req) {
-        if (req.getRole() == null) throw new IllegalArgumentException("로그인 유형(role)은 필수입니다.");
-        if (isBlank(req.getLoginId())) throw new IllegalArgumentException("아이디는 필수입니다.");
-        if (isBlank(req.getPassword())) throw new IllegalArgumentException("비밀번호는 필수입니다.");
+        if (req.getRole() == null)
+            throw new IllegalArgumentException("로그인 유형(role)은 필수입니다.");
+        if (isBlank(req.getLoginId()))
+            throw new IllegalArgumentException("아이디는 필수입니다.");
+        if (isBlank(req.getPassword()))
+            throw new IllegalArgumentException("비밀번호는 필수입니다.");
     }
 
     private boolean isBlank(String s) {

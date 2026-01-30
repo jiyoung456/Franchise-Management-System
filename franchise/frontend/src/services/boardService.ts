@@ -42,4 +42,14 @@ export const BoardService = {
             return null;
         }
     },
+
+    updatePost: async (id: number | string, data: Partial<BoardDetail>): Promise<boolean> => {
+        try {
+            await api.put(`/board/posts/${id}`, data);
+            return true;
+        } catch (error) {
+            console.error(`Failed to update post ${id}:`, error);
+            return false;
+        }
+    },
 };

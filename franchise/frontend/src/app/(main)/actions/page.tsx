@@ -30,7 +30,9 @@ export default function ActionsListPage() {
     }, []);
 
     const getStoreName = (action: ActionItem) => {
-        return action.storeName || action.storeId || 'Unknown Store';
+        if (action.storeName) return action.storeName;
+        const foundStore = stores.find(s => String(s.id) === String(action.storeId));
+        return foundStore ? foundStore.name : (action.storeId || 'Unknown Store');
     };
 
     const getRelatedEventInfo = (action: ActionItem) => {
@@ -125,7 +127,6 @@ export default function ActionsListPage() {
                                     <th className="px-6 py-3">상태</th>
                                     <th className="px-6 py-3">기한</th>
                                     <th className="px-6 py-3">담당자</th>
-                                    <th className="px-6 py-3 text-right">연관 이벤트</th>
                                     <th className="px-6 py-3 text-center">관리</th>
                                 </tr>
                             </thead>
@@ -167,13 +168,7 @@ export default function ActionsListPage() {
                                                 {action.assigneeName || action.assignee || '-'}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            {action.linkedEventId && (
-                                                <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                                                    {getRelatedEventInfo(action)}
-                                                </span>
-                                            )}
-                                        </td>
+
                                         <td className="px-6 py-4 text-center">
                                             {action.status === 'COMPLETED' && (
                                                 <button

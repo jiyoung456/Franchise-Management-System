@@ -1,18 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { StorageService, User, Attachment } from '@/lib/storage';
+import { StorageService, Attachment } from '@/lib/storage'; // Removed User from here
+import { AuthService } from '@/services/authService';
+import { User } from '@/types';
 import { ArrowLeft, Save, AlertTriangle, Paperclip, X } from 'lucide-react';
 
 export default function BoardWritePage() {
     const router = useRouter();
-    const currentUser = StorageService.getCurrentUser();
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [isImportant, setIsImportant] = useState(false);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+    useEffect(() => {
+        const init = async () => {
+            try {
+                const user = await AuthService.getCurrentUser();
+                setCurrentUser(user);
+            } catch (e) {
+                console.error("Failed to fetch user", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
+    }, []);
+
+    // Loading State
+    if (loading) {
+        return <div className="p-8 text-center text-gray-500">권한 확인 중...</div>;
+    }
 
     // Guard: Only ADMIN
     if (currentUser?.role !== 'ADMIN') {

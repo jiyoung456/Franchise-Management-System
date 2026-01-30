@@ -69,7 +69,7 @@ export function StoreKPICard({ store, onBack, isModal = false, embedded = false 
     return (
         <div className={`flex flex-col ${isModal ? 'h-[85vh] rounded-xl overflow-hidden bg-gray-50' : embedded ? 'w-full h-full bg-transparent' : 'min-h-screen bg-gray-50'}`}>
             {/* Header */}
-            <div className={`px-8 py-5 flex justify-between items-center z-10 shadow-sm ${isModal || !embedded ? 'bg-white border-b border-gray-200 sticky top-0' : 'bg-transparent mb-4 p-0 shadow-none justify-end'}`}>
+            <div className={`px-8 py-5 flex justify-between items-center z-10 shadow-sm ${isModal || !embedded ? 'bg-white border-b border-gray-200 sticky top-16' : 'bg-transparent mb-4 p-0 shadow-none justify-end'}`}>
                 {!embedded && (
                     <div className="flex items-center gap-6">
                         {!isModal && (
