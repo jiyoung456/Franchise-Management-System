@@ -425,7 +425,9 @@ export default function StoreDetailContent() {
                         <h3 className="text-base font-bold text-gray-900 mb-4">가게 관리</h3>
                         <div className="space-y-3">
                             <button onClick={() => setIsKPIModalOpen(true)} className="w-full py-2 border rounded hover:bg-gray-50">KPI 대시보드</button>
-                            <button onClick={() => setIsEditModalOpen(true)} className="w-full py-2 border rounded hover:bg-gray-50">점포 정보 수정</button>
+                            {currentUser?.role === 'ADMIN' && (
+                                <button onClick={() => setIsEditModalOpen(true)} className="w-full py-2 border rounded hover:bg-gray-50">점포 정보 수정</button>
+                            )}
                         </div>
                     </div>
                 </div>
