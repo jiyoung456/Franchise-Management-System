@@ -112,28 +112,35 @@ export interface StoreUpdateRequest {
 export interface QSCItem {
     id: string;
     categoryId: string;
-    subcategory: string;
     name: string;
     criteria?: string;
-    weight: number;
+    weight?: number;
     inputType: 'SCORE';
     isRequired?: boolean;
+    sortOrder?: number;
 }
 
 export interface QSCTemplate {
     id: string;
     title: string;
     description?: string;
-    version: string; // Version Info
-    type?: string;
-    scope: '브랜드 공통' | '서울/경기' | '직영점' | '전체 매장';
-    effective_from: string; // Start Date (NOT NULL)
-    effective_to: string | null; // End Date (NULL = Active)
+    version: string;
+    type: '정기' | '특별' | '재점검';
+    scope?: string;
+    effectiveFrom?: string;
+    effectiveTo?: string | null;
     isActive?: boolean;
-    createdAt: string;
-    updatedAt: string;
-    createdBy: string;
+    createdAt?: string;
+    updatedAt?: string;
+    createdBy?: string;
     items: QSCItem[];
+    categories?: {
+        id: string;
+        code: string;
+        name: string;
+        weight: number;
+        items: QSCItem[];
+    }[];
 }
 
 export interface Inspection {

@@ -51,12 +51,11 @@ export default function BriefingWidget({ data, userName }: BriefingWidgetProps) 
                                     </p>
                                     <div className="flex gap-2 mt-2.5">
                                         <span className={`text-xs font-bold px-2 py-0.5 rounded border ${todo.priority === 'HIGH' ? 'border-red-100 text-red-600 bg-red-50' :
-                                                todo.priority === 'MEDIUM' ? 'border-orange-100 text-orange-600 bg-orange-50' :
-                                                    'border-blue-100 text-blue-600 bg-blue-50'
+                                            todo.priority === 'MEDIUM' ? 'border-orange-100 text-orange-600 bg-orange-50' :
+                                                'border-blue-100 text-blue-600 bg-blue-50'
                                             }`}>
                                             {todo.priority}
                                         </span>
-                                        <span className="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded font-medium">{todo.type}</span>
                                     </div>
                                 </div>
                             </div>

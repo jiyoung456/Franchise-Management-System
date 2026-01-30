@@ -21,6 +21,7 @@ export default function NewInspectionPage() {
 
     // Template State
     const [templates, setTemplates] = useState<QSCTemplate[]>([]);
+    const [detailedTemplate, setDetailedTemplate] = useState<QSCTemplate | null>(null);
 
     // Selection State
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -62,10 +63,21 @@ export default function NewInspectionPage() {
     }, []);
 
     // Helper: Select Template and Go Next
-    const handleTemplateSelect = (template: QSCTemplate) => {
-        setSelectedTemplateId(template.id);
-        setSelectedType(template.type || '정기');
-        setStep('INSPECTION');
+    const handleTemplateSelect = async (template: QSCTemplate) => {
+        try {
+            const detail = await QscService.getTemplateDetail(template.id);
+            if (detail) {
+                setDetailedTemplate(detail);
+                setSelectedTemplateId(template.id);
+                setSelectedType(detail.type || '정기');
+                setStep('INSPECTION');
+            } else {
+                alert('템플릿 상세 정보를 불러오는 데 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('Error selecting template:', error);
+            alert('오류가 발생했습니다.');
+        }
     };
 
     // Derived Data
@@ -74,7 +86,7 @@ export default function NewInspectionPage() {
         .filter(t => t.type === selectedType)
         .sort((a, b) => b.version.localeCompare(a.version));
 
-    const currentTemplate = templates.find(t => t.id === selectedTemplateId) || availableVersions[0];
+    const currentTemplate = detailedTemplate || templates.find(t => t.id === selectedTemplateId) || availableVersions[0];
     const templateItems: QSCItem[] = currentTemplate ? currentTemplate.items : [];
 
     // Store Logic
@@ -296,61 +308,52 @@ export default function NewInspectionPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Checklist (2/3 width) */}
                 <div className="lg:col-span-2 space-y-8">
-                    {currentTemplate ? Object.values(FIXED_QSC_CATEGORIES).map(cat => {
-                        const catItems = templateItems.filter(i => i.categoryId === cat.id);
+                    {detailedTemplate?.categories ? detailedTemplate.categories.map(cat => {
+                        const catItems = cat.items;
                         if (catItems.length === 0) return null;
-                        const subcategories = Array.from(new Set(catItems.map(i => i.subcategory)));
 
                         return (
                             <div key={cat.id} className="space-y-3">
                                 <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-                                    <span className={`w-1.5 h-5 rounded-full ${cat.id === 'quality' ? 'bg-blue-600' : cat.id === 'service' ? 'bg-green-600' : cat.id === 'hygiene' ? 'bg-purple-600' : 'bg-orange-500'}`}></span>
-                                    <h2 className="text-lg font-bold text-gray-900">{cat.label}</h2>
+                                    <span className={`w-1.5 h-5 rounded-full ${cat.code === 'QUALITY' ? 'bg-blue-600' : cat.code === 'SERVICE' ? 'bg-green-600' : cat.code === 'CLEANLINESS' ? 'bg-purple-600' : 'bg-orange-500'}`}></span>
+                                    <h2 className="text-lg font-bold text-gray-900">{cat.name}</h2>
                                 </div>
-                                {subcategories.map(sub => (
-                                    <div key={sub || 'common'} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                                        <div className="bg-gray-50 px-4 py-2 border-b border-gray-100">
-                                            <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2">
-                                                <div className="w-1 h-1 rounded-full bg-gray-500"></div>
-                                                {sub || '일반 항목'}
-                                            </h3>
-                                        </div>
-                                        <div className="divide-y divide-gray-100">
-                                            {catItems.filter(i => i.subcategory === sub).map(item => {
-                                                const val = scores[item.id] || 0;
-                                                return (
-                                                    <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
-                                                        <div className="space-y-3">
-                                                            <div>
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    {item.isRequired && <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-1 py-0.5 rounded">필수</span>}
-                                                                    <span className="font-bold text-gray-800 text-sm">{item.name}</span>
-                                                                </div>
-                                                                {item.criteria && <p className="text-xs text-gray-500 ml-1 whitespace-pre-line">{item.criteria}</p>}
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                    <div className="divide-y divide-gray-100">
+                                        {catItems.map(item => {
+                                            const val = scores[item.id] || 0;
+                                            return (
+                                                <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                {item.isRequired && <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-1 py-0.5 rounded">필수</span>}
+                                                                <span className="font-bold text-gray-800 text-sm">{item.name}</span>
                                                             </div>
-                                                            <div className="flex gap-1">
-                                                                {['매우 나쁨', '나쁨', '보통', '만족', '매우 만족'].map((label, idx) => {
-                                                                    const score = idx + 1; // 1~5
-                                                                    return (
-                                                                        <button
-                                                                            key={score}
-                                                                            onClick={() => handleScoreChange(item.id, score)}
-                                                                            className={`flex-1 py-1.5 text-xs font-bold rounded border ${val === score
-                                                                                ? 'bg-blue-600 text-white border-blue-600'
-                                                                                : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}
-                                                                        >
-                                                                            {label}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
+                                                            {item.criteria && <p className="text-xs text-gray-500 ml-1 whitespace-pre-line">{item.criteria}</p>}
+                                                        </div>
+                                                        <div className="flex gap-1">
+                                                            {['매우 나쁨', '나쁨', '보통', '만족', '매우 만족'].map((label, idx) => {
+                                                                const score = idx + 1; // 1~5
+                                                                return (
+                                                                    <button
+                                                                        key={score}
+                                                                        onClick={() => handleScoreChange(item.id, score)}
+                                                                        className={`flex-1 py-1.5 text-xs font-bold rounded border ${val === score
+                                                                            ? 'bg-blue-600 text-white border-blue-600'
+                                                                            : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}
+                                                                    >
+                                                                        {label}
+                                                                    </button>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                ))}
+                                </div>
                             </div>
                         );
                     }) : (

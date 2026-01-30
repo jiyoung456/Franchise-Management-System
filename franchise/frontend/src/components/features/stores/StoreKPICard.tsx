@@ -11,11 +11,12 @@ import { PosService, PosKpiDashboardResponse } from '@/services/posService';
 interface StoreKPICardProps {
     store: StoreDetail;
     onBack?: () => void;
+    onClose?: () => void;
     isModal?: boolean;
     embedded?: boolean;
 }
 
-export function StoreKPICard({ store, onBack, isModal = false, embedded = false }: StoreKPICardProps) {
+export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded = false }: StoreKPICardProps) {
     const router = useRouter();
     const [filter, setFilter] = useState<'WEEK' | 'MONTH'>('WEEK');
     const [showBaseline, setShowBaseline] = useState(true);
@@ -69,7 +70,7 @@ export function StoreKPICard({ store, onBack, isModal = false, embedded = false 
     return (
         <div className={`flex flex-col ${isModal ? 'h-[85vh] rounded-xl overflow-hidden bg-gray-50' : embedded ? 'w-full h-full bg-transparent' : 'min-h-screen bg-gray-50'}`}>
             {/* Header */}
-            <div className={`px-8 py-5 flex justify-between items-center z-10 shadow-sm ${isModal || !embedded ? 'bg-white border-b border-gray-200 sticky top-16' : 'bg-transparent mb-4 p-0 shadow-none justify-end'}`}>
+            <div className={`px-8 py-5 flex justify-between items-center z-10 shadow-sm ${isModal || !embedded ? `bg-white border-b border-gray-200 sticky ${isModal ? 'top-0' : 'top-16'}` : 'bg-transparent mb-4 p-0 shadow-none justify-end'}`}>
                 {!embedded && (
                     <div className="flex items-center gap-6">
                         {!isModal && (
@@ -90,19 +91,31 @@ export function StoreKPICard({ store, onBack, isModal = false, embedded = false 
                     </div>
                 )}
 
-                <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium relative ml-auto">
-                    <button
-                        onClick={() => setFilter('WEEK')}
-                        className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'WEEK' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-                    >
-                        주간
-                    </button>
-                    <button
-                        onClick={() => setFilter('MONTH')}
-                        className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'MONTH' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-                    >
-                        월간
-                    </button>
+                <div className="flex items-center gap-4 ml-auto">
+                    <div className="bg-gray-100 p-1 rounded-lg flex text-sm font-medium">
+                        <button
+                            onClick={() => setFilter('WEEK')}
+                            className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'WEEK' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                        >
+                            주간
+                        </button>
+                        <button
+                            onClick={() => setFilter('MONTH')}
+                            className={`relative z-10 px-4 py-1.5 rounded-md transition-all duration-200 ${filter === 'MONTH' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                        >
+                            월간
+                        </button>
+                    </div>
+
+                    {isModal && onClose && (
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center border border-gray-200"
+                            aria-label="Close modal"
+                        >
+                            <X className="w-6 h-6 text-gray-600" />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -307,13 +320,7 @@ export function StoreKPIModal({ isOpen, onClose, store }: StoreKPIModalProps) {
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-[1400px] h-[90vh] flex flex-col relative overflow-hidden">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-20 p-2 bg-white/80 rounded-full hover:bg-gray-100 transition-colors"
-                >
-                    <X className="w-6 h-6 text-gray-600" />
-                </button>
-                <StoreKPICard store={store} isModal={true} />
+                <StoreKPICard store={store} isModal={true} onClose={onClose} />
             </div>
         </div>
     );

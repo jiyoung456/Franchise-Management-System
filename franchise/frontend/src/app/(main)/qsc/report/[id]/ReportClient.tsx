@@ -46,10 +46,13 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
     const [template, setTemplate] = useState<any>(null);
 
     useEffect(() => {
-        if (reportData?.templateId) {
-            const tpl = QscService.getTemplate(reportData.templateId);
-            setTemplate(tpl);
-        }
+        const fetchTemplate = async () => {
+            if (reportData?.templateId) {
+                const tpl = await QscService.getTemplateDetail(reportData.templateId);
+                setTemplate(tpl);
+            }
+        };
+        fetchTemplate();
     }, [reportData]);
 
     if (loading) return <div className="p-20 text-center">로딩중...</div>;
@@ -108,18 +111,15 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">영역별 점수 (클릭하여 이동)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {Object.values(FIXED_QSC_CATEGORIES).map(cat => {
-                        // Calculate category score
-                        const catItems = templateItems.filter((item: any) => item.categoryId === cat.id);
-                        // Sum of weights (now 5)
-                        const catMaxScore = catItems.reduce((sum: number, item: any) => sum + (item.weight || 5), 0);
+                    {template?.categories?.map(cat => {
+                        const catItems = cat.items;
+                        const catMaxScore = cat.weight;
 
                         let catScore = 0;
                         if (reportData.answers) {
                             catItems.forEach((item: any) => {
                                 const ans = reportData.answers[item.id];
                                 const raw = typeof ans === 'number' ? ans : (ans?.score || 0);
-                                // Direct 1-5 score
                                 catScore += Number(raw);
                             });
                         }
@@ -133,14 +133,14 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                                 }}
                                 className="flex flex-col p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100 text-left group"
                             >
-                                <span className={`text-xs font-bold mb-1 ${cat.id === 'quality' ? 'text-blue-600' :
-                                    cat.id === 'service' ? 'text-green-600' :
-                                        cat.id === 'hygiene' ? 'text-purple-600' :
-                                            cat.id === 'brand' ? 'text-orange-600' : 'text-red-600'
-                                    }`}>{cat.label}</span>
+                                <span className={`text-xs font-bold mb-1 ${cat.code === 'QUALITY' ? 'text-blue-600' :
+                                    cat.code === 'SERVICE' ? 'text-green-600' :
+                                        cat.code === 'CLEANLINESS' ? 'text-purple-600' :
+                                            cat.code === 'SAFETY' ? 'text-orange-600' : 'text-red-600'
+                                    }`}>{cat.name}</span>
                                 <div className="flex items-end gap-1">
                                     <span className="text-xl font-extrabold text-gray-900">{catScore}</span>
-                                    <span className="text-xs text-gray-400 mb-1">/ {catMaxScore}</span>
+                                    {catMaxScore && <span className="text-xs text-gray-400 mb-1">/ {catMaxScore}</span>}
                                 </div>
                             </button>
                         );
@@ -154,61 +154,48 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                 {/* [Left] Data Column (7 cols) */}
                 <div className="lg:col-span-7 space-y-8">
                     {/* Items Grouped by Category */}
-                    {Object.values(FIXED_QSC_CATEGORIES).map(cat => {
-                        // Filter items for this category
-                        const catItems = templateItems.filter((item: any) => item.categoryId === cat.id);
+                    {template?.categories?.map((cat: any) => {
+                        const catItems = cat.items;
                         if (catItems.length === 0) return null;
-
-                        // Group by Subcategory
-                        const subcategories: string[] = Array.from(new Set(catItems.map((i: any) => String(i.subcategory || ''))));
 
                         return (
                             <div id={`category-${cat.id}`} key={cat.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden scroll-mt-24">
                                 <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
                                     <h3 className="font-extrabold text-gray-800 flex items-center gap-2">
-                                        <span className={`w-3 h-6 rounded-sm ${cat.id === 'quality' ? 'bg-blue-500' :
-                                            cat.id === 'service' ? 'bg-green-500' :
-                                                cat.id === 'hygiene' ? 'bg-purple-500' :
-                                                    cat.id === 'brand' ? 'bg-orange-500' : 'bg-red-500'
+                                        <span className={`w-3 h-6 rounded-sm ${cat.code === 'QUALITY' ? 'bg-blue-500' :
+                                            cat.code === 'SERVICE' ? 'bg-green-500' :
+                                                cat.code === 'CLEANLINESS' ? 'bg-purple-500' :
+                                                    cat.code === 'SAFETY' ? 'bg-orange-500' : 'bg-red-500'
                                             }`}></span>
-                                        {cat.label}
+                                        {cat.name}
                                     </h3>
                                     <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{catItems.length} 항목</span>
                                 </div>
                                 <div className="p-6 space-y-6">
-                                    {subcategories.map((sub: string) => (
-                                        <div key={sub || 'common'} className="space-y-3">
-                                            <div className="text-sm font-bold text-gray-500 flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-                                                {sub || '일반 항목'}
-                                            </div>
-                                            <div className="space-y-2">
-                                                {catItems.filter((i: any) => String(i.subcategory || '') === sub).map((item: any) => {
-                                                    const answerVal = reportData.answers ? reportData.answers[item.id] : 0;
-                                                    // answerVal is 1-5 from input
-                                                    const rawScore = typeof answerVal === 'number' ? answerVal : (answerVal?.score || 0);
-                                                    const rawScoreNum = Number(rawScore);
+                                    <div className="space-y-2">
+                                        {catItems.map((item: any) => {
+                                            const answerVal = reportData.answers ? reportData.answers[item.id] : 0;
+                                            const rawScore = typeof answerVal === 'number' ? answerVal : (answerVal?.score || 0);
+                                            const rawScoreNum = Number(rawScore);
 
-                                                    const labelMap: Record<number, string> = { 5: '매우만족', 4: '만족', 3: '보통', 2: '나쁨', 1: '매우나쁨', 0: '-' };
-                                                    const ratingLabel = labelMap[rawScoreNum] || '-';
-                                                    const colorClass = rawScoreNum >= 4 ? 'text-blue-600' : rawScoreNum === 3 ? 'text-yellow-600' : 'text-red-600';
+                                            const labelMap: Record<number, string> = { 5: '매우만족', 4: '만족', 3: '보통', 2: '나쁨', 1: '매우나쁨', 0: '-' };
+                                            const ratingLabel = labelMap[rawScoreNum] || '-';
+                                            const colorClass = rawScoreNum >= 4 ? 'text-blue-600' : rawScoreNum === 3 ? 'text-yellow-600' : 'text-red-600';
 
-                                                    return (
-                                                        <div key={item.id} className="flex items-start justify-between p-3 bg-gray-50/50 rounded-lg">
-                                                            <div className="flex-1 pr-4">
-                                                                <div className="text-sm font-bold text-gray-900">{item.name}</div>
-                                                                {item.criteria && <div className="text-xs text-gray-500 mt-0.5">{item.criteria}</div>}
-                                                            </div>
-                                                            <div className="text-right whitespace-nowrap">
-                                                                <div className={`text-xs font-bold ${colorClass}`}>{ratingLabel}</div>
-                                                                <div className="text-[10px] text-gray-400 font-mono mt-0.5">{rawScoreNum} / {item.weight || 5}.0</div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
+                                            return (
+                                                <div key={item.id} className="flex items-start justify-between p-3 bg-gray-50/50 rounded-lg">
+                                                    <div className="flex-1 pr-4">
+                                                        <div className="text-sm font-bold text-gray-900">{item.name}</div>
+                                                        {item.criteria && <div className="text-xs text-gray-500 mt-0.5">{item.criteria}</div>}
+                                                    </div>
+                                                    <div className="text-right whitespace-nowrap">
+                                                        <div className={`text-xs font-bold ${colorClass}`}>{ratingLabel}</div>
+                                                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">{rawScoreNum} / {item.weight || 5}.0</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         );

@@ -52,7 +52,7 @@ function SvPerformanceView() {
             if (user) {
                 try {
                     // 1. Load Stores
-                    const stores = await StoreService.getStoresBySv(user.id);
+                    const stores = await StoreService.getStoresBySv();
                     setSvStores(stores);
 
                     // 2. Load POS Data Parallel (N+1 but necessary without bulk API)
@@ -194,7 +194,7 @@ function SvPerformanceView() {
                                 {/* Detail Button */}
                                 <div className="col-span-1 text-center">
                                     <button
-                                        onClick={() => router.push(`/stores/${store.id}/pos`)}
+                                        onClick={() => router.push(`/performance/${store.id}`)}
                                         className="py-1.5 px-3 border border-gray-300 text-gray-700 font-bold rounded hover:bg-gray-100 hover:text-gray-900 transition-colors text-sm"
                                     >
                                         상세

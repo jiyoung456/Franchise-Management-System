@@ -1,16 +1,16 @@
 'use client';
 
 import type { Store, ActionItem, User as UserType } from '@/types'; // StatusHistory 제거 (사용 안함)
+import { RiskProfile, RiskLevel } from '@/lib/mock/mockRiskData';
 import { AuthService } from '@/services/authService';
 import { StoreService } from '@/services/storeService';
 import { QscService } from '@/services/qscService';
 import { EventService } from '@/services/eventService';
 import { ActionService } from '@/services/actionService';
-import { PosService } from '@/services/posService'; // [수정] PosService 추가
 import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
     MapPin, Calendar, User, FileText, Activity, AlertTriangle,
-    CheckCircle, History, ArrowRight, Settings, BarChart2, Bell, Siren, ClipboardList, TrendingUp, TrendingDown, ChevronRight
+    CheckCircle, History, ArrowRight, Settings, Bell, Siren, ClipboardList, ChevronRight
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -19,7 +19,6 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { DiagnosisReportModal } from '@/components/features/ai-insight/DiagnosisReportModal';
 import { StoreEditModal } from '@/components/features/stores/StoreEditModal';
 import { StoreKPIModal } from '@/components/features/stores/StoreKPICard';
-import { StorePosSummary } from '@/components/features/stores/StorePosSummary';
 
 // Helper to map region code to Korean name
 const getRegionName = (code: string): string => {
@@ -57,13 +56,11 @@ export default function StoreDetailContent() {
     const [events, setEvents] = useState<any[]>([]);
     const [actions, setActions] = useState<ActionItem[]>([]);
     const [qscInspections, setQscInspections] = useState<any[]>([]);
-    const [posData, setPosData] = useState<any>(null); // [수정] POS 데이터 상태 추가
 
-    const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'history' | 'risk' | 'qsc' | 'pos'>(
+    const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'history' | 'risk' | 'qsc'>(
         (searchParams.get('tab') as any) || 'info'
     );
     const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isReportOpen, setIsReportOpen] = useState(false);
     const [isKPIModalOpen, setIsKPIModalOpen] = useState(false);
@@ -109,70 +106,48 @@ export default function StoreDetailContent() {
                 console.error('Failed to load QSC inspections:', error);
                 setQscInspections([]);
             }
-
-            // 5. [수정] POS 데이터 조회 (매출 정보)
-            try {
-                // PosService에 getPosDashboard 혹은 getStorePosKpi 메서드가 있다고 가정
-                // 만약 없다면 getPosData 등 실제 존재하는 메서드로 변경 필요
-                // 여기서는 주간 데이터를 가져온다고 가정합니다.
-                const kpiData = await PosService.getDashboard(Number(storeId), 'WEEK');
-                setPosData(kpiData);
-            } catch (error) {
-                console.error('Failed to load POS data:', error);
-                setPosData(null);
-            }
         };
         init();
     }, [storeId]);
 
-    // [수정] 실제 데이터를 반영한 계산 로직
+    // 실제 데이터를 반영한 계산 로직
     const currentQscScore = useMemo(() => {
-        // store.qscScore가 있으면 사용하고, 없으면 최근 점검 내역의 점수 사용, 그것도 없으면 0
         if (store?.qscScore) return store.qscScore;
         if (qscInspections && qscInspections.length > 0) return qscInspections[0].score || 0;
         return 0;
     }, [store, qscInspections]);
 
-    const weeklyAvgSales = useMemo(() => {
-        if (!posData) return 0;
-        // 백엔드에서 summary.totalSales를 준다면 그것을 7로 나눈 값을 사용 (주간 합계라면)
-        // 또는 backend ApiResponse 구조에 따라 summary에서 직접 추출
-        if (posData.summary?.totalSales) {
-            // 주간 평균이므로 7로 나누거나, 백엔드에서 평균을 준다면 그것을 사용
-            // PosKpiDashboardResponse 구조상 summary에 totalSales가 있음
-            return Math.floor(posData.summary.totalSales / 7);
-        }
-
-        // 만약 리스트 형태라면 평균 계산
-        if (Array.isArray(posData.salesTrend)) {
-            const recent = posData.salesTrend;
-            if (recent.length === 0) return 0;
-            const sum = recent.reduce((acc: number, curr: any) => acc + (curr.value || 0), 0);
-            return Math.floor(sum / recent.length);
-        }
-        return 0;
-    }, [posData]);
-
-
-    const riskProfile = {
+    const riskProfile: RiskProfile = {
+        storeId: storeId || '',
+        storeName: store?.name || '',
         totalRiskScore: store?.currentStateScore || 0,
-        anomaly: { summary: '특이사항 없습니다.' },
-        factors: []
+        riskLevel: (store?.currentState as RiskLevel) || 'NORMAL',
+        factors: [],
+        patterns: [],
+        context: [],
+        anomaly: {
+            isAnomaly: (store?.currentStateScore || 0) > 80,
+            detectedAt: new Date().toISOString(),
+            severity: (store?.currentStateScore || 0) > 90 ? 'HIGH' : 'MEDIUM',
+            summary: '특이사항 없습니다.',
+            features: []
+        },
+        history: [],
+        metricAnomalies: [],
+        operationalGaps: [],
+        rootCauses: []
     };
 
     const aiSummary = riskProfile?.anomaly?.summary || "특이사항 없습니다.";
 
-    // Calculate Chart Data for Status History
     const statusChartData = useMemo(() => {
         if (!store) return [];
-        // 만약 store.statusHistory가 실제 데이터라면 그것을 매핑해서 사용해야 함
-        // 현재는 하드코딩된 날짜를 사용 중이므로 유지하되, store 데이터를 우선 확인
         if (store.statusHistory && store.statusHistory.length > 0) {
             return store.statusHistory.map(h => ({
                 date: h.date,
                 level: h.newStatus === 'RISK' ? 3 : h.newStatus === 'WATCHLIST' ? 2 : 1,
                 status: h.newStatus
-            })).reverse(); // 최신순 정렬 등을 고려
+            })).reverse();
         }
 
         return [
@@ -214,7 +189,6 @@ export default function StoreDetailContent() {
 
             {/* 1. Header Row */}
             <div className="flex flex-col md:flex-row gap-4 h-auto md:h-24">
-                {/* Store Name Box */}
                 <div className="bg-white border border-gray-200 shadow-sm flex items-center justify-center px-8 min-w-[240px] rounded-lg">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 text-center">{store.name}</h1>
@@ -222,7 +196,6 @@ export default function StoreDetailContent() {
                     </div>
                 </div>
 
-                {/* AI Summary Box */}
                 <div className="bg-white border border-gray-200 shadow-sm flex-1 flex items-center px-6 rounded-lg relative overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
                     <div>
@@ -233,7 +206,6 @@ export default function StoreDetailContent() {
                     </div>
                 </div>
 
-                {/* Status Box */}
                 <div className="bg-white border border-gray-200 shadow-sm flex flex-col items-center justify-center px-6 min-w-[200px] rounded-lg py-2">
                     <div className="flex flex-col items-center gap-2">
                         <div>
@@ -277,18 +249,10 @@ export default function StoreDetailContent() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-6">
-                        <div className="text-center border-r border-gray-100">
-                            <p className="text-sm text-gray-500 mb-1">QSC 점수</p>
-                            {/* [수정] 실제 QSC 점수 바인딩 */}
-                            <p className="text-2xl font-bold text-blue-600">{currentQscScore}점</p>
-                        </div>
+                    <div className="border-t border-gray-100 pt-6">
                         <div className="text-center">
-                            <p className="text-sm text-gray-500 mb-1">주간 평균 매출</p>
-                            {/* [수정] 실제 POS 매출 바인딩 */}
-                            <p className="text-2xl font-bold text-gray-900">
-                                {weeklyAvgSales > 0 ? (weeklyAvgSales / 10000).toLocaleString() : '0'}만
-                            </p>
+                            <p className="text-sm text-gray-500 mb-1">최근 QSC 점수</p>
+                            <p className="text-3xl font-bold text-blue-600">{currentQscScore}점</p>
                         </div>
                     </div>
                 </div>
@@ -307,21 +271,9 @@ export default function StoreDetailContent() {
                             <ComposedChart data={statusChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                                <YAxis
-                                    domain={[0, 4]}
-                                    ticks={[1, 2, 3]}
-                                    tickFormatter={(val) => val === 1 ? '정상' : val === 2 ? '관찰' : '위험'}
-                                    width={60}
-                                />
+                                <YAxis domain={[0, 4]} ticks={[1, 2, 3]} tickFormatter={(val) => val === 1 ? '정상' : val === 2 ? '관찰' : '위험'} width={60} />
                                 <Tooltip labelStyle={{ color: '#333' }} />
-                                <Line
-                                    type="stepAfter"
-                                    dataKey="level"
-                                    stroke="#2b6cb0"
-                                    strokeWidth={3}
-                                    dot={{ r: 4, strokeWidth: 2 }}
-                                    activeDot={{ r: 6 }}
-                                />
+                                <Line type="stepAfter" dataKey="level" stroke="#2b6cb0" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                                 <ReferenceLine y={1} stroke="#22c55e" strokeDasharray="3 3" opacity={0.3} />
                                 <ReferenceLine y={2} stroke="#f97316" strokeDasharray="3 3" opacity={0.3} />
                                 <ReferenceLine y={3} stroke="#ef4444" strokeDasharray="3 3" opacity={0.3} />
@@ -336,14 +288,13 @@ export default function StoreDetailContent() {
                 <div className="lg:col-span-3 bg-white border border-gray-200 shadow-sm flex flex-col min-h-[500px] rounded-lg">
                     {/* Tab Header */}
                     <div className="flex border-b border-gray-200">
-                        {['info', 'pos', 'events', 'actions', 'qsc', 'history', 'risk'].map((tab) => (
+                        {['info', 'events', 'actions', 'qsc', 'history', 'risk'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
                                 className={`flex-1 py-4 text-center font-bold text-sm transition-colors ${activeTab === tab ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                             >
                                 {tab === 'info' && '가게 정보'}
-                                {tab === 'pos' && 'POS 성과'}
                                 {tab === 'events' && '최근 이벤트'}
                                 {tab === 'actions' && '조치 현황'}
                                 {tab === 'qsc' && 'QSC 점검'}
@@ -361,55 +312,12 @@ export default function StoreDetailContent() {
                                     <FileText className="w-5 h-5 text-gray-500" /> 기본 정보
                                 </h3>
                                 <div className="divide-y divide-gray-100 border-t border-b border-gray-100">
-                                    <div className="grid grid-cols-3 gap-4 py-4">
-                                        <span className="font-bold text-gray-600">오픈일</span>
-                                        <span className="col-span-2 text-gray-900">
-                                            {store.openedAt?.split('T')[0]}
-                                            <span className="text-blue-600 ml-2 font-medium text-sm">
-                                                (D+{Math.floor((new Date().getTime() - new Date(store.openedAt || new Date()).getTime()) / (1000 * 3600 * 24))}일)
-                                            </span>
-                                        </span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 py-4">
-                                        <span className="font-bold text-gray-600">마지막 상태 변경일</span>
-                                        <span className="col-span-2 text-gray-900">{store.statusHistory?.[0]?.date || '-'}</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 py-4">
-                                        <span className="font-bold text-gray-600">점주명</span>
-                                        <span className="col-span-2 text-gray-900">{store.ownerName}</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 py-4">
-                                        <span className="font-bold text-gray-600">점주 연락처</span>
-                                        <span className="col-span-2 text-gray-900">{store.ownerPhone || '-'}</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 py-4">
-                                        <span className="font-bold text-gray-600">점포 주소</span>
-                                        <span className="col-span-2 text-gray-900">{store.address}</span>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4 py-4">
-                                        <span className="font-bold text-gray-600">계약 유형</span>
-                                        <span className="col-span-2 text-gray-900">{store.contractType} (만료: {store.contractEndAt?.split('T')[0]})</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'pos' && (
-                            <div className="space-y-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                        <BarChart2 className="w-5 h-5 text-blue-500" /> POS 성과 요약
-                                    </h3>
-                                    <button
-                                        onClick={() => router.push(`/stores/${storeId}/pos`)}
-                                        className="text-sm text-blue-600 font-bold hover:underline flex items-center"
-                                    >
-                                        상세 분석 보기 <ArrowRight className="w-4 h-4 ml-1" />
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <StorePosSummary storeId={Number(storeId)} />
+                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">오픈일</span><span className="col-span-2 text-gray-900">{store.openedAt?.split('T')[0]}<span className="text-blue-600 ml-2 font-medium text-sm">(D+{Math.floor((new Date().getTime() - new Date(store.openedAt || new Date()).getTime()) / (1000 * 3600 * 24))}일)</span></span></div>
+                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">마지막 상태 변경일</span><span className="col-span-2 text-gray-900">{store.statusHistory?.[0]?.date || '-'}</span></div>
+                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">점주명</span><span className="col-span-2 text-gray-900">{store.ownerName}</span></div>
+                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">점주 연락처</span><span className="col-span-2 text-gray-900">{store.ownerPhone || '-'}</span></div>
+                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">점포 주소</span><span className="col-span-2 text-gray-900">{store.address}</span></div>
+                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">계약 유형</span><span className="col-span-2 text-gray-900">{store.contractType} (만료: {store.contractEndAt?.split('T')[0]})</span></div>
                                 </div>
                             </div>
                         )}
@@ -426,9 +334,7 @@ export default function StoreDetailContent() {
                                                 <span className={`px-2 py-0.5 rounded text-xs font-bold border ${evt.eventType === 'QSC' || evt.type === 'QSC' ? 'bg-blue-50 text-blue-600 border-blue-100' : evt.eventType === 'RISK' || evt.type === 'RISK' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-100 text-gray-600'}`}>
                                                     {evt.eventType || evt.type || 'EVENT'}
                                                 </span>
-                                                <span className="text-xs text-gray-400">
-                                                    {(evt.occurredAt || evt.timestamp || '').toString().replace('T', ' ').slice(0, 16)}
-                                                </span>
+                                                <span className="text-xs text-gray-400">{(evt.occurredAt || evt.timestamp || '').toString().replace('T', ' ').slice(0, 16)}</span>
                                             </div>
                                             <p className="font-bold text-gray-900 mb-1">{evt.summary || evt.message || '이벤트 내용 없음'}</p>
                                         </li>
@@ -436,6 +342,7 @@ export default function StoreDetailContent() {
                                 </ul>
                             </div>
                         )}
+
                         {activeTab === 'actions' && (
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -451,12 +358,7 @@ export default function StoreDetailContent() {
                                                 </div>
                                                 <p className="text-sm text-gray-500 pl-4">담당자: {action.assignee} | 기한: {action.dueDate}</p>
                                             </div>
-                                            <button
-                                                onClick={() => router.push(`/actions/${action.id}`)}
-                                                className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50"
-                                            >
-                                                상세
-                                            </button>
+                                            <button onClick={() => router.push(`/actions/${action.id}`)} className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50">상세</button>
                                         </div>
                                     ))}
                                 </div>
@@ -473,28 +375,13 @@ export default function StoreDetailContent() {
                                         qscInspections.map((inspection: any) => (
                                             <div key={inspection.inspectionId || inspection.id} className="border p-4 rounded-lg hover:bg-gray-50 transition-colors">
                                                 <div className="flex justify-between items-start mb-2">
-                                                    <div className="font-bold text-gray-900">
-                                                        {(inspection.inspectedAt || inspection.date || '').toString().split('T')[0]} 점검
-                                                    </div>
-                                                    <span className={`px-2 py-1 rounded text-sm font-bold ${inspection.grade === 'A' ? 'bg-green-100 text-green-700' :
-                                                        inspection.grade === 'B' ? 'bg-blue-100 text-blue-700' :
-                                                            inspection.grade === 'C' ? 'bg-yellow-100 text-yellow-700' :
-                                                                'bg-red-100 text-red-700'
-                                                        }`}>
+                                                    <div className="font-bold text-gray-900">{(inspection.inspectedAt || inspection.date || '').toString().split('T')[0]} 점검</div>
+                                                    <span className={`px-2 py-1 rounded text-sm font-bold ${inspection.grade === 'A' ? 'bg-green-100 text-green-700' : inspection.grade === 'B' ? 'bg-blue-100 text-blue-700' : inspection.grade === 'C' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                                                         {inspection.grade}등급
                                                     </span>
                                                 </div>
-                                                <div className="text-sm text-gray-600">
-                                                    점수: {inspection.totalScore || inspection.score || 0}점
-                                                    {inspection.isPassed !== undefined && (
-                                                        <span className={`ml-2 ${inspection.isPassed ? 'text-green-600' : 'text-red-600'}`}>
-                                                            ({inspection.isPassed ? '통과' : '미통과'})
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {inspection.summaryComment && (
-                                                    <p className="text-sm text-gray-500 mt-2">{inspection.summaryComment}</p>
-                                                )}
+                                                <div className="text-sm text-gray-600">점수: {inspection.totalScore || inspection.score || 0}점{inspection.isPassed !== undefined && (<span className={`ml-2 ${inspection.isPassed ? 'text-green-600' : 'text-red-600'}`}>({inspection.isPassed ? '통과' : '미통과'})</span>)}</div>
+                                                {inspection.summaryComment && (<p className="text-sm text-gray-500 mt-2">{inspection.summaryComment}</p>)}
                                             </div>
                                         ))
                                     ) : (
@@ -535,7 +422,7 @@ export default function StoreDetailContent() {
 
                 <div className="lg:col-span-1 flex flex-col gap-4">
                     <div className="bg-white border border-gray-200 shadow-sm p-6 rounded-lg">
-                        <h3 className="text-base font-bold text-gray-900 mb-4">관리 메뉴</h3>
+                        <h3 className="text-base font-bold text-gray-900 mb-4">가게 관리</h3>
                         <div className="space-y-3">
                             <button onClick={() => setIsKPIModalOpen(true)} className="w-full py-2 border rounded hover:bg-gray-50">KPI 대시보드</button>
                             <button onClick={() => setIsEditModalOpen(true)} className="w-full py-2 border rounded hover:bg-gray-50">점포 정보 수정</button>
@@ -544,36 +431,30 @@ export default function StoreDetailContent() {
                 </div>
             </div>
 
-            {
-                isReportOpen && store && (
-                    <DiagnosisReportModal
-                        isOpen={isReportOpen}
-                        onClose={() => setIsReportOpen(false)}
-                        profile={riskProfile}
-                    />
-                )
-            }
+            {isEditModalOpen && store && (
+                <StoreEditModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    store={store}
+                    onSave={handleSaveStore}
+                />
+            )}
 
-            {
-                isEditModalOpen && store && (
-                    <StoreEditModal
-                        isOpen={isEditModalOpen}
-                        onClose={() => setIsEditModalOpen(false)}
-                        store={store}
-                        onSave={handleSaveStore}
-                    />
-                )
-            }
+            {isReportOpen && store && (
+                <DiagnosisReportModal
+                    isOpen={isReportOpen}
+                    onClose={() => setIsReportOpen(false)}
+                    profile={riskProfile}
+                />
+            )}
 
-            {
-                isKPIModalOpen && store && (
-                    <StoreKPIModal
-                        isOpen={isKPIModalOpen}
-                        onClose={() => setIsKPIModalOpen(false)}
-                        store={store}
-                    />
-                )
-            }
-        </div >
+            {isKPIModalOpen && store && (
+                <StoreKPIModal
+                    isOpen={isKPIModalOpen}
+                    onClose={() => setIsKPIModalOpen(false)}
+                    store={store}
+                />
+            )}
+        </div>
     );
 }
