@@ -1,5 +1,6 @@
 package com.franchise.backend.event.service;
 
+import com.franchise.backend.action.repository.ActionRepository;
 import com.franchise.backend.event.dto.EventDashboardSummaryResponse;
 import com.franchise.backend.event.dto.EventListItemResponse;
 import com.franchise.backend.event.repository.EventLogRepository;
@@ -22,6 +23,7 @@ public class EventManagementService {
     private final EventManagementRepository eventManagementRepository;
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
+    private final ActionRepository actionRepository;
 
     // 이벤트 관리 - 상단 카드 (스코프 적용)
     @Transactional(readOnly = true)
@@ -47,7 +49,16 @@ public class EventManagementService {
             }
         }
 
-        long actionInProgressCount = 0; // 액션 도메인 아직 0
+        // 조치 진행중 수
+        long actionInProgressCount;
+        if (scopedStoreIds != null && scopedStoreIds.isEmpty()) {
+            actionInProgressCount = 0;
+        } else {
+            actionInProgressCount = actionRepository.countInProgressEventLinkedActionsByScope(
+                    scopedStoreIds, // ADMIN이면 null → 전체
+                    List.of("OPEN", "IN_PROGRESS")
+            );
+        }
 
         return new EventDashboardSummaryResponse(openCount, criticalCount, actionInProgressCount);
     }
