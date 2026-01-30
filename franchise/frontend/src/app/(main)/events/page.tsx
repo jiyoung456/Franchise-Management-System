@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Search, Filter, AlertCircle, CheckCircle2, Siren, ChevronRight, Info } from 'lucide-react';
 import { EventService } from '@/services/eventService';
-import { EventLog } from '@/types';
+import { EventLog, EventDashboardSummary } from '@/types';
 import { EventRuleGuideModal } from '@/components/features/events/EventRuleGuideModal';
 
 export default function EventManagementPage() {
@@ -13,16 +13,21 @@ export default function EventManagementPage() {
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [events, setEvents] = useState<EventLog[]>([]);
+    const [summary, setSummary] = useState<EventDashboardSummary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchEvents = async () => {
             try {
                 setIsLoading(true);
-                const data = await EventService.getEvents(); 
-                setEvents(data);
+                const [eventData, summaryData] = await Promise.all([
+                    EventService.getEvents(),
+                    EventService.getEventSummary()
+                ]);
+                setEvents(eventData);
+                setSummary(summaryData);
             } catch (error) {
-                console.error('Failed to fetch events:', error);
+                console.error('Failed to fetch data:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -34,10 +39,10 @@ export default function EventManagementPage() {
     const filteredEvents = events
         .filter(evt => {
             if (!evt) return false;
-            
+
             const storeName = evt.storeName || '';
             const matchesSearch = storeName.includes(searchTerm);
-            
+
             if (filterStatus === 'ALL') return matchesSearch;
 
             let matchesFilter = false;
@@ -45,8 +50,8 @@ export default function EventManagementPage() {
                 case '미처리':
                     matchesFilter = evt.status === 'OPEN';
                     break;
-                case '위험':
-                    matchesFilter = evt.severity === 'CRITICAL'; 
+                case '위험함
+                    matchesFilter = evt.severity === 'CRITICAL';
                     break;
                 case '조치필요':
                     matchesFilter = evt.status === 'ACKNOWLEDGED';
@@ -61,10 +66,9 @@ export default function EventManagementPage() {
             return matchesFilter && matchesSearch;
         })
         .sort((a, b) => {
-             // [수정] occurredAt 제거 -> timestamp 사용
-             const dateA = new Date(a.timestamp || 0).getTime();
-             const dateB = new Date(b.timestamp || 0).getTime();
-             return dateB - dateA;
+            const dateA = new Date(a.timestamp || 0).getTime();
+            const dateB = new Date(b.timestamp || 0).getTime();
+            return dateB - dateA;
         });
 
     const getSeverityBadge = (severity: string) => {
@@ -104,7 +108,7 @@ export default function EventManagementPage() {
 
     return (
         <div className="pb-24 space-y-8">
-            {/* Header */}
+            {/* ... (Header) ... */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">이벤트 관리</h1>
@@ -133,7 +137,7 @@ export default function EventManagementPage() {
                     </div>
                     <div className="mt-4 flex items-baseline gap-1">
                         <span className="text-3xl font-black text-gray-900 tracking-tight">
-                            {events.filter(e => e.status === 'OPEN').length}
+                            {summary?.openEventCount !== undefined ? summary.openEventCount : events.filter(e => e.status === 'OPEN').length}
                         </span>
                         <span className="text-sm font-bold text-gray-500">건</span>
                     </div>
@@ -151,7 +155,7 @@ export default function EventManagementPage() {
                     </div>
                     <div className="mt-4 flex items-baseline gap-1">
                         <span className="text-3xl font-black text-red-600 tracking-tight">
-                            {events.filter(e => e.severity === 'CRITICAL').length}
+                            {summary?.criticalEventCount !== undefined ? summary.criticalEventCount : events.filter(e => e.severity === 'CRITICAL').length}
                         </span>
                         <span className="text-sm font-bold text-gray-500">건</span>
                     </div>
@@ -169,7 +173,7 @@ export default function EventManagementPage() {
                     </div>
                     <div className="mt-4 flex items-baseline gap-1">
                         <span className="text-3xl font-black text-orange-500 tracking-tight">
-                            {events.filter(e => e.status === 'ACKNOWLEDGED').length}
+                            {summary?.actionInProgressCount !== undefined ? summary.actionInProgressCount : events.filter(e => e.status === 'ACKNOWLEDGED').length}
                         </span>
                         <span className="text-sm font-bold text-gray-500">건</span>
                     </div>
