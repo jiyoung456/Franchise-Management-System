@@ -142,12 +142,14 @@ export default function ActionDetailClient({ id }: ActionDetailClientProps) {
                 {/* SV: Write Execution Result & View Effect */}
                 {role === 'SUPERVISOR' && (
                     <>
-                        <button
-                            onClick={() => router.push(`/actions/${id}/execution`)}
-                            className="px-6 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 shadow-sm"
-                        >
-                            조치 수행 결과 작성
-                        </button>
+                        {action.status !== 'CLOSED' && (
+                            <button
+                                onClick={() => router.push(`/actions/${id}/execution`)}
+                                className="px-6 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 shadow-sm"
+                            >
+                                조치 수행 결과 작성
+                            </button>
+                        )}
                         <button
                             onClick={() => router.push(`/actions/${id}/effect`)}
                             className="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 shadow-sm"
