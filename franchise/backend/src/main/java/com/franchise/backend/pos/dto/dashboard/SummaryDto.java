@@ -5,14 +5,14 @@ import lombok.Getter;
 
 import java.math.BigDecimal;
 
-@Getter
-@AllArgsConstructor
-public class SummaryDto {
-    private BigDecimal totalSales;
-    private BigDecimal avgMarginRate;   // 0.60 형태(=60%)
-    private BigDecimal avgOrderValue;   // AOV
-    private Long totalOrders;
+public record SummaryDto(
+        BigDecimal totalSales,
+        BigDecimal avgMarginRate,
+        BigDecimal avgOrderValue,
+        Long totalOrders,
 
-    // 선택: 전기간 대비(화면에 필요하면 사용)
-    private BigDecimal salesChangeRate; // 0.126 형태(=12.6%)
-}
+        BigDecimal salesChangeRate,       // 전주/전월 대비 매출 변화율
+        BigDecimal marginRateChangeRate,  // 전주/전월 대비 마진율 변화율(포인트 변화)
+        BigDecimal aovChangeRate,         // 전주/전월 대비 AOV 변화율
+        BigDecimal orderChangeRate        // 전주/전월 대비 주문 변화율
+) {}

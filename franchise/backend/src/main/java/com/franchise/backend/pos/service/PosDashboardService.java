@@ -106,13 +106,48 @@ public class PosDashboardService {
             avgOrderValue = totalSales.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP);
         }
 
+        //전 기간
+        BigDecimal prevTotalSales = BigDecimal.ZERO;
+        BigDecimal prevTotalMargin = BigDecimal.ZERO;
+        long prevTotalOrders = 0;
+
+        for (PosPeriodAgg prev : prevAggs) {
+            prevTotalSales = prevTotalSales.add(prev.getSalesAmount());
+            prevTotalMargin = prevTotalMargin.add(prev.getMarginAmount());
+            prevTotalOrders += prev.getOrderCount();
+        }
+
+        BigDecimal prevAvgMarginRate = BigDecimal.ZERO;
+        BigDecimal prevAov = BigDecimal.ZERO;
+
+        if (prevTotalSales.compareTo(BigDecimal.ZERO) > 0) {
+            prevAvgMarginRate = prevTotalMargin.divide(prevTotalSales, 4, RoundingMode.HALF_UP);
+        }
+        if (prevTotalOrders > 0) {
+            prevAov = prevTotalSales.divide(BigDecimal.valueOf(prevTotalOrders), 2, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal salesChangeRate = calcChangeRate(totalSales, prevTotalSales);
+        BigDecimal orderChangeRate = calcChangeRate(
+                BigDecimal.valueOf(totalOrders),
+                BigDecimal.valueOf(prevTotalOrders)
+        );
+        BigDecimal aovChangeRate = calcChangeRate(avgOrderValue, prevAov);
+
+        // 마진율은 pp 변화 (전기간이 0이어도 계산 가능)
+        BigDecimal marginRateChangeRate = avgMarginRate.subtract(prevAvgMarginRate);
+
         SummaryDto summary = new SummaryDto(
                 totalSales,
                 avgMarginRate,
                 avgOrderValue,
                 totalOrders,
-                null // 전기간 대비 KPI는 일단 생략
+                salesChangeRate,
+                marginRateChangeRate,
+                aovChangeRate,
+                orderChangeRate
         );
+
 
         // 8) 랭킹
         List<StorePerformanceRowDto> sorted =
@@ -193,10 +228,30 @@ public class PosDashboardService {
 
     private PosDashboardResponse emptyResponse() {
         return new PosDashboardResponse(
-                new SummaryDto(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0L, null),
+                new SummaryDto(
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        0L,
+                        null,
+                        null,
+                        null,
+                        null
+                ),
                 List.of(),
                 new RankingDto(List.of(), List.of()),
                 List.of()
         );
     }
+
+    private BigDecimal calcChangeRate(BigDecimal current, BigDecimal previous) {
+        if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
+            return null; // 전 기간 값 없으면 변화율 계산 불가
+        }
+
+        return current
+                .subtract(previous)
+                .divide(previous, 4, RoundingMode.HALF_UP);
+    }
+
 }
