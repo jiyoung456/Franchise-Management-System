@@ -3,10 +3,13 @@ package com.franchise.backend.action.service;
 import com.franchise.backend.action.dto.*;
 import com.franchise.backend.action.entity.Action;
 import com.franchise.backend.action.repository.ActionRepository;
+import com.franchise.backend.event.entity.EventLog;
+import com.franchise.backend.event.repository.EventLogRepository;
 import com.franchise.backend.pos.entity.PosDaily;
 import com.franchise.backend.pos.repository.PosDailyRepository;
 import com.franchise.backend.qsc.entity.QscMaster;
 import com.franchise.backend.qsc.repository.QscMasterRepository;
+import com.franchise.backend.store.entity.Store;
 import com.franchise.backend.store.repository.StoreRepository;
 import com.franchise.backend.user.entity.Role;
 import com.franchise.backend.user.entity.User;
@@ -30,6 +33,7 @@ public class LeaderActionService {
     private final QscMasterRepository qscMasterRepository;
     private final UserRepository userRepository;
     private final StoreRepository storeRepository;
+    private final EventLogRepository eventLogRepository;
 
     // 조치관리  목록:
     // - SUPERVISOR: 본인 담당 점포(storeIds) + 이벤트 연계(relatedEventId not null)
@@ -171,6 +175,27 @@ public class LeaderActionService {
         Action action = actionRepository.findById(actionId)
                 .orElseThrow(() -> new IllegalArgumentException("조치가 존재하지 않습니다. id=" + actionId));
 
+        // 1) storeName
+        String storeName = storeRepository.findById(action.getStoreId())
+                .map(Store::getStoreName)
+                .orElse("-");
+
+        // 2) relatedEventName (event_log.summary)
+        String relatedEventName = "-";
+        if (action.getRelatedEventId() != null) {
+            relatedEventName = eventLogRepository.findById(action.getRelatedEventId())
+                    .map(EventLog::getSummary)
+                    .orElse("-");
+        }
+
+        // 3) assignedToUserName
+        String assignedToUserName = "-";
+        if (action.getAssignedToUserId() != null) {
+            assignedToUserName = userRepository.findById(action.getAssignedToUserId())
+                    .map(User::getUserName)
+                    .orElse("-");
+        }
+
         return new ActionDetailResponse(
                 action.getId(),
                 action.getStoreId(),
@@ -185,7 +210,10 @@ public class LeaderActionService {
                 action.getAssignedToUserId(),
                 action.getCreatedByUserId(),
                 action.getCreatedAt(),
-                action.getUpdatedAt()
+                action.getUpdatedAt(),
+                storeName,
+                relatedEventName,
+                assignedToUserName
         );
     }
 
@@ -230,6 +258,13 @@ public class LeaderActionService {
         Long storeId = action.getStoreId();
         String metric = action.getTargetMetricCode();
         LocalDate base = action.getDueDate(); // 시행일
+
+        if (metric == null || metric.isBlank()) {
+            throw new IllegalArgumentException("metricCode(targetMetricCode)가 비어있습니다. actionId=" + actionId);
+        }
+        if (base == null) {
+            throw new IllegalArgumentException("baseDate(dueDate)가 비어있습니다. actionId=" + actionId);
+        }
 
         LocalDate startDate = base.minusDays(14);
         LocalDate endDate = base.plusDays(13);
@@ -298,9 +333,40 @@ public class LeaderActionService {
                 .map(d -> finalBaselineValue)
                 .toList();
 
+        String storeName = storeRepository.findById(storeId)
+                .map(Store::getStoreName)
+                .orElse("-");
+
+        Long relatedEventId = action.getRelatedEventId();
+        String relatedEventName = "-";
+        if (relatedEventId != null) {
+            relatedEventName = eventLogRepository.findById(relatedEventId)
+                    .map(EventLog::getSummary)
+                    .orElse("-");
+        }
+
+        Long assignedToUserId = action.getAssignedToUserId();
+        String assignedToUserName = "-";
+        if (assignedToUserId != null) {
+            assignedToUserName = userRepository.findById(assignedToUserId)
+                    .map(User::getUserName)
+                    .orElse("-");
+        }
+
         return new ActionEffectResponse(
-                actionId, storeId, metric, base,
-                labels, storeSeries, baselineSeries, baselineValue
+                actionId,
+                storeId,
+                metric,
+                base,
+                labels,
+                storeSeries,
+                baselineSeries,
+                baselineValue,
+                storeName,
+                relatedEventId,
+                relatedEventName,
+                assignedToUserId,
+                assignedToUserName
         );
     }
 }

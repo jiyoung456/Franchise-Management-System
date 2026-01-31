@@ -25,12 +25,29 @@ public class ActionDetailResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public ActionDetailResponse(Long actionId, Long storeId, Long relatedEventId,
-                                String actionType, String title, String description,
-                                String priority, String status,
-                                String targetMetricCode, LocalDate dueDate,
-                                Long assignedToUserId,
-                                Long createdByUserId, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    private String storeName;
+    private String relatedEventName;
+    private String assignedToUserName;
+
+    public ActionDetailResponse(
+            Long actionId,
+            Long storeId,
+            Long relatedEventId,
+            String actionType,
+            String title,
+            String description,
+            String priority,
+            String status,
+            String targetMetricCode,
+            LocalDate dueDate,
+            Long assignedToUserId,
+            Long createdByUserId,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            String storeName,
+            String relatedEventName,
+            String assignedToUserName
+    ) {
         this.actionId = actionId;
         this.storeId = storeId;
         this.relatedEventId = relatedEventId;
@@ -45,6 +62,9 @@ public class ActionDetailResponse {
         this.createdByUserId = createdByUserId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.storeName = storeName;
+        this.relatedEventName = relatedEventName;
+        this.assignedToUserName = assignedToUserName;
     }
 
     public Long getActionId() { return actionId; }
@@ -61,4 +81,7 @@ public class ActionDetailResponse {
     public Long getCreatedByUserId() { return createdByUserId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public String getStoreName() { return storeName; }
+    public String getRelatedEventName() { return relatedEventName; }
+    public String getAssignedToUserName() { return assignedToUserName; }
 }

@@ -16,9 +16,27 @@ public class ActionEffectResponse {
 
     private BigDecimal baselineValue;        // 조치 전 평균값(표시용)
 
-    public ActionEffectResponse(Long actionId, Long storeId, String metricCode, LocalDate baseDate,
-                                List<LocalDate> labels, List<BigDecimal> storeSeries,
-                                List<BigDecimal> baselineSeries, BigDecimal baselineValue) {
+    private String storeName;            // stores.store_name
+    private Long relatedEventId;         // 연관 이벤트 ID (있으면)
+    private String relatedEventName;     // event_log.summary
+    private Long assignedToUserId;       // 담당자 ID (있으면)
+    private String assignedToUserName;   // users.user_name
+
+    public ActionEffectResponse(
+            Long actionId,
+            Long storeId,
+            String metricCode,
+            LocalDate baseDate,
+            List<LocalDate> labels,
+            List<BigDecimal> storeSeries,
+            List<BigDecimal> baselineSeries,
+            BigDecimal baselineValue,
+            String storeName,
+            Long relatedEventId,
+            String relatedEventName,
+            Long assignedToUserId,
+            String assignedToUserName
+    ) {
         this.actionId = actionId;
         this.storeId = storeId;
         this.metricCode = metricCode;
@@ -27,6 +45,12 @@ public class ActionEffectResponse {
         this.storeSeries = storeSeries;
         this.baselineSeries = baselineSeries;
         this.baselineValue = baselineValue;
+
+        this.storeName = storeName;
+        this.relatedEventId = relatedEventId;
+        this.relatedEventName = relatedEventName;
+        this.assignedToUserId = assignedToUserId;
+        this.assignedToUserName = assignedToUserName;
     }
 
     public Long getActionId() { return actionId; }
@@ -37,4 +61,9 @@ public class ActionEffectResponse {
     public List<BigDecimal> getStoreSeries() { return storeSeries; }
     public List<BigDecimal> getBaselineSeries() { return baselineSeries; }
     public BigDecimal getBaselineValue() { return baselineValue; }
+    public String getStoreName() { return storeName; }
+    public Long getRelatedEventId() { return relatedEventId; }
+    public String getRelatedEventName() { return relatedEventName; }
+    public Long getAssignedToUserId() { return assignedToUserId; }
+    public String getAssignedToUserName() { return assignedToUserName; }
 }
