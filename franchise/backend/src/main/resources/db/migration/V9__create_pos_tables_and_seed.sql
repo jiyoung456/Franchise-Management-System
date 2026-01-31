@@ -368,8 +368,6 @@ ORDER BY store_id, business_date;
 -- (B) WATCHLIST 소규모 이슈 2일 구간(점포별 1회) 추가 + abnormal 처리
 -- ============================================================
 
-BEGIN;
-
 SELECT setseed(0.42);
 
 DELETE FROM pos_daily
@@ -803,5 +801,3 @@ ON CONFLICT (store_id, business_date) DO UPDATE SET
     abnormal_type = EXCLUDED.abnormal_type,
     abnormal_reason = EXCLUDED.abnormal_reason,
     updated_at = NOW();
-
-COMMIT;
