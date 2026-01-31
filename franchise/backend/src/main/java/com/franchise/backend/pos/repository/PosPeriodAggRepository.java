@@ -6,8 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.awt.print.Pageable;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface PosPeriodAggRepository extends JpaRepository<PosPeriodAgg, Long> {
 
@@ -42,5 +44,60 @@ public interface PosPeriodAggRepository extends JpaRepository<PosPeriodAgg, Long
             @Param("storeIds") List<Long> storeIds,
             @Param("periodType") PosPeriodType periodType,
             @Param("prevPeriodStart") LocalDate prevPeriodStart
+    );
+
+    @Query("""
+        select p
+        from PosPeriodAgg p
+        where p.storeId = :storeId
+          and p.periodType = :periodType
+          and p.periodStart = :periodStart
+    """)
+    Optional<PosPeriodAgg> findOne(
+            @Param("storeId") Long storeId,
+            @Param("periodType") PosPeriodType periodType,
+            @Param("periodStart") LocalDate periodStart
+    );
+
+    @Query("""
+        select p
+        from PosPeriodAgg p
+        where p.storeId = :storeId
+          and p.periodType = :periodType
+          and p.periodStart <= :anchor
+        order by p.periodStart desc
+    """)
+    List<PosPeriodAgg> findRecentPeriods(
+            @Param("storeId") Long storeId,
+            @Param("periodType") PosPeriodType periodType,
+            @Param("anchor") LocalDate anchor,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT p
+        FROM PosPeriodAgg p
+        WHERE p.storeId = :storeId
+          AND p.periodType = :type
+          AND p.periodStart = :periodStart
+    """)
+    Optional<PosPeriodAgg> findOneByStoreIdAndPeriod(
+            @Param("storeId") Long storeId,
+            @Param("type") PosPeriodType type,
+            @Param("periodStart") LocalDate periodStart
+    );
+
+    @Query("""
+        SELECT p
+        FROM PosPeriodAgg p
+        WHERE p.storeId = :storeId
+          AND p.periodType = :type
+          AND p.periodStart IN :periodStarts
+        ORDER BY p.periodStart ASC
+    """)
+    List<PosPeriodAgg> findByStoreIdAndPeriodStarts(
+            @Param("storeId") Long storeId,
+            @Param("type") PosPeriodType type,
+            @Param("periodStarts") List<LocalDate> periodStarts
     );
 }
