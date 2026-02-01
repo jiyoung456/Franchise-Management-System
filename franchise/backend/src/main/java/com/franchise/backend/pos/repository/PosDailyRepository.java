@@ -60,4 +60,22 @@ public interface PosDailyRepository extends JpaRepository<PosDaily, Long> {
     List<PosDaily> findByStoreIdAndBusinessDateBetweenOrderByBusinessDateAsc(
             Long storeId, LocalDate fromDate, LocalDate toDate
     );
+
+
+    //담당하는 점포 전체 합산
+    @Query("""
+    select p
+    from PosDaily p
+    where p.storeId in :storeIds
+      and p.isMissing = false
+      and p.businessDate between :fromDate and :toDate
+    order by p.businessDate asc
+""")
+    List<PosDaily> findByStoreIdsAndBusinessDateBetweenOrderByBusinessDateAsc(
+            @Param("storeIds") List<Long> storeIds,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
+    );
+
+
 }
