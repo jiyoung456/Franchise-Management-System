@@ -9,6 +9,7 @@ import { ArrowLeft, Info, FileText, TrendingUp, TrendingDown } from 'lucide-reac
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { PosService, PosKpiDashboardResponse } from '@/services/posService';
 import { StoreService } from '@/services/storeService';
+import { StorageService } from '@/lib/storage';
 import { StoreDetail } from '@/types';
 
 export default function PerformanceClient({ id }: { id: string }) {
@@ -22,11 +23,20 @@ export default function PerformanceClient({ id }: { id: string }) {
     const [store, setStore] = useState<StoreDetail | null>(null);
     const [dashboardData, setDashboardData] = useState<PosKpiDashboardResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isSv, setIsSv] = useState(false);
 
     useEffect(() => {
         const loadInitialData = async () => {
             if (!storeId) return;
             setLoading(true);
+
+            // Check User Role
+            StorageService.init();
+            const user = StorageService.getCurrentUser();
+            if (user?.role === 'SUPERVISOR') {
+                setIsSv(true);
+            }
+
             try {
                 const [storeInfo, posInfo] = await Promise.all([
                     StoreService.getStore(storeId),
@@ -149,22 +159,8 @@ export default function PerformanceClient({ id }: { id: string }) {
                         </div>
                     </div>
 
-                    {/* Insight Box */}
-                    <div className="bg-white border border-gray-200 shadow-sm p-6 rounded-lg">
-                        <h3 className="font-bold text-gray-900 mb-3 flex items-center">
-                            <Info className="w-4 h-4 mr-2 text-blue-500" /> 분석 인사이트
-                        </h3>
-                        <div className="space-y-4">
-                            {dashboardData?.statusSummary ? (
-                                <div>
-                                    <p className="font-bold text-sm text-gray-800 mb-1">{dashboardData.statusSummary.title}</p>
-                                    <p className="text-xs text-gray-500 leading-relaxed">{dashboardData.statusSummary.detail}</p>
-                                </div>
-                            ) : (
-                                <p className="text-xs text-gray-400">분석 데이터를 불러오는 중입니다.</p>
-                            )}
-                        </div>
-                    </div>
+
+
 
                     {/* Go to Detail Button */}
                     <button

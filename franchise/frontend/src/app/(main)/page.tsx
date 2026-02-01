@@ -102,29 +102,24 @@ function AdminDashboard() {
           <div>
             <p className="text-sm font-medium text-gray-500">전체 가맹점 수</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">{totalStores}개</h3>
-            <Link href="/stores" className="text-xs text-blue-600 font-medium mt-2 inline-flex items-center hover:underline">
-              목록 보기 <ArrowRight className="w-3 h-3 ml-1" />
-            </Link>
           </div>
           <div className="p-3 bg-blue-50 rounded-lg text-blue-600">
             <Users className="w-5 h-5" />
           </div>
         </div>
 
-        <Link href="/stores?status=RISK" className="block group">
-          <div className="p-6 bg-white rounded-xl border border-red-100 shadow-sm flex items-start justify-between hover:border-red-300 transition-colors cursor-pointer group-hover:bg-red-50/30">
-            <div>
-              <p className="text-sm font-medium text-gray-500 group-hover:text-red-600">위험(Risk) 점포</p>
-              <h3 className="text-2xl font-bold text-red-600 mt-1">{riskStores}개</h3>
-              <span className="text-xs text-red-500 font-medium mt-2 inline-block">
-                전체의 {totalStores > 0 ? ((riskStores / totalStores) * 100).toFixed(1) : 0}%
-              </span>
-            </div>
-            <div className="p-3 bg-red-50 rounded-lg text-red-600 group-hover:bg-red-100">
-              <Siren className="w-5 h-5" />
-            </div>
+        <div className="p-6 bg-white rounded-xl border border-red-100 shadow-sm flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-500">위험(Risk) 점포</p>
+            <h3 className="text-2xl font-bold text-red-600 mt-1">{riskStores}개</h3>
+            <span className="text-xs text-red-500 font-medium mt-2 inline-block">
+              전체의 {totalStores > 0 ? ((riskStores / totalStores) * 100).toFixed(1) : 0}%
+            </span>
           </div>
-        </Link>
+          <div className="p-3 bg-red-50 rounded-lg text-red-600">
+            <Siren className="w-5 h-5" />
+          </div>
+        </div>
 
         {/* ... Rest of Admin Cards ... */}
         <div className="p-6 bg-white rounded-xl border border-gray-100 shadow-sm flex items-start justify-between">

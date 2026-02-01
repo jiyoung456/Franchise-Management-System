@@ -1,52 +1,55 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Search, Filter, MapPin } from 'lucide-react'; // MapPin 아이콘 추가
+import { Search, Filter, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ScoreBar } from '@/components/common/ScoreBar';
 import { StoreService } from '@/services/storeService';
 import { Store, StoreSearchRequest } from '@/types';
 import { AuthService } from '@/services/authService';
+import { StoreCreateModal } from '@/components/features/stores/StoreCreateModal';
 
 export default function MyStoresPage() {
-    // ... (기존 로직 동일) ...
     const router = useRouter();
     const [myStores, setMyStores] = useState<Store[]>([]);
     const [loading, setLoading] = useState(true);
-    
+
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [role, setRole] = useState<'ADMIN' | 'MANAGER' | 'SUPERVISOR' | null>(null);
 
-    useEffect(() => {
-        const fetchStores = async () => {
-            try {
-                setLoading(true);
-                const user = await AuthService.getCurrentUser();
-                
-                if (user) {
-                    setRole(user.role);
-                    const params: StoreSearchRequest = { limit: 200 };
-                    if (searchTerm) params.keyword = searchTerm;
-                    if (filterStatus !== 'ALL') params.state = filterStatus as any;
+    // Modal State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-                    let data: Store[] = [];
-                    if (user.role === 'SUPERVISOR') {
-                        data = await StoreService.getStoresBySv(params);
-                    } else {
-                        data = await StoreService.getStores(params);
-                    }
-                    setMyStores(data);
+    const fetchStores = async () => {
+        try {
+            setLoading(true);
+            const user = await AuthService.getCurrentUser();
+
+            if (user) {
+                setRole(user.role);
+                const params: StoreSearchRequest = { limit: 200 };
+                if (searchTerm) params.keyword = searchTerm;
+                if (filterStatus !== 'ALL') params.state = filterStatus as any;
+
+                let data: Store[] = [];
+                if (user.role === 'SUPERVISOR') {
+                    data = await StoreService.getStoresBySv(params);
                 } else {
-                    setMyStores([]);
+                    data = await StoreService.getStores(params);
                 }
-            } catch (e) {
-                console.error('Failed to fetch my stores:', e);
-            } finally {
-                setLoading(false);
+                setMyStores(data);
+            } else {
+                setMyStores([]);
             }
-        };
+        } catch (e) {
+            console.error('Failed to fetch my stores:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         const timer = setTimeout(() => {
             fetchStores();
         }, 300);
@@ -58,9 +61,19 @@ export default function MyStoresPage() {
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-20">
-            <h1 className="text-2xl font-bold text-gray-900 border-b border-gray-300 pb-4 w-fit px-2">
-                {role === 'SUPERVISOR' ? '내 담당 점포 목록' : '내 부서 점포 목록'}
-            </h1>
+            <div className="flex items-center justify-between border-b border-gray-300 pb-4">
+                <h1 className="text-2xl font-bold text-gray-900 w-fit px-2">
+                    {role === 'SUPERVISOR' ? '내 담당 점포 목록' : role === 'ADMIN' ? '전체 점포 목록' : '내 부서 점포 목록'}
+                </h1>
+                {role === 'ADMIN' && (
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors"
+                    >
+                        신규 점포 등록
+                    </button>
+                )}
+            </div>
 
             {/* Search & Filter Bar */}
             <div className="flex border border-gray-300 bg-white shadow-sm">
@@ -151,6 +164,13 @@ export default function MyStoresPage() {
                     </div>
                 )}
             </div>
+
+            {/* Create Modal */}
+            <StoreCreateModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSave={fetchStores}
+            />
         </div>
     );
 }

@@ -30,11 +30,7 @@ export default function PerformanceDashboardPage() {
 
     if (!role) return <div className="p-8">Loading...</div>;
 
-    if (role === 'SUPERVISOR') {
-        return <SvPerformanceView />;
-    }
-
-    return <AdminPerformanceDashboard />;
+    return <AdminPerformanceDashboard isSv={role === 'SUPERVISOR'} />;
 }
 
 // --- SV VIEW (The Requested List Layout) ---
@@ -210,7 +206,7 @@ function SvPerformanceView() {
 }
 
 // --- ADMIN VIEW (Existing Dashboard) ---
-function AdminPerformanceDashboard() {
+function AdminPerformanceDashboard({ isSv = false }: { isSv?: boolean }) {
     // --- Filters State ---
     const [period, setPeriod] = useState<'week' | 'month'>('month');
     const [selectedRegion, setSelectedRegion] = useState<string>('all');
@@ -312,11 +308,18 @@ function AdminPerformanceDashboard() {
     return (
         <div className="space-y-6 pb-20">
             {/* Header & Filter */}
+            {/* DEBUG INFO - TO BE REMOVED */}
+            {/* <div className="bg-red-100 p-2 text-xs text-red-600 mb-2">DEBUG: Role={isSv ? 'SV (isSv=true)' : 'ADMIN (isSv=false)'}</div> */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">성과 분석 대시보드 (전사)</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                        성과 분석 대시보드
+                        {/* <span className="ml-2 text-sm font-normal text-gray-400">
+                            {isSv ? '[SV 모드]' : '[관리자 모드]'}
+                        </span> */}
+                    </h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        전사 매출, 마진율, 객단가 등 핵심 성과 지표(KPI)를 분석합니다.
+                        점포 매출, 마진율, 객단가 등 핵심 성과 지표(KPI)를 분석합니다.
                     </p>
                 </div>
 
@@ -330,10 +333,17 @@ function AdminPerformanceDashboard() {
                         value={selectedRegion}
                         onChange={(e) => setSelectedRegion(e.target.value)}
                         className="text-sm border-none focus:ring-0 bg-transparent text-gray-700 font-medium cursor-pointer"
+                        disabled={isSv}
                     >
-                        <option value="all">전체 지역</option>
-                        <option value="서울/경기">서울/경기</option>
-                        <option value="부산/경남">부산/경남</option>
+                        {isSv ? (
+                            <>
+                                <option value="all">전체 지역</option>
+                                <option value="서울/경기">서울/경기</option>
+                                <option value="부산/경남">부산/경남</option>
+                            </>
+                        ) : (
+                            <option value="all">담당 전체 지역</option>
+                        )}
                     </select>
                     <div className="h-4 w-[1px] bg-gray-200"></div>
                     <div className="flex bg-gray-100 rounded p-1">
@@ -360,7 +370,7 @@ function AdminPerformanceDashboard() {
                     value={`${(aggregatedData.totalRev / 10000).toLocaleString()}만원`}
                     icon={DollarSign}
                     trend={aggregatedData.growth}
-                    trendLabel="전 기간 대비"
+                    trendLabel={isSv ? "2주 전 대비" : "2주 전 대비"}
                     color="blue"
                 />
                 <KPICard
@@ -368,7 +378,7 @@ function AdminPerformanceDashboard() {
                     value={`${aggregatedData.marginRate.toFixed(1)}%`}
                     icon={Percent}
                     trend={0.5}
-                    trendLabel="목표 대비 +0.5%"
+                    trendLabel={""}
                     color="indigo"
                 />
                 <KPICard
@@ -376,7 +386,7 @@ function AdminPerformanceDashboard() {
                     value={`${aggregatedData.aov.toLocaleString()}원`}
                     icon={ShoppingBag}
                     trend={-1.2}
-                    trendLabel="전 기간 대비"
+                    trendLabel={isSv ? "2주 전 대비" : "2주 전 대비"}
                     color="purple"
                 />
                 <KPICard
@@ -384,7 +394,7 @@ function AdminPerformanceDashboard() {
                     value={`${aggregatedData.totalOrders.toLocaleString()}건`}
                     icon={Users}
                     trend={aggregatedData.growth}
-                    trendLabel="전 기간 대비"
+                    trendLabel={isSv ? "2주 전 대비" : "2주 전 대비"}
                     color="orange"
                 />
             </div>
@@ -474,17 +484,7 @@ function AdminPerformanceDashboard() {
                         </div>
                     </div>
 
-                    <div className="mt-6 pt-6 border-t border-gray-100">
-                        {rankSort === 'top' ? (
-                            <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-800 leading-relaxed">
-                                <span className="font-bold">Insight:</span> 상위 점포들은 저녁 시간대 배달 매출 비중이 평균 대비 15% 높습니다.
-                            </div>
-                        ) : (
-                            <div className="p-3 bg-red-50 rounded-lg text-xs text-red-800 leading-relaxed">
-                                <span className="font-bold">Action:</span> 하위 점포 대상 '런치 타임 프로모션' 적용을 검토해보세요.
-                            </div>
-                        )}
-                    </div>
+
                 </div>
             </div>
 
@@ -539,7 +539,7 @@ function AdminPerformanceDashboard() {
                                                 href={`/performance/${store.id}`}
                                                 className="text-blue-600 hover:text-blue-800 text-xs font-bold border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50"
                                             >
-                                                분석
+                                                상세
                                             </Link>
                                         </td>
                                     </tr>

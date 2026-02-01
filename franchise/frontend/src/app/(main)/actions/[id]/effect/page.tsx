@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ActionService } from '@/services/actionService';
+import { EventService } from '@/services/eventService';
 import { ActionItem } from '@/types';
 
 export default function ActionEffectPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [action, setAction] = useState<ActionItem | null>(null);
     const [effect, setEffect] = useState<any>(null);
+    const [relatedEventTitle, setRelatedEventTitle] = useState<string>('-');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -22,6 +24,21 @@ export default function ActionEffectPage({ params }: { params: Promise<{ id: str
                 ]);
                 setAction(actionData || null);
                 setEffect(effectData || null);
+
+                // Fetch linked event info if exists
+                if (actionData?.linkedEventId) {
+                    try {
+                        const eventData = await EventService.getEvent(actionData.linkedEventId);
+                        if (eventData) {
+                            setRelatedEventTitle(eventData.title || eventData.message || actionData.linkedEventId);
+                        } else {
+                            setRelatedEventTitle(actionData.linkedEventId);
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch event info", err);
+                        setRelatedEventTitle(actionData.linkedEventId);
+                    }
+                }
             } catch (error) {
                 console.error("Failed to fetch effect data", error);
             } finally {
@@ -51,7 +68,7 @@ export default function ActionEffectPage({ params }: { params: Promise<{ id: str
     const actionData = {
         title: action.title,
         store: action.storeName || action.storeId,
-        relatedEvent: action.linkedEventId || '-',
+        relatedEvent: relatedEventTitle,
         type: action.type,
         assignee: action.assigneeName || action.assignee,
         metric: effect.metricLabel || '점수',
