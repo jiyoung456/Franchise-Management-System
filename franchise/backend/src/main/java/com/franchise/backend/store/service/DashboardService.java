@@ -486,8 +486,8 @@ public class DashboardService {
             SELECT COALESCE(SUM(sales_amount), 0)
             FROM pos_daily
             WHERE store_id IN (:storeIds)
-              AND sales_date >= :startDate
-              AND sales_date <= :endDate
+              AND business_date >= :startDate
+              AND business_date < :endDate
         """;
 
         try {

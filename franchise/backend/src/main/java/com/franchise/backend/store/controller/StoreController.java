@@ -79,7 +79,6 @@ public class StoreController {
         return ApiResponse.ok(storeService.updateStore(storeId, request));
     }
 
-    // 수정
     // SV 담당 점포 목록 조회 ( + 상태 / 정렬 / 검색 / limit)
     @GetMapping("/supervisor")
     public ApiResponse<List<StoreListResponse>> listForSupervisor(
