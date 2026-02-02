@@ -306,20 +306,49 @@ export const QscService = {
     },
 
 
-    // 상세 조회
+    // 상세 조회 (Backend Integrated)
     getInspectionDetail: async (storeId: number, inspectionId: string): Promise<any | undefined> => {
-        const list = await QscService.getStoreQscList(storeId);
-        const found = list.find(i => i.id === inspectionId);
+        try {
+            // Use explicit baseURL if needed, or default api.
+            // Based on user snippet: @GetMapping("/{inspectionId}") in a controller (likely /qsc/inspections)
+            const response = await api.get(`/qsc/inspections/${inspectionId}`, { baseURL: 'http://localhost:8080' });
+            const data = response.data;
 
-        if (found) {
+            if (!data) return undefined;
+
+            // Map backend response -> Frontend structure
+            // Assuming backend returns flat structure similar to save payload or list item but with details
             return {
-                ...found,
-                answers: {},
-                overallPhotos: [],
-                overallComment: found.summaryComment || ''
+                id: data.inspectionId.toString(),
+                date: data.inspectedAt ? data.inspectedAt.split('T')[0] : '',
+                storeId: data.storeId ? data.storeId.toString() : storeId.toString(),
+                storeName: data.storeName || '',
+                region: data.region || '',
+                sv: data.supervisorName || '', // Check if backend provides this
+                type: inspectionTypeMap[data.inspectionType] || '정기',
+                score: data.totalScore,
+                grade: data.grade,
+                isPassed: data.isPassed,
+                isReinspectionNeeded: data.needsReinspection,
+                inspector: data.inspectorName || data.inspectorId,
+                status: data.status === 'CONFIRMED' ? '완료' : '작성중',
+                templateId: data.templateId.toString(),
+                summaryComment: data.summaryComment,
+
+                // Map answers: Backend likely returns list of ItemScore objects or similar
+                // We need to map it to Record<itemId, score> for ReportClient
+                answers: data.itemScores ? data.itemScores.reduce((acc: any, curr: any) => {
+                    acc[curr.templateItemId] = curr.score;
+                    return acc;
+                }, {}) : {},
+
+                overallPhotos: (data.photos || []).map((p: any) => p.photoUrl || p),
+                overallComment: data.summaryComment || ''
             };
+        } catch (error) {
+            console.error('Failed to fetch inspection detail:', error);
+            return undefined;
         }
-        return undefined;
     },
 
     // 대시보드용: 점포별 최신 QSC 데이터
