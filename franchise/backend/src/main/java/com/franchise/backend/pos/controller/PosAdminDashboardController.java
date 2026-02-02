@@ -32,6 +32,7 @@ public class PosAdminDashboardController {
 
     ) {
         String loginId = userDetails.getUsername();
+        System.out.println("[ADMIN_DASH] loginId=" + loginId + ", authorities=" + userDetails.getAuthorities());
 
         LocalDate asOf = LocalDate.of(2025, 8, 25);
         LocalDate start = (periodStart != null) ? periodStart : asOf;
@@ -39,7 +40,7 @@ public class PosAdminDashboardController {
         return posDashboardService.getDashboard(
                 loginId,
                 periodType,
-                periodStart
+                start
         );
     }
 }
