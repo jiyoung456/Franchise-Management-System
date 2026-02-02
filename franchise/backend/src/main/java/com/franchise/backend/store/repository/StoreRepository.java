@@ -82,6 +82,13 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
     List<Long> findStoreIdsBySupervisorDepartment(@Param("department") String department);
 
     List<Store> findBySupervisor_Id(Long supervisorId);
+
+    //관리자 기준 모든 점포 조회
+    @Query("""
+    SELECT s.id
+    FROM Store s
+""")
+    List<Long> findAllStoreIds();
 }
 
 
