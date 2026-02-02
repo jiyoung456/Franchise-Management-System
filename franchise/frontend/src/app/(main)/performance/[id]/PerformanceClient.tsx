@@ -33,16 +33,23 @@ export default function PerformanceClient({ id }: { id: string }) {
             // Check User Role
             StorageService.init();
             const user = StorageService.getCurrentUser();
-            if (user?.role === 'SUPERVISOR') {
-                setIsSv(true);
-            }
+            const svStatus = user?.role === 'SUPERVISOR';
+            setIsSv(svStatus);
 
             try {
-                const [storeInfo, posInfo] = await Promise.all([
-                    StoreService.getStore(storeId),
-                    PosService.getDashboard(Number(storeId), period)
-                ]);
-                setStore(storeInfo);
+                // Use current date logic from service
+                const today = new Date().toISOString().split('T')[0];
+
+                let posInfo;
+                if (svStatus) {
+                    // Use SV-specific endpoint. Pass undefined for periodStart to let service decide default if needed, 
+                    // or pass 'today' if we want "up to today". 
+                    // Let's pass undefined to use the service's robust logic (Last Month / Last Week).
+                    posInfo = await PosService.getSupervisorStoreDetail(Number(storeId), period);
+                } else {
+                    // Use generic/manager endpoint
+                    posInfo = await PosService.getDashboard(Number(storeId), period);
+                }
                 setDashboardData(posInfo);
             } catch (error) {
                 console.error("Failed to load performance data", error);

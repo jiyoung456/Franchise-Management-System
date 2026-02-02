@@ -123,7 +123,7 @@ export default function QscHistoryPage() {
                     {history.map((inspection) => (
                         <div
                             key={inspection.inspectionId || inspection.id}
-                            onClick={() => router.push(`/qsc/report/${inspection.inspectionId || inspection.id}`)}
+                            onClick={() => router.push(`/qsc/report/${inspection.inspectionId || inspection.id}?storeId=${storeId}`)}
                             className="p-6 hover:bg-gray-50 transition-colors cursor-pointer group"
                         >
                             <div className="flex items-center justify-between">

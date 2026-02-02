@@ -93,10 +93,6 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => router.push('/qsc')} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50 text-sm">
-                        <ExternalLink className="w-4 h-4" />
-                        목록으로
-                    </button>
                     <button
                         onClick={() => alert('PDF 다운로드 기능은 준비 중입니다.')}
                         className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 text-sm shadow-sm"
