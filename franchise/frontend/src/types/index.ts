@@ -396,6 +396,19 @@ export interface SupervisorDashboardSummary {
     recentVisitedStores: RecentVisitedStore[];
 }
 
+export interface AdminDashboardSummary {
+    totalStoreCount: number;
+    riskStoreCount: number;
+    // riskStorePercent is missing in backend response shown, calculate in UI
+    newEventCount: number;
+    pendingActionCount: number; // was unresolvedActionCount
+    riskTopStores: { // was topRiskStores
+        storeId: number;
+        storeName: string;
+        riskScore: number; // was totalRiskScore
+    }[];
+}
+
 export interface Notice {
     id: string;
     title: string;
