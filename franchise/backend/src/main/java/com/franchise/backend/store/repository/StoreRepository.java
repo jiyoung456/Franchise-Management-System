@@ -5,6 +5,7 @@ import com.franchise.backend.store.entity.StoreState;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -80,6 +81,38 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
         WHERE u.department = :department
     """)
     List<Long> findStoreIdsBySupervisorDepartment(@Param("department") String department);
+
+    // ADMIN 홈: 위험 점포 TOP5 (current_state=RISK, current_state_score desc)
+    // JPQL은 NULLS LAST가 애매해서 CASE로 null 처리
+    @Query("""
+        SELECT s
+        FROM Store s
+        WHERE s.currentState = com.franchise.backend.store.entity.StoreState.RISK
+        ORDER BY
+          (CASE WHEN s.currentStateScore IS NULL THEN 1 ELSE 0 END) ASC,
+          s.currentStateScore DESC,
+          s.updatedAt DESC
+    """)
+    List<Store> findTopRiskStores(Pageable pageable);
+
+    // 관리자 전체 점포 목록
+    @Query("""
+        SELECT s
+        FROM Store s
+        LEFT JOIN s.supervisor u
+        WHERE (:state IS NULL OR s.currentState = :state)
+          AND (
+                :keyword IS NULL
+                OR s.storeName LIKE %:keyword%
+                OR u.loginId LIKE %:keyword%
+                OR u.userName LIKE %:keyword%
+          )
+        ORDER BY s.updatedAt DESC
+    """)
+    List<Store> searchStoresForAdmin(
+            @Param("state") StoreState state,
+            @Param("keyword") String keyword
+    );
 
     List<Store> findBySupervisor_Id(Long supervisorId);
 

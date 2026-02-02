@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ActionRepository extends JpaRepository<Action, Long> {
@@ -16,6 +17,7 @@ public interface ActionRepository extends JpaRepository<Action, Long> {
 
     long countByStoreIdInAndStatusIn(List<Long> storeIds, List<String> statuses);
     long countByStatusIn(List<String> statuses);
+
 
     // 팀장 조치 관리: "팀장 부서 SV 점포" + "이벤트 연계" + "상태(옵션)"
     @Query("""
@@ -69,5 +71,23 @@ public interface ActionRepository extends JpaRepository<Action, Long> {
     """)
     long countAllInProgressEventLinkedActions(
             @Param("statuses") List<String> statuses
+    );
+
+    long countByStatusInAndDueDateBefore(
+            List<String> statuses,
+            LocalDate baseDate
+    );
+
+    // 가장 긴급한 OVERDUE 조치 1건
+    @Query("""
+        SELECT a
+        FROM Action a
+        WHERE a.status IN :statuses
+          AND a.dueDate < :baseDate
+        ORDER BY a.dueDate ASC, a.priority ASC
+    """)
+    List<Action> findMostUrgentOverdueAction(
+            @Param("statuses") List<String> statuses,
+            @Param("baseDate") LocalDate baseDate
     );
 }
