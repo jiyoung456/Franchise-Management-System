@@ -91,4 +91,13 @@ public class Post {
     public void unpin() {
         this.isPinned = false;
     }
+
+    // 게시글 수정 (수정자 포함 + 고정여부 포함)
+    public void update(String title, String content, Long updaterUserId, Boolean isPinned) {
+        if (title != null) this.title = title;
+        if (content != null) this.content = content;
+        if (updaterUserId != null) this.updatedByUserId = updaterUserId;
+        if (isPinned != null) this.isPinned = isPinned;
+    }
+
 }
