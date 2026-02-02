@@ -10,6 +10,9 @@ import java.util.List;
 @AllArgsConstructor
 public class PosKpiDashboardResponse {
 
+    //기준일 확인
+    private String asOfDate;
+
     private Long storeId;
     private String storeName;
     private String storeState;     // NORMAL/WATCHLIST/RISK
@@ -26,8 +29,6 @@ public class PosKpiDashboardResponse {
     private List<RatePoint> salesChangeTrend;     // 매출 증감률 추이(라인)
     private List<OrderAovPoint> ordersAndAovTrend;// 주문수(바) & 객단가(라인)
 
-    // 기준선(토글)
-    private Baseline baseline; // baseline=false면 null 가능
 
     @Getter
     @AllArgsConstructor
@@ -70,17 +71,5 @@ public class PosKpiDashboardResponse {
         private String label;
         private Long orders;     // 주문수
         private Long aov;        // 객단가
-    }
-
-    @Getter
-    @AllArgsConstructor
-    public static class Baseline {
-        // 기준선 값(메트릭별)
-        private Long salesBaseline;     // 매출 기준선
-        private Long ordersBaseline;    // 주문 기준선
-        private Long aovBaseline;       // 객단가 기준선
-
-        // 경고 임계치(증감률)
-        private Double salesWarnRate;   // 예: -10.0 (=-10%)
     }
 }

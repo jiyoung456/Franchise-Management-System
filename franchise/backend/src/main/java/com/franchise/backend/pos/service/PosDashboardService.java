@@ -203,6 +203,7 @@ public class PosDashboardService {
      * MONTH: 해당 월의 1일로 보정
      */
     private LocalDate normalizePeriodStart(PosPeriodType type, LocalDate start) {
+
         if (start == null) return null;
 
         if (type == PosPeriodType.WEEK) {

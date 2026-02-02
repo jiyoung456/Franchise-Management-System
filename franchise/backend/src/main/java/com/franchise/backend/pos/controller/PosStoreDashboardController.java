@@ -22,9 +22,18 @@ public class PosStoreDashboardController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long storeId,
             @RequestParam PosPeriodType periodType,
-            @RequestParam LocalDate periodStart
+            @RequestParam(required = false) LocalDate periodStart
     ) {
         String loginId = userDetails.getUsername();
-        return posStoreDashboardService.getStoreDashboard(loginId, storeId, periodType, periodStart);
+
+        LocalDate asOf = LocalDate.of(2025, 8, 25);
+        LocalDate start = (periodStart != null) ? periodStart : asOf;
+
+        return posStoreDashboardService.getStoreDashboard(
+                loginId,
+                storeId,
+                periodType,
+                start
+        );
     }
 }
