@@ -23,5 +23,17 @@ export const DashboardService = {
             console.error('Failed to fetch SV dashboard:', error);
             throw error;
         }
+    },
+
+    // 3. Admin Dashboard Summary
+    getAdminSummary: async (): Promise<any> => {
+        try {
+            const response = await api.get('/dashboard/admin/summary');
+            console.log('Admin Summary Response:', response.data);
+            return response.data.data || response.data;
+        } catch (error) {
+            console.error('Failed to fetch admin summary:', error);
+            throw error;
+        }
     }
 };

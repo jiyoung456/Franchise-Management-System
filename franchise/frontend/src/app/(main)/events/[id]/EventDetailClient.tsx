@@ -91,7 +91,7 @@ export default function EventDetailClient({ id }: { id: string }) {
 
             {/* Footer Buttons */}
             <div className="flex justify-end mt-8">
-                {(role === 'MANAGER' || role === 'ADMIN') && (
+                {(role === 'MANAGER') && (
                     <button
                         onClick={() => router.push(`/actions/new?eventId=${id}`)}
                         className="px-6 py-3 bg-blue-600 text-white font-bold text-lg rounded hover:bg-blue-700 shadow-sm"

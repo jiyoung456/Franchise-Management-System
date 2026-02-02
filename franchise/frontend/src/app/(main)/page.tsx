@@ -17,7 +17,7 @@ import { MOCK_EVENTS } from '@/lib/mock/mockEventData';
 import { MOCK_RISK_PROFILES } from '@/lib/mock/mockRiskData';
 import { ActionService } from '@/services/actionService';
 import { DashboardService } from '@/services/dashboardService'; // Import added
-import { ManagerDashboardSummary, SupervisorDashboardSummary } from '@/types'; // Import added
+import { ManagerDashboardSummary, SupervisorDashboardSummary, AdminDashboardSummary } from '@/types'; // Import added
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -46,20 +46,14 @@ const GRADE_DISTRIBUTION_DATA = [
 
 // --- ADMIN DASHBOARD ---
 function AdminDashboard() {
-  const [allStores, setAllStores] = useState<Store[]>([]);
+  const [summary, setSummary] = useState<AdminDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [actionCount, setActionCount] = useState(0);
 
   useEffect(() => {
     const init = async () => {
       try {
-        const [stores, count] = await Promise.all([
-          StoreService.getStores({ limit: 200 }),
-          ActionService.getSummary()
-        ]);
-        setAllStores(stores);
-        setActionCount(count);
+        const data = await DashboardService.getAdminSummary();
+        setSummary(data);
       } catch (error) {
         console.error("Failed to load admin dashboard data", error);
       } finally {
@@ -69,14 +63,16 @@ function AdminDashboard() {
     init();
   }, []);
 
-  const totalStores = allStores.length;
-  const riskStores = allStores.filter(s => s.state === 'RISK').length;
-  const oneDayAgo = new Date();
-  oneDayAgo.setDate(oneDayAgo.getDate() - 2);
-  const newEvents = MOCK_EVENTS.filter(e => new Date(e.timestamp) > oneDayAgo).length;
-  const overdueActions = actionCount; // Using inProgressCount from backend as fallback for overdue
+  // Use backend data or defaults
+  const totalStores = summary?.totalStoreCount ?? 0;
+  const riskStores = summary?.riskStoreCount ?? 0;
+  // Calculate percent manually
+  const riskPercent = totalStores > 0 ? ((riskStores / totalStores) * 100).toFixed(1) : 0;
+  const newEvents = summary?.newEventCount ?? 0;
+  const unresolvedActions = summary?.pendingActionCount ?? 0;
+  const topRiskStores = summary?.riskTopStores ?? [];
 
-  // Reuse same mock chart data for simplicity
+  // Reuse same mock chart data for simplicity (as backend doesn't provide this yet)
   const qscTrendData = [
     { month: '7월', score: 82 }, { month: '8월', score: 84 }, { month: '9월', score: 83 },
     { month: '10월', score: 85 }, { month: '11월', score: 81 }, { month: '12월', score: 83 },
@@ -85,7 +81,6 @@ function AdminDashboard() {
     { month: '7월', sales: 4200 }, { month: '8월', sales: 4500 }, { month: '9월', sales: 4300 },
     { month: '10월', sales: 4800 }, { month: '11월', sales: 4600 }, { month: '12월', sales: 5100 },
   ];
-  const topRiskStores = Object.values(MOCK_RISK_PROFILES).sort((a, b) => b.totalRiskScore - a.totalRiskScore).slice(0, 5);
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
 
@@ -112,16 +107,13 @@ function AdminDashboard() {
           <div>
             <p className="text-sm font-medium text-gray-500">위험(Risk) 점포</p>
             <h3 className="text-2xl font-bold text-red-600 mt-1">{riskStores}개</h3>
-            <span className="text-xs text-red-500 font-medium mt-2 inline-block">
-              전체의 {totalStores > 0 ? ((riskStores / totalStores) * 100).toFixed(1) : 0}%
-            </span>
+
           </div>
           <div className="p-3 bg-red-50 rounded-lg text-red-600">
             <Siren className="w-5 h-5" />
           </div>
         </div>
 
-        {/* ... Rest of Admin Cards ... */}
         <div className="p-6 bg-white rounded-xl border border-gray-100 shadow-sm flex items-start justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500">신규 이벤트 (48h)</p>
@@ -132,7 +124,7 @@ function AdminDashboard() {
         <div className="p-6 bg-white rounded-xl border border-gray-100 shadow-sm flex items-start justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500">조치 미이행/지연</p>
-            <h3 className="text-2xl font-bold text-gray-900 mt-1">{overdueActions}건</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mt-1">{unresolvedActions}건</h3>
           </div>
           <div className="p-3 bg-orange-50 rounded-lg text-orange-600"><ClipboardList className="w-5 h-5" /></div>
         </div>
@@ -164,12 +156,19 @@ function AdminDashboard() {
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-full">
           <h3 className="font-bold text-gray-900 flex items-center mb-4"><AlertTriangle className="w-4 h-4 mr-2 text-red-500" />위험 점포 TOP 5</h3>
           <div className="space-y-4">
-            {topRiskStores.map((store, i) => (
-              <div key={i} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
-                <span className="text-sm font-medium text-gray-700">{i + 1}. {store.storeName}</span>
-                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">{store.totalRiskScore}점</span>
+            {topRiskStores.length > 0 ? topRiskStores.map((store, i) => (
+              <div key={i} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded transition-colors group">
+                <span className="text-sm font-medium text-gray-700 group-hover:text-red-700 w-full overflow-hidden text-ellipsis whitespace-nowrap">
+                  {i + 1}. {store.storeName}
+                </span>
+                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded min-w-[50px] text-center">{store.riskScore}점</span>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-8 text-gray-400 text-sm">위험 점포가 없습니다.</div>
+            )}
+            <div className="pt-2 text-xs text-center text-gray-400">
+              * 최근 30일 내 리스크 스코어 기준
+            </div>
           </div>
         </div>
       </div>
