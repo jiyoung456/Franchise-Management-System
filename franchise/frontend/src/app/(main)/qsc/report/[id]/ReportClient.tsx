@@ -7,13 +7,16 @@ import {
     MessageSquare, FileText, Camera
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
 
 export default function ReportClient({ id, storeId }: { id: string, storeId?: string }) {
     const router = useRouter();
 
     const [reportData, setReportData] = useState<any | null>(null); // Extended Inspection type
     const [loading, setLoading] = useState(true);
+    const pdfRef = useRef<HTMLDivElement>(null);
 
     // Tab State
     // const [activeTab, setActiveTab] = useState('quality'); // Default first tab (Unused in original code but kept for consistency if needed later)
@@ -23,13 +26,8 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
             setLoading(true);
             try {
                 let data;
-                if (storeId) {
-                    // Fetch using backend list filtering
-                    data = await QscService.getInspectionDetail(Number(storeId), id);
-                } else {
-                    // Fallback to purely local mock if no storeId provided (Demo mode compatibility)
-                    data = QscService.getInspection(id);
-                }
+                // Always fetch using backend API (updated QscService handles it by inspectionId)
+                data = await QscService.getInspectionDetail(Number(storeId) || 0, id);
 
                 if (data) {
                     setReportData(data);
@@ -63,12 +61,67 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
     // Find grade label
     const gradeInfo = QSC_GRADE_CRITERIA.find(c => c.grade === reportData.grade);
 
+    const handleDownloadPdf = async () => {
+        if (!pdfRef.current) return;
+
+        try {
+            // Filter out elements with 'no-print' class during capture
+            const filter = (node: HTMLElement) => {
+                const exclusionClasses = ['no-print'];
+                return !exclusionClasses.some(cls => node.classList?.contains(cls));
+            };
+
+            const dataUrl = await toPng(pdfRef.current, {
+                cacheBust: true,
+                backgroundColor: '#f9fafb',
+                filter: filter as any,
+                width: 1200,
+                style: {
+                    width: '1200px',
+                    maxWidth: 'none',
+                    margin: '0',
+                }
+            });
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+
+            const margin = 10;
+            const contentWidth = pdfWidth - (margin * 2);
+
+            // Calculate height while maintaining aspect ratio
+            const imgProps = pdf.getImageProperties(dataUrl);
+            const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
+
+            let heightLeft = contentHeight;
+            let position = margin;
+
+            // Page 1
+            pdf.addImage(dataUrl, 'PNG', margin, position, contentWidth, contentHeight);
+            heightLeft -= pdfHeight;
+
+            // Additional Pages
+            while (heightLeft > 0) {
+                position = margin - (contentHeight - heightLeft);
+                pdf.addPage();
+                pdf.addImage(dataUrl, 'PNG', margin, position, contentWidth, contentHeight);
+                heightLeft -= pdfHeight;
+            }
+
+            pdf.save(`${reportData.storeName}_QSC_Report_${reportData.date}.pdf`);
+        } catch (error) {
+            console.error('PDF Download failed:', error);
+            alert('PDF 다운로드 중 오류가 발생했습니다.');
+        }
+    };
+
     return (
-        <div className="max-w-7xl mx-auto pb-24 space-y-6">
+        <div className="max-w-7xl mx-auto pb-24 space-y-6" ref={pdfRef}>
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition-colors no-print">
                         <ArrowLeft className="w-6 h-6 text-gray-500" />
                     </button>
                     <div>
@@ -92,9 +145,9 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 no-print">
                     <button
-                        onClick={() => alert('PDF 다운로드 기능은 준비 중입니다.')}
+                        onClick={handleDownloadPdf} // Connect handler
                         className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg font-bold hover:bg-gray-800 text-sm shadow-sm"
                     >
                         <Download className="w-4 h-4" />
@@ -131,14 +184,14 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                                 }}
                                 className="flex flex-col p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100 text-left group"
                             >
-                                <span className={`text-xs font-bold mb-1 ${cat.code === 'QUALITY' ? 'text-blue-600' :
+                                <span className={`text-base font-bold mb-2 ${cat.code === 'QUALITY' ? 'text-blue-600' :
                                     cat.code === 'SERVICE' ? 'text-green-600' :
                                         cat.code === 'CLEANLINESS' ? 'text-purple-600' :
                                             cat.code === 'SAFETY' ? 'text-orange-600' : 'text-red-600'
                                     }`}>{cat.name}</span>
                                 <div className="flex items-end gap-1">
-                                    <span className="text-xl font-extrabold text-gray-900">{catScore}</span>
-                                    {catMaxScore && <span className="text-xs text-gray-400 mb-1">/ {catMaxScore}</span>}
+                                    <span className="text-3xl font-extrabold text-gray-900">{catScore}</span>
+                                    {catMaxScore && <span className="text-sm text-gray-400 mb-1.5">/ {catMaxScore}</span>}
                                 </div>
                             </button>
                         );
@@ -159,7 +212,7 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                         return (
                             <div id={`category-${cat.id}`} key={cat.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden scroll-mt-24">
                                 <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
-                                    <h3 className="font-extrabold text-gray-800 flex items-center gap-2">
+                                    <h3 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
                                         <span className={`w-3 h-6 rounded-sm ${cat.code === 'QUALITY' ? 'bg-blue-500' :
                                             cat.code === 'SERVICE' ? 'bg-green-500' :
                                                 cat.code === 'CLEANLINESS' ? 'bg-purple-500' :
@@ -167,7 +220,7 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                                             }`}></span>
                                         {cat.name}
                                     </h3>
-                                    <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{catItems.length} 항목</span>
+                                    <span className="text-sm font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{catItems.length} 항목</span>
                                 </div>
                                 <div className="p-6 space-y-6">
                                     <div className="space-y-2">
@@ -183,12 +236,12 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                                             return (
                                                 <div key={item.id} className="flex items-start justify-between p-3 bg-gray-50/50 rounded-lg">
                                                     <div className="flex-1 pr-4">
-                                                        <div className="text-sm font-bold text-gray-900">{item.name}</div>
-                                                        {item.criteria && <div className="text-xs text-gray-500 mt-0.5">{item.criteria}</div>}
+                                                        <div className="text-base font-bold text-gray-900">{item.name}</div>
+                                                        {item.criteria && <div className="text-xs text-gray-500 mt-1">{item.criteria}</div>}
                                                     </div>
                                                     <div className="text-right whitespace-nowrap">
-                                                        <div className={`text-xs font-bold ${colorClass}`}>{ratingLabel}</div>
-                                                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">{rawScoreNum} / {item.weight || 5}.0</div>
+                                                        <div className={`text-base font-bold ${colorClass}`}>{ratingLabel}</div>
+                                                        <div className="text-xs text-gray-400 font-mono mt-1">{rawScoreNum} / {item.weight || 5}.0</div>
                                                     </div>
                                                 </div>
                                             );
