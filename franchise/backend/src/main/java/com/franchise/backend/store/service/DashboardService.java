@@ -280,6 +280,69 @@ public class DashboardService {
     }
 
 
+    // ADMIN 점포 목록
+    public List<StoreListResponse> getStoresForAdmin(StoreSearchRequest condition) {
+
+        int safeLimit = normalizeLimit(condition.getLimit());
+
+        List<Store> stores = storeRepository.searchStoresForAdmin(
+                condition.getState(),
+                normalizeKeyword(condition.getKeyword())
+        );
+
+        List<Long> storeIds = stores.stream().map(Store::getId).toList();
+
+        Map<Long, QscMaster> latestQscMap = storeIds.isEmpty()
+                ? Map.of()
+                : qscMasterRepository.findLatestCompletedByStoreIds(storeIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        QscMaster::getStoreId,
+                        q -> q,
+                        (a, b) -> a.getInspectedAt().isAfter(b.getInspectedAt()) ? a : b
+                ));
+
+        List<StoreListResponse> rows = stores.stream()
+                .map(s -> {
+                    QscMaster q = latestQscMap.get(s.getId());
+
+                    Integer qscScore = (q != null ? q.getTotalScore() : 0);
+                    LocalDate lastInspectionDate =
+                            (q != null && q.getInspectedAt() != null)
+                                    ? q.getInspectedAt().toLocalDate()
+                                    : null;
+
+                    String supervisorDisplay = "-";
+                    String regionDisplay = "-";
+
+                    if (s.getSupervisor() != null) {
+                        supervisorDisplay = Optional.ofNullable(s.getSupervisor().getUserName())
+                                .filter(v -> !v.isBlank())
+                                .orElse(s.getSupervisor().getLoginId());
+
+                        regionDisplay = Optional.ofNullable(s.getSupervisor().getRegion())
+                                .orElse(s.getRegionCode());
+                    }
+
+                    return new StoreListResponse(
+                            s.getId(),
+                            s.getStoreName(),
+                            s.getCurrentState().name(),
+                            regionDisplay,
+                            supervisorDisplay,
+                            qscScore,
+                            lastInspectionDate
+                    );
+                })
+                .toList();
+
+        StoreSort sort = normalizeSort(condition.getSort());
+        rows = rows.stream().sorted(sort.getComparator()).toList();
+
+        return rows.size() > safeLimit ? rows.subList(0, safeLimit) : rows;
+    }
+
+
 
     // SV 홈 대시보드
     public SupervisorDashboardSummaryResponse getSupervisorSummary(String supervisorLoginId) {

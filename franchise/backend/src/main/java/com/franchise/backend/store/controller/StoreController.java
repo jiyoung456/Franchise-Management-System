@@ -26,7 +26,7 @@ public class StoreController {
     private final StoreService storeService;
     private final EventQueryService eventQueryService;
 
-    // 점포 목록 조회 (팀장 홈)
+    // 점포 목록 조회
     // - state: NORMAL/WATCHLIST/RISK (없으면 전체)
     // - keyword: 점포명 / 담당 SV(login_id)
     // - sort:
@@ -43,17 +43,37 @@ public class StoreController {
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "50") int limit
     ) {
+        if (principal == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                    "Unauthorized: login required"
+            );
+        }
+
         StoreSearchRequest condition = new StoreSearchRequest();
         condition.setState(state);
         condition.setKeyword(keyword);
         condition.setSort(sort);
         condition.setLimit(limit);
 
-        // 팀장 loginId는 토큰에서 가져옴
-        String managerLoginId = principal.getLoginId();
+        // ADMIN: 전체 점포
+        if (principal.getRole() == com.franchise.backend.user.entity.Role.ADMIN) {
+            return ApiResponse.ok(dashboardService.getStoresForAdmin(condition));
+        }
 
-        return ApiResponse.ok(dashboardService.getStoresForManager(managerLoginId, condition));
+        // MANAGER: 부서 기준
+        if (principal.getRole() == com.franchise.backend.user.entity.Role.MANAGER) {
+            return ApiResponse.ok(
+                    dashboardService.getStoresForManager(principal.getLoginId(), condition)
+            );
+        }
+
+        // SUPERVISOR: 본인 담당 점포
+        return ApiResponse.ok(
+                storeService.getStoresForSupervisor(principal.getLoginId(), condition)
+        );
     }
+
 
     // 점포 상세(가게 정보)
     @GetMapping("/{storeId}")

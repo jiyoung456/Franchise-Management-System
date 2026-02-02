@@ -34,7 +34,7 @@ public class ActionResultFormService {
         Action action = actionRepository.findById(actionId)
                 .orElseThrow(() -> new IllegalArgumentException("Action not found. id=" + actionId));
 
-        // ✅ EventLog.summary 가져오기 (relatedEventId nullable 방어)
+        // EventLog.summary 가져오기 (relatedEventId nullable 방어)
         String issueReason = null;
         if (action.getRelatedEventId() != null) {
             EventLog eventLog = eventLogRepository.findById(action.getRelatedEventId())
@@ -42,7 +42,7 @@ public class ActionResultFormService {
             issueReason = eventLog.getSummary() + " (이벤트 #" + eventLog.getEventId() + ")";
         }
 
-        // ✅ ActionResult는 없을 수도 있음
+        // ActionResult는 없을 수도 있음
         ActionResult actionResult = actionResultRepository.findByAction_Id(actionId).orElse(null);
 
         LocalDate performedDate = null;
