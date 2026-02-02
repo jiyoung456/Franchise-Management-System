@@ -1,4 +1,4 @@
-package com.franchise.backend.comment.service;
+package com.franchise.backend.qscComment.service;
 
 import org.springframework.stereotype.Service;
 
