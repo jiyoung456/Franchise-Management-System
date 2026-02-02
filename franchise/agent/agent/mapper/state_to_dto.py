@@ -1,0 +1,47 @@
+from typing import Dict, Any
+
+def build_briefing_response(state: Dict[str, Any]) -> Dict[str, Any]:
+    # target_date 구성
+    target_date = {
+
+        "user_id": state["user_id"],
+        "role": state["role"],
+        "department": state["department"],
+        "store_list": state["store_list"],
+        "qsc_30_list": state["qsc_30_list"],
+        "no_action": state["no_action"],
+        "event_48_list": state["event_48_list"],
+        "pos_7_list": state["pos_7_list"],
+        "contract_end_imminent": state["contract_end_imminent"]
+    }
+
+    response = {
+        "target_date": target_date,
+        "focus_point_json": state["focus_point_json"],
+        "focus_point_json_checked": state["focus_point_json_checked"],
+        "top_stroe_json": state["top_store_json"],
+        "summary_text": state["summary"],
+        "generate_at": state["generate_at"]
+    }
+
+    return response
+
+def build_comment_response(state: Dict[str, Any]) -> Dict[str, Any]:
+    raw_response_json = {
+        "summary": state["summary"],
+        "topic_json": state["topic_json"],
+        "keyword_json": state["keyword_json"]
+    }
+
+    response = {
+        "source_text": state["sv_comment"],
+        "topic_json": state["topic_json"],
+        "keyword_json": state["keyword_json"],
+        "summary": state["summary"],
+        "raw_response_json": raw_response_json,
+        "analyzed_at": state["analyzed_at"],
+        "model_name": state["model_name"],
+        "prompt_version": state["prompt_version"]
+    }
+
+    return response
