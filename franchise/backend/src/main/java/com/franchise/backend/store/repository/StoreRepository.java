@@ -85,9 +85,9 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     //관리자 기준 모든 점포 조회
     @Query("""
-    SELECT s.id
-    FROM Store s
-""")
+        SELECT s.id
+        FROM Store s
+    """)
     List<Long> findAllStoreIds();
 }
 
