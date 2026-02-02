@@ -247,7 +247,42 @@ export const PosService = {
                 params: { periodType, periodStart: finalPeriodStart },
             });
 
-            return response.data;
+            // Cast to expected Backend DTO
+            const backend = response.data as SupervisorPosDashboardBackendResponse;
+
+            // Map to Frontend DTO (PosKpiDashboardResponse) expected by PerformanceClient
+            // Note: Some fields like 'orders' or 'aov' in trend might be missing in SV response, defaulting to 0.
+            const uiResponse: PosKpiDashboardResponse = {
+                storeId: storeId,
+                storeName: "", // Available in StoreService call in UI
+                storeState: 'NORMAL',
+                periodType: periodType,
+                summary: {
+                    totalSales: backend.summary?.totalSales ?? 0,
+                    totalSalesRate: backend.summary?.salesChangeRate ?? 0,
+                    totalOrders: backend.summary?.totalOrders ?? 0,
+                    totalOrdersRate: backend.summary?.orderChangeRate ?? 0,
+                    aov: backend.summary?.avgOrderValue ?? 0,
+                    aovRate: backend.summary?.aovChangeRate ?? 0
+                },
+                statusSummary: { title: "", detail: "", level: "INFO" },
+                salesTrend: (backend.trend ?? []).map(t => ({
+                    label: t.date,
+                    value: t.sales
+                })),
+                salesChangeTrend: (backend.trend ?? []).map(t => ({
+                    label: t.date,
+                    value: 0 // Backend doesn't provide change trend history yet
+                })),
+                ordersAndAovTrend: (backend.trend ?? []).map(t => ({
+                    label: t.date,
+                    orders: 0, // Backend SV trend DTO lacks orders history
+                    aov: 0
+                })),
+                baseline: null
+            };
+
+            return uiResponse;
         } catch (error) {
             console.error('Failed to fetch SV store detail:', error);
             return null;

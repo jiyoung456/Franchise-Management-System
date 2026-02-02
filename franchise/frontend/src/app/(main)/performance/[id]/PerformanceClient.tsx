@@ -40,6 +40,10 @@ export default function PerformanceClient({ id }: { id: string }) {
                 // Use current date logic from service
                 const today = new Date().toISOString().split('T')[0];
 
+                // Fetch Store Info
+                const storeInfo = await StoreService.getStore(storeId);
+                setStore(storeInfo);
+
                 let posInfo;
                 if (svStatus) {
                     // Use SV-specific endpoint. Pass undefined for periodStart to let service decide default if needed, 
@@ -75,12 +79,12 @@ export default function PerformanceClient({ id }: { id: string }) {
     })() : [];
 
     const metrics = dashboardData ? {
-        sales: dashboardData.summary.totalSales,
-        salesGrowth: dashboardData.summary.totalSalesRate,
-        atv: dashboardData.summary.aov,
-        atvGrowth: dashboardData.summary.aovRate,
-        orders: dashboardData.summary.totalOrders,
-        ordersGrowth: dashboardData.summary.totalOrdersRate
+        sales: dashboardData.summary?.totalSales ?? 0,
+        salesGrowth: dashboardData.summary?.totalSalesRate ?? 0,
+        atv: dashboardData.summary?.aov ?? 0,
+        atvGrowth: dashboardData.summary?.aovRate ?? 0,
+        orders: dashboardData.summary?.totalOrders ?? 0,
+        ordersGrowth: dashboardData.summary?.totalOrdersRate ?? 0
     } : {
         sales: 0, salesGrowth: 0,
         atv: 0, atvGrowth: 0,

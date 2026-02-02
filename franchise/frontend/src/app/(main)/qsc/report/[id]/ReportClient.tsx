@@ -107,16 +107,18 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">영역별 점수 (클릭하여 이동)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {template?.categories?.map(cat => {
-                        const catItems = cat.items;
-                        const catMaxScore = cat.weight;
+                    {template?.categories?.map((cat: any) => {
+                        const catItems = cat.items || [];
+                        const catMaxScore = cat.weight || 0;
 
                         let catScore = 0;
-                        if (reportData.answers) {
+                        if (reportData?.answers) {
                             catItems.forEach((item: any) => {
                                 const ans = reportData.answers[item.id];
-                                const raw = typeof ans === 'number' ? ans : (ans?.score || 0);
-                                catScore += Number(raw);
+                                if (ans !== undefined && ans !== null) {
+                                    const raw = typeof ans === 'number' ? ans : (ans?.score ?? 0);
+                                    catScore += Number(raw);
+                                }
                             });
                         }
 

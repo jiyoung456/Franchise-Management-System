@@ -314,7 +314,7 @@ export const QscService = {
         if (found) {
             return {
                 ...found,
-                answers: [],
+                answers: {},
                 overallPhotos: [],
                 overallComment: found.summaryComment || ''
             };
