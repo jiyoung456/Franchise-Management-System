@@ -83,8 +83,13 @@ export const AuthService = {
                 updatedAt: new Date().toISOString()
             };
 
+
+
+
+
             // Store user in localStorage for session management
-            localStorage.setItem('currentUser', JSON.stringify(user));
+            // Use 'fms_current_user' to match StorageService which is used by UI components
+            localStorage.setItem('fms_current_user', JSON.stringify(user));
 
             return { success: true, user };
         } catch (error: any) {
@@ -98,7 +103,7 @@ export const AuthService = {
 
     logout: async () => {
         localStorage.removeItem('token');
-        localStorage.removeItem('currentUser');
+        localStorage.removeItem('fms_current_user');
         // optionally call logout endpoint
         if (typeof window !== 'undefined') {
             window.location.href = '/login';
@@ -126,7 +131,7 @@ export const AuthService = {
     getCurrentUser: async (): Promise<User | null> => {
         // For real API, check localStorage first
         if (typeof window !== 'undefined') {
-            const storedUser = localStorage.getItem('currentUser');
+            const storedUser = localStorage.getItem('fms_current_user');
             if (storedUser) {
                 return JSON.parse(storedUser);
             }
@@ -147,7 +152,7 @@ export const AuthService = {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
-            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('fms_current_user', JSON.stringify(user));
             return user;
         } catch (error) {
             return null;

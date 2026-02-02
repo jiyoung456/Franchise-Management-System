@@ -194,7 +194,7 @@ function SignupContent() {
                         <Logo />
                     </div>
                 </div>
-                <h2 className="mt-6 text-xl text-gray-500 font-medium">회원가입</h2>
+
             </div>
 
             {/* Tabs - HIDE if typeParam exists (user selected strictly from Login) */}
