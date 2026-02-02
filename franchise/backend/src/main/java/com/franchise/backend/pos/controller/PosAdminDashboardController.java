@@ -28,9 +28,13 @@ public class PosAdminDashboardController {
     public PosDashboardResponse getDashboard(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam PosPeriodType periodType,
-            @RequestParam LocalDate periodStart
+            @RequestParam(required = false) LocalDate periodStart
+
     ) {
         String loginId = userDetails.getUsername();
+
+        LocalDate asOf = LocalDate.of(2025, 8, 25);
+        LocalDate start = (periodStart != null) ? periodStart : asOf;
 
         return posDashboardService.getDashboard(
                 loginId,
