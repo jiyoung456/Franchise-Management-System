@@ -47,16 +47,32 @@ function SvPerformanceView() {
         const loadDashboard = async () => {
             setLoading(true);
             try {
-                // Fetch from real API
-                // Let PosService handle periodStart default (Last Month / Last Week)
-                const result = await PosService.getSupervisorDashboard(period, undefined); // Explicitly pass undefined for periodStart
-                if (result) {
-                    setData(result);
+                // 1. Fetch Performance Data (may have empty list if no sales)
+                const posData = await PosService.getSupervisorDashboard(period, undefined);
+
+                // 2. Fetch Assigned Stores (Master List)
+                const myStores = await StoreService.getStoresBySv();
+
+                if (posData) {
+                    // Merge: If posData.storeList is empty, use myStores to populate it with 0 values
+                    if (posData.storeList.length === 0 && myStores.length > 0) {
+                        posData.storeList = myStores.map((store: any) => ({
+                            storeId: Number(store.id),
+                            storeName: store.name,
+                            region: store.region,
+                            revenue: 0,
+                            margin: 0,
+                            marginRate: 0,
+                            growth: 0
+                        }));
+                    }
+                    setData(posData);
                 } else {
-                    setData(null); // Trigger error view
+                    setData(null);
                 }
             } catch (e) {
                 console.error("Failed to load SV dashboard", e);
+                setData(null);
             } finally {
                 setLoading(false);
             }

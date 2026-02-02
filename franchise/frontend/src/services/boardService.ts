@@ -43,12 +43,34 @@ export const BoardService = {
         }
     },
 
+    // POST /api/board/posts
+    createPost: async (data: { title: string; content: string; isPinned?: boolean }): Promise<boolean> => {
+        try {
+            await api.post('/board/posts', data);
+            return true;
+        } catch (error) {
+            console.error('Failed to create post:', error);
+            return false;
+        }
+    },
+
+    // PATCH /api/board/posts/{id}
     updatePost: async (id: number | string, data: Partial<BoardDetail>): Promise<boolean> => {
         try {
-            await api.put(`/board/posts/${id}`, data);
+            await api.patch(`/board/posts/${id}`, data);
             return true;
         } catch (error) {
             console.error(`Failed to update post ${id}:`, error);
+            return false;
+        }
+    },
+    // DELETE /api/board/posts/{id}
+    deletePost: async (id: number | string): Promise<boolean> => {
+        try {
+            await api.delete(`/board/posts/${id}`);
+            return true;
+        } catch (error) {
+            console.error(`Failed to delete post ${id}:`, error);
             return false;
         }
     },

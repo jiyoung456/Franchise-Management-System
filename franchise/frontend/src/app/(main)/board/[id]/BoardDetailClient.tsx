@@ -72,8 +72,16 @@ export default function BoardDetailClient({ id }: Props) {
     if (loading) return <div className="p-8 text-center text-gray-500">게시물을 불러오는 중...</div>;
     if (!post) return null;
 
-    const handleDelete = () => {
-        alert('삭제 기능은 현재 백엔드에서 지원하지 않습니다.');
+    const handleDelete = async () => {
+        if (!confirm('정말로 이 게시글을 삭제하시겠습니까?')) return;
+
+        const success = await BoardService.deletePost(id);
+        if (success) {
+            alert('게시글이 삭제되었습니다.');
+            router.push('/board');
+        } else {
+            alert('게시글 삭제에 실패했습니다.');
+        }
     };
 
     return (
