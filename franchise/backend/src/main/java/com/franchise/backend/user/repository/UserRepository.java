@@ -3,7 +3,9 @@ package com.franchise.backend.user.repository;
 import com.franchise.backend.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
+import com.franchise.backend.user.entity.Role;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -16,4 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     Optional<User> findByEmail(String email);
+
+    //지역별 sv 불러오기
+    List<User> findByRoleAndRegionOrderByUserNameAsc(Role role, String region);
+
 }
