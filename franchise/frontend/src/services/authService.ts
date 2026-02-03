@@ -87,9 +87,14 @@ export const AuthService = {
 
 
 
-            // Store user in localStorage for session management
-            // Use 'fms_current_user' to match StorageService which is used by UI components
+            // Store user and token in localStorage for session management
             localStorage.setItem('fms_current_user', JSON.stringify(user));
+
+            // Check for token in response data (e.g., accessToken or token)
+            const token = userData.accessToken || userData.token;
+            if (token) {
+                localStorage.setItem('token', token);
+            }
 
             return { success: true, user };
         } catch (error: any) {

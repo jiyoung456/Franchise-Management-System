@@ -18,9 +18,14 @@ api.interceptors.request.use(
         // Only attach token if we are NOT using mock (or if backend needs it)
         // For now, we assume backend needs token if we are talking to it.
         if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('token');
+            //const token = localStorage.getItem('token');
+            const token = localStorage.getItem('accessToken');
+
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
+                // console.log('DEBUG: JWT Token attached to header');
+            } else {
+                // console.log('DEBUG: No JWT token found in localStorage');
             }
         }
         return config;

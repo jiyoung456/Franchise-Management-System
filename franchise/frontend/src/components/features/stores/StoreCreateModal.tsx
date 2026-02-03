@@ -29,31 +29,25 @@ export function StoreCreateModal({ isOpen, onClose, onSave }: StoreCreateModalPr
 
     const [svs, setSvs] = useState<any[]>([]);
 
-    // Mock SV data for demo purposes before backend integration
-    const MOCK_SVS = [
-        { id: 'sv-1', name: '김철수', userName: '김철수 SV', department: '서울/경기' },
-        { id: 'sv-2', name: '이영희', userName: '이영희 SV', department: '서울/경기' },
-        { id: 'sv-3', name: '박지성', userName: '박지성 SV', department: '부산/경남' },
-        { id: 'sv-4', name: '손흥민', userName: '손흥민 SV', department: '대구/경북' },
-        { id: 'sv-5', name: '김연아', userName: '김연아 SV', department: '광주/전라' },
-        { id: 'sv-6', name: '방탄소년단', userName: 'BTS SV', department: '제주' }
-    ];
-
     useEffect(() => {
-        if (isOpen) {
-            setSvs(MOCK_SVS);
+        if (isOpen && formData.regionCode) {
+            const fetchSvs = async () => {
+                const data = await StoreService.getSupervisorsByRegion(formData.regionCode);
+                setSvs(data);
+            };
+            fetchSvs();
         }
-    }, [isOpen]);
+    }, [isOpen, formData.regionCode]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
 
         if (name === 'currentSupervisorId') {
-            const selectedSv = svs.find(sv => sv.id === value);
+            const selectedSv = svs.find(sv => sv.loginId === value);
             setFormData(prev => ({
                 ...prev,
-                [name]: value, // Store ID
-                svName: selectedSv ? selectedSv.name : '', // Store Name for display/legacy
+                [name]: value, // Store Login ID
+                svName: selectedSv ? selectedSv.userName : '', // Store Name for display/legacy
                 svTeam: selectedSv ? selectedSv.department : ''
             }));
         } else {
@@ -74,22 +68,7 @@ export function StoreCreateModal({ isOpen, onClose, onSave }: StoreCreateModalPr
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const newStoreId = Date.now().toString();
-        const newStore: any = {
-            id: newStoreId,
-            ...formData,
-            operationStatus: 'OPEN',
-            currentState: 'NORMAL',
-            currentStateScore: 80,
-            qscScore: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            statusHistory: [],
-            monthlyRevenue: 0,
-            growthRate: 0
-        };
-
-        const success = await StoreService.addStore(newStore);
+        const success = await StoreService.addStore(formData);
         if (success) {
             alert(`신규 점포가 등록되었습니다.\n(담당 SV: ${formData.svName})`);
             onSave(); // Refresh parent list
@@ -144,9 +123,9 @@ export function StoreCreateModal({ isOpen, onClose, onSave }: StoreCreateModalPr
                                 >
                                     <option value="서울/경기">서울/경기</option>
                                     <option value="부산/경남">부산/경남</option>
-                                    <option value="대구/경북">대구/경북</option>
+                                    <option value="대구/울산/경북">대구/울산/경북</option>
                                     <option value="강원/충청">강원/충청</option>
-                                    <option value="광주/전라">광주/전라</option>
+                                    <option value="전라/광주">전라/광주</option>
                                     <option value="제주">제주</option>
                                 </select>
                             </div>
@@ -242,11 +221,9 @@ export function StoreCreateModal({ isOpen, onClose, onSave }: StoreCreateModalPr
                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                                 >
                                     <option value="">담당 SV 선택</option>
-                                    {svs
-                                        .filter(sv => sv.department === formData.regionCode)
-                                        .map(sv => (
-                                            <option key={sv.id} value={sv.id}>{sv.userName}</option>
-                                        ))}
+                                    {svs.map(sv => (
+                                        <option key={sv.loginId} value={sv.loginId}>{sv.userName}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
