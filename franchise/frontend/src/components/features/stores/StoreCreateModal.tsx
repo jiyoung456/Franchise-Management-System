@@ -29,14 +29,19 @@ export function StoreCreateModal({ isOpen, onClose, onSave }: StoreCreateModalPr
 
     const [svs, setSvs] = useState<any[]>([]);
 
+    // Mock SV data for demo purposes before backend integration
+    const MOCK_SVS = [
+        { id: 'sv-1', name: '김철수', userName: '김철수 SV', department: '서울/경기' },
+        { id: 'sv-2', name: '이영희', userName: '이영희 SV', department: '서울/경기' },
+        { id: 'sv-3', name: '박지성', userName: '박지성 SV', department: '부산/경남' },
+        { id: 'sv-4', name: '손흥민', userName: '손흥민 SV', department: '대구/경북' },
+        { id: 'sv-5', name: '김연아', userName: '김연아 SV', department: '광주/전라' },
+        { id: 'sv-6', name: '방탄소년단', userName: 'BTS SV', department: '제주' }
+    ];
+
     useEffect(() => {
         if (isOpen) {
-            const fetchSvs = async () => {
-                const users = await AuthService.getUsers();
-                const supervisors = users.filter(u => u.role === 'SUPERVISOR');
-                setSvs(supervisors);
-            };
-            fetchSvs();
+            setSvs(MOCK_SVS);
         }
     }, [isOpen]);
 

@@ -327,4 +327,30 @@ export const PosService = {
             return null;
         }
     },
+
+    getAdminDashboard: async (
+        periodType: 'WEEK' | 'MONTH' = 'MONTH',
+        periodStart?: string
+    ): Promise<SupervisorDashboardResponse | null> => {
+        try {
+            const finalPeriodStart =
+                periodStart && periodStart.trim().length > 0
+                    ? periodStart
+                    : getDefaultPeriodStart(periodType);
+
+            const response = await api.get('/pos/admin/dashboard', {
+                params: { periodType, periodStart: finalPeriodStart },
+            });
+
+            const backendDto = response.data as SupervisorPosDashboardBackendResponse;
+            return mapSvBackendToUi(backendDto);
+        } catch (error: any) {
+            console.error('Failed to fetch ADMIN dashboard:', {
+                message: error?.message,
+                status: error?.response?.status,
+                data: error?.response?.data,
+            });
+            return null;
+        }
+    },
 };
