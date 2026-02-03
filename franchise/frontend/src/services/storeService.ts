@@ -34,6 +34,19 @@ const getRegionName = (code: string): string => {
     return code; // 매칭 안되면 원본 코드 반환
 };
 
+// 프론트엔드 한글 지역명 -> 백엔드용 코드 변환
+const getBackendRegionCode = (name: string): string => {
+    switch (name) {
+        case '서울/경기': return 'SEOUL_GYEONGGI';
+        case '부산/경남': return 'BUSAN_GYEONGNAM';
+        case '대구/울산/경북': return 'DAEGU_ULSAN_GYEONGBUK';
+        case '강원/충청': return 'GANGWON_CHUNGCHEONG';
+        case '전라/광주': return 'JEONLA_GWANGJU';
+        case '제주': return 'JEJU';
+        default: return name;
+    }
+};
+
 // 백엔드 데이터 -> 프론트엔드 모델 변환
 const mapBackendStoreToFrontend = (backendStore: any): Store => {
     // regionCode가 없으면 region 필드를 사용 (Mock 데이터 호환성 등)
@@ -151,12 +164,41 @@ export const StoreService = {
         }
     },
 
-    addStore: async (data: any): Promise<boolean> => {
+    addStore: async (formData: any): Promise<boolean> => {
         try {
+            // Map frontend formData to backend StoreCreateRequest format
+            const data = {
+                storeName: formData.name,
+                regionCode: getBackendRegionCode(formData.regionCode),
+                address: formData.address,
+                tradeAreaType: formData.tradeAreaType,
+                // Format date as ISO with time (e.g., 2026-02-03T00:00:00)
+                openPlannedAt: formData.openedAt ? `${formData.openedAt}T00:00:00` : null,
+                ownerName: formData.ownerName,
+                ownerPhone: formData.ownerPhone,
+                supervisorLoginId: formData.currentSupervisorId,
+                contractType: formData.contractType,
+                contractEndDate: formData.contractEndAt || null
+            };
+
+            // api instance handles JWT (Bearer token) via interceptors (using 'accessToken' key)
             await api.post('/stores', data);
             return true;
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Failed to add store:', error?.response?.data || error.message);
             return false;
         }
     },
+
+    getSupervisorsByRegion: async (region: string): Promise<any[]> => {
+        try {
+            const response = await api.get('/users/supervisors', {
+                params: { region }
+            });
+            return response.data.data || response.data || [];
+        } catch (error) {
+            console.error('Failed to fetch supervisors:', error);
+            return [];
+        }
+    }
 };
