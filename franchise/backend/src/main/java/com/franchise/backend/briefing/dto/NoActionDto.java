@@ -11,10 +11,10 @@ import lombok.*;
 public class NoActionDto {
 
     @JsonProperty("action_id")
-    private Integer actionId;
+    private Long actionId;
 
     @JsonProperty("store_id")
-    private Integer storeId;
+    private Long storeId;
 
     @JsonProperty("store_name")
     private String storeName;

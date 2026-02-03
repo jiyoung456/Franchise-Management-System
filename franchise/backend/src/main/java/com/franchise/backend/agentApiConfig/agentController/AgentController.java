@@ -10,6 +10,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class AgentController {
 
+    // 에이전트 api 호출 정의
+    // ======================================================
+    // 1. 브리핑 에이전트 호출 api    public BriefingResponse callBriefingAgent(BriefingRequest request)
+    // 2. 코멘트 에이전트 호출 api    public CommentResponse callCommentAgent(CommentRequest request)
+    // ======================================================
+
     private final FastApiClient fastApiClient;
 
     public AgentController(FastApiClient fastApiClient) {

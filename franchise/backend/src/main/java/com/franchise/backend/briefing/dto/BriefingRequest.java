@@ -14,7 +14,8 @@ public class BriefingRequest {
     @JsonProperty("user_id")
     private Integer userId;
 
-    private String role;
+    @JsonProperty("audience_role")
+    private String audienceRole;
 
     private String department;
 

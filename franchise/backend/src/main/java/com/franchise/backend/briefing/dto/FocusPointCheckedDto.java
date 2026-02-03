@@ -10,7 +10,7 @@ import lombok.*;
 public class FocusPointCheckedDto {
 
     @JsonProperty("check_id")
-    private Integer checkId;
+    private Long checkId;
 
     private Boolean check;
 

@@ -5,7 +5,7 @@ def build_briefing_response(state: Dict[str, Any]) -> Dict[str, Any]:
     target_date = {
 
         "user_id": state["user_id"],
-        "role": state["role"],
+        "audience_role": state["audience_role"],
         "department": state["department"],
         "store_list": state["store_list"],
         "qsc_30_list": state["qsc_30_list"],
