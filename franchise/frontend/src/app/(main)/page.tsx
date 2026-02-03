@@ -145,12 +145,7 @@ function AdminDashboard() {
               <div className="h-[200px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={salesTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} /><Bar dataKey="sales" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} /></BarChart></ResponsiveContainer></div>
             </div>
           </div>
-          {/* AI Insight */}
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 flex flex-col items-center text-center justify-center min-h-[150px]">
-            <Activity className="w-8 h-8 text-indigo-300 mb-2" />
-            <h3 className="text-indigo-900 font-bold">AI 운영 인사이트</h3>
-            <p className="text-indigo-700 text-sm">"최근 강남 지역 QSC 점수 하락세 감지. 식자재 공급 이슈 확인 필요"</p>
-          </div>
+
         </div>
         {/* Risk Stores List */}
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-full">
