@@ -14,16 +14,13 @@ public class BriefingService {
     private final AgentController agentController;
     private final AgentBriefingsRepository agentBriefingsRepository;
 
-    public BriefingService(
-            AgentController agentController,
-            AgentBriefingsRepository agentBriefingsRepository
-    ) {
+    public BriefingService(AgentController agentController,
+                           AgentBriefingsRepository agentBriefingsRepository) {
         this.agentController = agentController;
         this.agentBriefingsRepository = agentBriefingsRepository;
     }
 
     public BriefingResponse generateBriefing(BriefingRequest request) {
-
         BriefingResponse response = agentController.callBriefingAgent(request);
 
         AgentBriefings entity =

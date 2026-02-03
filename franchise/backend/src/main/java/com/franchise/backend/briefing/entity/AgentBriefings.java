@@ -5,14 +5,16 @@ import com.franchise.backend.briefing.dto.FocusPointJsonCheckedDto;
 import com.franchise.backend.briefing.dto.FocusPointJsonDto;
 import com.franchise.backend.briefing.dto.TopStoreJsonDto;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Entity
 @Table(name = "agent_briefing")
@@ -70,5 +72,6 @@ public class AgentBriefings {
         this.focusPointJsonChecked = response.getFocusPointJsonChecked();
         this.topStoreJson = response.getTopStroeJson();
     }
+
 }
 
