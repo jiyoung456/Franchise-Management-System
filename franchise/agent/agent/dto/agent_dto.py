@@ -23,8 +23,8 @@ class BriefingResponse(BaseModel):
     generate_at : datetime
 
 class CommentRequest(BaseModel):
-    store_name: str
-    sv_comment: str
+    inspection_id: int
+    summary_comment: str
 
 class CommentResponse(BaseModel) : 
     source_text : str 

@@ -1,5 +1,6 @@
 package com.franchise.backend.qscComment.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @Getter
@@ -8,23 +9,11 @@ import lombok.*;
 @ToString
 public class CommentRequest {
 
-    private String storeName;
-    private String svComment;
+    @JsonProperty("inspection_id")
+    private Long inspectionId;
 
-    public String getStoreName() {
-        return storeName;
-    }
+    @JsonProperty("summary_comment")
+    private String summaryComment;
 
-    public void setStoreName(String storeName) {
-        this.storeName = storeName;
-    }
-
-    public String getSvComment() {
-        return svComment;
-    }
-
-    public void setSvComment(String svComment) {
-        this.svComment = svComment;
-    }
 }
 

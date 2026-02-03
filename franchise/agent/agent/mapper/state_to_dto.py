@@ -20,7 +20,7 @@ def build_comment_response(state: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     response = {
-        "source_text": state["sv_comment"],
+        "source_text": state["summary_comment"],
         "topic_json": state["topic_json"],
         "keyword_json": state["keyword_json"],
         "summary": state["summary"],

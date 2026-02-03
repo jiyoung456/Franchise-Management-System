@@ -32,8 +32,8 @@ def analyze_comment(request: Request, prompt: CommentRequest) -> CommentResponse
         request=request,
         agent_name="comment",
         payload={
-        "store_name": prompt.store_name,
-        "sv_comment": prompt.sv_comment,
+        "inspection_id": prompt.inspection_id,
+        "summary_comment": prompt.summary_comment,
         }
     )
     return build_comment_response(result)

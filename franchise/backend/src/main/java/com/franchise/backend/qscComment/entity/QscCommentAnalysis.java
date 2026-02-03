@@ -1,5 +1,6 @@
 package com.franchise.backend.qscComment.entity;
 
+import com.franchise.backend.qscComment.dto.RawResponse;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -42,7 +43,7 @@ public class QscCommentAnalysis {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_response_json", columnDefinition = "jsonb")
-    private Map<String, Object> rawResponseJson;
+    private RawResponse rawResponseJson;
 
     @Column(name = "model_name", nullable = false)
     private String modelName;
