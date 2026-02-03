@@ -13,17 +13,14 @@ import java.util.List;
 @ToString
 public class BriefingResponse {
 
-    @JsonProperty("target_date")
-    private LocalDate targetDate;
-
     @JsonProperty("focus_point_json")
     private List<FocusPointJsonDto> focusPointJson;
 
     @JsonProperty("focus_point_json_checked")
     private List<FocusPointJsonCheckedDto> focusPointJsonChecked;
 
-    @JsonProperty("top_stroe_json")
-    private TopStoreJsonDto topStroeJson;
+    @JsonProperty("top_store_json")
+    private TopStoreJsonDto topStoreJson;
 
     @JsonProperty("summary_text")
     private String summaryText;

@@ -16,7 +16,6 @@ class BriefingRequest(BaseModel):
     contract_end_imminent: List[Dict[str, Any]]
 
 class BriefingResponse(BaseModel): 
-    target_date : Dict[str, Any] 
     focus_point_json : List[Dict] 
     focus_point_json_checked : List[Dict] 
     top_stroe_json : Dict[str, int] 

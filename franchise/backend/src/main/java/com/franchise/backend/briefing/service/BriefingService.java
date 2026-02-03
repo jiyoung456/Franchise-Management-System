@@ -20,7 +20,7 @@ public class BriefingService {
         this.agentBriefingsRepository = agentBriefingsRepository;
     }
 
-    public BriefingResponse generateBriefing(BriefingRequest request) {
+    public void generateBriefing(BriefingRequest request) {
         BriefingResponse response = agentController.callBriefingAgent(request);
 
         AgentBriefings entity =
@@ -28,7 +28,6 @@ public class BriefingService {
 
         agentBriefingsRepository.save(entity);
 
-        return response;
     }
 
 }

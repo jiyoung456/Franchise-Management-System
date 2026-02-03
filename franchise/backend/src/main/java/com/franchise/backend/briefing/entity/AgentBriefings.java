@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "agent_briefing")
+@Table(name = "agent_briefings")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -37,7 +37,7 @@ public class AgentBriefings {
     @Column(name = "target_date", nullable = false)
     private LocalDate targetDate;
 
-    @Column(name = "generate_at", nullable = false)
+    @Column(name = "generate_at")
     private LocalDateTime generateAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
@@ -65,12 +65,13 @@ public class AgentBriefings {
     ) {
         this.userId = userId;
         this.audienceRole = audienceRole;
-        this.targetDate = response.getTargetDate();
+        this.targetDate = LocalDate.now();
         this.generateAt = response.getGenerateAt();
-        this.summaryText = response.getSummaryText();
+        this.topStoreJson = response.getTopStoreJson();
         this.focusPointJson = response.getFocusPointJson();
         this.focusPointJsonChecked = response.getFocusPointJsonChecked();
-        this.topStoreJson = response.getTopStroeJson();
+        this.summaryText = response.getSummaryText();
+        this.createdAt = LocalDateTime.now();
     }
 
 }

@@ -41,7 +41,7 @@ public class QscCommentAnalysis {
     private String summary;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "raw_rresponse_json", columnDefinition = "jsonb")
+    @Column(name = "raw_response_json", columnDefinition = "jsonb")
     private Map<String, Object> rawResponseJson;
 
     @Column(name = "model_name", nullable = false)

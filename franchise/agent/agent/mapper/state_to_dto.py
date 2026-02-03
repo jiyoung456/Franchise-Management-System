@@ -1,22 +1,8 @@
 from typing import Dict, Any
 
 def build_briefing_response(state: Dict[str, Any]) -> Dict[str, Any]:
-    # target_date 구성
-    target_date = {
-
-        "user_id": state["user_id"],
-        "audience_role": state["audience_role"],
-        "department": state["department"],
-        "store_list": state["store_list"],
-        "qsc_30_list": state["qsc_30_list"],
-        "no_action": state["no_action"],
-        "event_48_list": state["event_48_list"],
-        "pos_7_list": state["pos_7_list"],
-        "contract_end_imminent": state["contract_end_imminent"]
-    }
 
     response = {
-        "target_date": target_date,
         "focus_point_json": state["focus_point_json"],
         "focus_point_json_checked": state["focus_point_json_checked"],
         "top_stroe_json": state["top_store_json"],
