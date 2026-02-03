@@ -1,4 +1,4 @@
-NSERT INTO pos_period_agg (
+INSERT INTO pos_period_agg (
   store_id, period_type, period_start, period_end,
   sales_amount, order_count, aov,
   cogs_amount, margin_amount, margin_rate,
