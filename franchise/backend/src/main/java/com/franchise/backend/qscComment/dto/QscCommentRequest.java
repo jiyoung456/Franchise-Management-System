@@ -7,7 +7,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @ToString
-public class CommentRequest {
+public class QscCommentRequest {
 
     @JsonProperty("inspection_id")
     private Long inspectionId;

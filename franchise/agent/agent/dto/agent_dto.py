@@ -27,11 +27,9 @@ class CommentRequest(BaseModel):
     summary_comment: str
 
 class CommentResponse(BaseModel) : 
-    source_text : str 
     topic_json : List[str] 
     keyword_json : List[str] 
     summary : str 
-    raw_response_json : Dict[str, Any] 
     analyzed_at : datetime 
     model_name : str 
     prompt_version : str

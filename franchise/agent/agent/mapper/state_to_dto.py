@@ -13,18 +13,11 @@ def build_briefing_response(state: Dict[str, Any]) -> Dict[str, Any]:
     return response
 
 def build_comment_response(state: Dict[str, Any]) -> Dict[str, Any]:
-    raw_response_json = {
-        "summary": state["summary"],
-        "topic_json": state["topic_json"],
-        "keyword_json": state["keyword_json"]
-    }
 
     response = {
-        "source_text": state["summary_comment"],
         "topic_json": state["topic_json"],
         "keyword_json": state["keyword_json"],
         "summary": state["summary"],
-        "raw_response_json": raw_response_json,
         "analyzed_at": state["analyzed_at"],
         "model_name": state["model_name"],
         "prompt_version": state["prompt_version"]
