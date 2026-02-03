@@ -16,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.franchise.backend.store.dto.StoreCreateRequest;
 
 @RestController
 @RequiredArgsConstructor
@@ -126,5 +127,16 @@ public class StoreController {
 
         return ApiResponse.ok(storeService.getStoresForSupervisor(supervisorLoginId, condition));
     }
+
+    // 신규 점포 등록
+    @PostMapping
+    public ApiResponse<StoreDetailResponse> create(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody StoreCreateRequest request
+    ) {
+        return ApiResponse.ok(storeService.createStore(principal, request));
+    }
+
+
 
 }
