@@ -47,6 +47,15 @@ dependencies {
 
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	// Test에서 사용할 엔진 주입
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+
+	// Webflux - fast api 호출을 위해 필요한 프레임워크
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+
 }
 
 tasks.named('test') {
