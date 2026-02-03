@@ -137,12 +137,12 @@ function AdminDashboard() {
             {/* QSC Trend */}
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 flex items-center mb-4"><Activity className="w-4 h-4 mr-2 text-blue-500" />평균 QSC 점수 추이</h3>
-              <div className="h-[200px] w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={qscTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 12 }} /><YAxis hide /><Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} /></LineChart></ResponsiveContainer></div>
+              <div className="h-[200px] w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={qscTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} /><YAxis hide /><Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} /></LineChart></ResponsiveContainer></div>
             </div>
             {/* Sales Trend */}
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 flex items-center mb-4"><TrendingUp className="w-4 h-4 mr-2 text-green-500" />전체 매출 변화율</h3>
-              <div className="h-[200px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={salesTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 12 }} /><Bar dataKey="sales" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} /></BarChart></ResponsiveContainer></div>
+              <div className="h-[200px] w-full"><ResponsiveContainer width="100%" height="100%"><BarChart data={salesTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} /><Bar dataKey="sales" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} /></BarChart></ResponsiveContainer></div>
             </div>
           </div>
           {/* AI Insight */}
@@ -493,8 +493,8 @@ function SvDashboard({ user }: { user: User }) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={riskTrendData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" />
-                <YAxis />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
                 <Tooltip />
                 <Line type="monotone" dataKey="score" stroke="#ef4444" strokeWidth={3} />
               </LineChart>
@@ -507,8 +507,8 @@ function SvDashboard({ user }: { user: User }) {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenueTrendData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" />
-                <YAxis />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
                 <Tooltip />
                 <Line type="monotone" dataKey="val" stroke="#10b981" strokeWidth={3} />
               </LineChart>

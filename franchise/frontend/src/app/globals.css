@@ -25,3 +25,35 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* 차트 테두리 및 축 선 완벽 제거 (Nuclear Option) */
+.recharts-wrapper,
+.recharts-surface,
+.recharts-responsive-container,
+.recharts-wrapper * {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-cartesian-axis-line,
+.recharts-axis-line,
+.recharts-cartesian-axis-tick-line,
+.recharts-tick-line {
+  display: none !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
+  opacity: 0 !important;
+}
+
+/* 그리드 선은 아주 연하게만 남김 */
+.recharts-cartesian-grid line {
+  stroke: #f1f5f9 !important;
+  stroke-opacity: 0.3 !important;
+}
+
+/* 툴팁 외곽선 제거 */
+.recharts-default-tooltip {
+  border: none !important;
+  outline: none !important;
+}
