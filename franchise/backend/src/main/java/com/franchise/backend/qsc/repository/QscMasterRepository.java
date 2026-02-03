@@ -216,4 +216,31 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
             @Param("limit") int limit
     );
 
+    // 관리자 홈에서 전체 qsc 평균 조회
+    @Query(value = """
+    SELECT
+        TO_CHAR(
+            DATE_TRUNC('month',
+                COALESCE(qm.confirmed_at, qm.inspected_at) AT TIME ZONE 'Asia/Seoul'
+            ),
+            'YYYY-MM'
+        ) AS month,
+        AVG(qm.total_score::numeric)
+            FILTER (WHERE qm.total_score IS NOT NULL) AS avgScore,
+        COUNT(*) AS inspectionCount
+    FROM qsc_master qm
+    WHERE qm.status = 'CONFIRMED'
+      AND COALESCE(qm.confirmed_at, qm.inspected_at) >= :startInclusive
+      AND COALESCE(qm.confirmed_at, qm.inspected_at) < :endExclusive
+    GROUP BY 1
+    ORDER BY 1
+    """, nativeQuery = true)
+    List<QscDashboardProjection.TrendRow> fetchAdminTrend(
+            @Param("startInclusive") OffsetDateTime startInclusive,
+            @Param("endExclusive") OffsetDateTime endExclusive
+    );
+
+
+
+
 }
