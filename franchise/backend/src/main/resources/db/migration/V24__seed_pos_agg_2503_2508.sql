@@ -1,9 +1,16 @@
--- 1) 기존 데이터 정리 (안전하게 기간+store 범위만 삭제)
+-- =========================================================
+-- pos_period_agg 더미데이터 (PostgreSQL)
+-- 기간: 2025-03-01 ~ 2025-08-31
+-- 대상: store_id 1 ~ 100
+-- 타입: MONTH, WEEK
+-- =========================================================
+
+-- 1) 기존 데이터 정리 (기간+store 범위만 삭제)
 DELETE FROM pos_period_agg
 WHERE store_id BETWEEN 1 AND 100
   AND period_type IN ('MONTH','WEEK')
   AND (
-    -- MONTH: 2025-03~2025-08
+    -- MONTH: 2025-03~2025-08 (period_start는 매월 1일)
     (period_type = 'MONTH'
       AND period_start >= DATE '2025-03-01'
       AND period_start <= DATE '2025-08-01'
@@ -16,7 +23,7 @@ WHERE store_id BETWEEN 1 AND 100
     )
   );
 
--- 2) MONTH 더미 생성: 2025-03-01 ~ 2025-08-01 (각 월 1일 기준)
+-- 2) MONTH 더미 생성: period_start = 매월 1일 (2025-03-01 ~ 2025-08-01)
 WITH months AS (
   SELECT generate_series(DATE '2025-03-01', DATE '2025-08-01', INTERVAL '1 month')::date AS period_start
 ),
@@ -36,74 +43,79 @@ SELECT
   m.period_start,
   (m.period_start + INTERVAL '1 month - 1 day')::date AS period_end,
 
-  -- 매출: 점포/월마다 조금씩 다르게 (규칙 기반)
-  ROUND( (50000000
-        + (s.store_id * 120000)
-        + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
-        + (s.store_id % 7) * 350000
-       )::numeric, 2) AS sales_amount,
+  -- sales_amount
+  ROUND((
+    50000000
+    + (s.store_id * 120000)
+    + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
+    + (s.store_id % 7) * 350000
+  )::numeric, 2) AS sales_amount,
 
-  -- 주문수: 매출에 비례 + 점포별 편차
-  (3200
-   + (s.store_id * 8)
-   + (EXTRACT(MONTH FROM m.period_start)::int * 120)
-   + (s.store_id % 9) * 15
+  -- order_count
+  (
+    3200
+    + (s.store_id * 8)
+    + (EXTRACT(MONTH FROM m.period_start)::int * 120)
+    + (s.store_id % 9) * 15
   )::int AS order_count,
 
-  -- AOV = sales / orders
-  ROUND(
-    ( (50000000
-        + (s.store_id * 120000)
-        + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
-        + (s.store_id % 7) * 350000
-      )
-      /
-      NULLIF(
-        (3200
-         + (s.store_id * 8)
-         + (EXTRACT(MONTH FROM m.period_start)::int * 120)
-         + (s.store_id % 9) * 15
-        ), 0
-      )
-    )::numeric
-  , 2) AS aov,
+  -- aov = sales / orders
+  ROUND((
+    (
+      50000000
+      + (s.store_id * 120000)
+      + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
+      + (s.store_id % 7) * 350000
+    )
+    /
+    NULLIF(
+      (
+        3200
+        + (s.store_id * 8)
+        + (EXTRACT(MONTH FROM m.period_start)::int * 120)
+        + (s.store_id % 9) * 15
+      ), 0
+    )
+  )::numeric, 2) AS aov,
 
-  -- 마진율: 0.31~0.36 범위로 점포마다 조금씩
-  ROUND(
-    (0.31
-     + (s.store_id % 6) * 0.006
-     + (EXTRACT(MONTH FROM m.period_start)::int % 3) * 0.004
-    )::numeric
-  , 4) AS margin_rate,
+  -- cogs_amount = sales * (1 - margin_rate)
+  ROUND((
+    (
+      50000000
+      + (s.store_id * 120000)
+      + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
+      + (s.store_id % 7) * 350000
+    )
+    * (1 - (
+      0.31
+      + (s.store_id % 6) * 0.006
+      + (EXTRACT(MONTH FROM m.period_start)::int % 3) * 0.004
+    ))
+  )::numeric, 2) AS cogs_amount,
 
-  -- 원가/마진: margin_rate를 기반으로 계산
-  ROUND(
-    ( (50000000
-        + (s.store_id * 120000)
-        + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
-        + (s.store_id % 7) * 350000
-      )
-      * (1 - (0.31
-              + (s.store_id % 6) * 0.006
-              + (EXTRACT(MONTH FROM m.period_start)::int % 3) * 0.004
-             ))
-    )::numeric
-  , 2) AS cogs_amount,
+  -- margin_amount = sales * margin_rate
+  ROUND((
+    (
+      50000000
+      + (s.store_id * 120000)
+      + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
+      + (s.store_id % 7) * 350000
+    )
+    * (
+      0.31
+      + (s.store_id % 6) * 0.006
+      + (EXTRACT(MONTH FROM m.period_start)::int % 3) * 0.004
+    )
+  )::numeric, 2) AS margin_amount,
 
-  ROUND(
-    ( (50000000
-        + (s.store_id * 120000)
-        + (EXTRACT(MONTH FROM m.period_start)::int * 1800000)
-        + (s.store_id % 7) * 350000
-      )
-      * (0.31
-         + (s.store_id % 6) * 0.006
-         + (EXTRACT(MONTH FROM m.period_start)::int % 3) * 0.004
-        )
-    )::numeric
-  , 2) AS margin_amount,
+  -- margin_rate
+  ROUND((
+    0.31
+    + (s.store_id % 6) * 0.006
+    + (EXTRACT(MONTH FROM m.period_start)::int % 3) * 0.004
+  )::numeric, 4) AS margin_rate,
 
-  -- change rate 컬럼은 서비스에서 계산하니 null로 둬도 됨
+  -- change rates: 서비스에서 계산하므로 null
   NULL::numeric AS sales_change_rate,
   NULL::numeric AS order_change_rate,
   NULL::numeric AS aov_change_rate,
@@ -113,7 +125,7 @@ FROM stores s
 CROSS JOIN months m;
 
 -- 3) WEEK 더미 생성:
--- 주간은 "월요일 period_start" 기준으로 2025-03-01~2025-08-31을 커버하도록 생성
+-- 주간 period_start는 "월요일"로 저장 (2025-03-01~2025-08-31 커버)
 WITH weeks AS (
   SELECT generate_series(
            DATE '2025-03-01',
@@ -122,8 +134,8 @@ WITH weeks AS (
          )::date AS raw_date
 ),
 week_starts AS (
-  -- raw_date가 속한 주의 월요일
-  SELECT DISTINCT (raw_date - ((EXTRACT(ISODOW FROM raw_date)::int - 1) * INTERVAL '1 day'))::date AS period_start
+  SELECT DISTINCT
+    (raw_date - ((EXTRACT(ISODOW FROM raw_date)::int - 1) * INTERVAL '1 day'))::date AS period_start
   FROM weeks
 ),
 stores AS (
@@ -142,72 +154,81 @@ SELECT
   w.period_start,
   (w.period_start + INTERVAL '6 days')::date AS period_end,
 
-  -- 주매출: 월매출의 1/4 정도 느낌 + 점포/주별 편차
-  ROUND( (12000000
-        + (s.store_id * 28000)
-        + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
-        + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
-        + (s.store_id % 7) * 90000
-       )::numeric, 2) AS sales_amount,
+  -- sales_amount
+  ROUND((
+    12000000
+    + (s.store_id * 28000)
+    + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
+    + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
+    + (s.store_id % 7) * 90000
+  )::numeric, 2) AS sales_amount,
 
-  (780
-   + (s.store_id * 2)
-   + (EXTRACT(WEEK FROM w.period_start)::int % 4) * 25
-   + (s.store_id % 9) * 6
+  -- order_count
+  (
+    780
+    + (s.store_id * 2)
+    + (EXTRACT(WEEK FROM w.period_start)::int % 4) * 25
+    + (s.store_id % 9) * 6
   )::int AS order_count,
 
-  ROUND(
-    ( (12000000
-        + (s.store_id * 28000)
-        + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
-        + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
-        + (s.store_id % 7) * 90000
-      )
-      /
-      NULLIF(
-        (780
-         + (s.store_id * 2)
-         + (EXTRACT(WEEK FROM w.period_start)::int % 4) * 25
-         + (s.store_id % 9) * 6
-        ), 0
-      )
-    )::numeric
-  , 2) AS aov,
+  -- aov
+  ROUND((
+    (
+      12000000
+      + (s.store_id * 28000)
+      + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
+      + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
+      + (s.store_id % 7) * 90000
+    )
+    /
+    NULLIF(
+      (
+        780
+        + (s.store_id * 2)
+        + (EXTRACT(WEEK FROM w.period_start)::int % 4) * 25
+        + (s.store_id % 9) * 6
+      ), 0
+    )
+  )::numeric, 2) AS aov,
 
-  ROUND(
-    (0.31
-     + (s.store_id % 6) * 0.006
-     + (EXTRACT(WEEK FROM w.period_start)::int % 3) * 0.004
-    )::numeric
-  , 4) AS margin_rate,
+  -- cogs_amount
+  ROUND((
+    (
+      12000000
+      + (s.store_id * 28000)
+      + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
+      + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
+      + (s.store_id % 7) * 90000
+    )
+    * (1 - (
+      0.31
+      + (s.store_id % 6) * 0.006
+      + (EXTRACT(WEEK FROM w.period_start)::int % 3) * 0.004
+    ))
+  )::numeric, 2) AS cogs_amount,
 
-  ROUND(
-    ( (12000000
-        + (s.store_id * 28000)
-        + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
-        + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
-        + (s.store_id % 7) * 90000
-      )
-      * (1 - (0.31
-              + (s.store_id % 6) * 0.006
-              + (EXTRACT(WEEK FROM w.period_start)::int % 3) * 0.004
-             ))
-    )::numeric
-  , 2) AS cogs_amount,
+  -- margin_amount
+  ROUND((
+    (
+      12000000
+      + (s.store_id * 28000)
+      + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
+      + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
+      + (s.store_id % 7) * 90000
+    )
+    * (
+      0.31
+      + (s.store_id % 6) * 0.006
+      + (EXTRACT(WEEK FROM w.period_start)::int % 3) * 0.004
+    )
+  )::numeric, 2) AS margin_amount,
 
-  ROUND(
-    ( (12000000
-        + (s.store_id * 28000)
-        + (EXTRACT(MONTH FROM w.period_start)::int * 180000)
-        + (EXTRACT(WEEK FROM w.period_start)::int % 5) * 220000
-        + (s.store_id % 7) * 90000
-      )
-      * (0.31
-         + (s.store_id % 6) * 0.006
-         + (EXTRACT(WEEK FROM w.period_start)::int % 3) * 0.004
-        )
-    )::numeric
-  , 2) AS margin_amount,
+  -- margin_rate
+  ROUND((
+    0.31
+    + (s.store_id % 6) * 0.006
+    + (EXTRACT(WEEK FROM w.period_start)::int % 3) * 0.004
+  )::numeric, 4) AS margin_rate,
 
   NULL::numeric AS sales_change_rate,
   NULL::numeric AS order_change_rate,
