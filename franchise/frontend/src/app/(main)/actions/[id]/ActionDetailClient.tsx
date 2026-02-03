@@ -162,7 +162,7 @@ export default function ActionDetailClient({ id }: ActionDetailClientProps) {
                 )}
 
                 {/* Admin: View Effect Only */}
-                {role === 'ADMIN' && (
+                {role === 'ADMIN' && action.status === 'CLOSED' && (
                     <button
                         onClick={() => router.push(`/actions/${id}/effect`)}
                         className="px-6 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 shadow-sm"

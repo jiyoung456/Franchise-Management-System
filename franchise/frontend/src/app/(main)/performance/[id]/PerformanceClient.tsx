@@ -19,7 +19,7 @@ export default function PerformanceClient({ id }: { id: string }) {
     // State
     const [chartTab, setChartTab] = useState<'SALES' | 'GROWTH' | 'ORDERS'>('SALES');
     const [period, setPeriod] = useState<'WEEK' | 'MONTH'>('MONTH');
-    const [showBaseline, setShowBaseline] = useState(true);
+
     const [store, setStore] = useState<StoreDetail | null>(null);
     const [dashboardData, setDashboardData] = useState<PosKpiDashboardResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -44,16 +44,8 @@ export default function PerformanceClient({ id }: { id: string }) {
                 const storeInfo = await StoreService.getStore(storeId);
                 setStore(storeInfo);
 
-                let posInfo;
-                if (svStatus) {
-                    // Use SV-specific endpoint. Pass undefined for periodStart to let service decide default if needed, 
-                    // or pass 'today' if we want "up to today". 
-                    // Let's pass undefined to use the service's robust logic (Last Month / Last Week).
-                    posInfo = await PosService.getSupervisorStoreDetail(Number(storeId), period);
-                } else {
-                    // Use generic/manager endpoint
-                    posInfo = await PosService.getDashboard(Number(storeId), period);
-                }
+                // Fetch POS KPI Data (Common API requested by user)
+                const posInfo = await PosService.getDashboard(Number(storeId), period);
                 setDashboardData(posInfo);
             } catch (error) {
                 console.error("Failed to load performance data", error);
@@ -193,12 +185,6 @@ export default function PerformanceClient({ id }: { id: string }) {
                 <div className="lg:col-span-2 bg-white border border-gray-200 shadow-sm p-6 rounded-lg flex flex-col h-[600px]">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg font-bold text-gray-900">성과 추이 그래프</h2>
-                        <button
-                            onClick={() => setShowBaseline(!showBaseline)}
-                            className={`px-3 py-1 text-xs font-bold border rounded transition-colors ${showBaseline ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-300'}`}
-                        >
-                            기준선 {showBaseline ? 'ON' : 'OFF'}
-                        </button>
                     </div>
 
                     {/* Chart Tabs */}
@@ -251,7 +237,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                                 {chartTab === 'SALES' && (
                                     <>
                                         <Area yAxisId="left" type="monotone" dataKey="sales" fill="#eff6ff" stroke="#3b82f6" strokeWidth={3} name="sales" dot={{ r: 3 }} activeDot={{ r: 6 }} />
-                                        {showBaseline && baseline?.salesBaseline && (
+                                        {baseline?.salesBaseline && (
                                             <ReferenceLine yAxisId="left" y={baseline.salesBaseline} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'right', value: '기준선', fontSize: 10, fill: '#9ca3af' }} />
                                         )}
                                     </>
@@ -261,7 +247,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                                     <>
                                         <ReferenceLine yAxisId="left" y={0} stroke="#666" />
                                         <Line yAxisId="left" type="monotone" dataKey="growth" stroke="#ef4444" strokeWidth={3} name="growth" dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                        {showBaseline && baseline?.salesWarnRate && (
+                                        {baseline?.salesWarnRate && (
                                             <ReferenceLine yAxisId="left" y={baseline.salesWarnRate} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: '경고', fontSize: 10, fill: '#ef4444' }} />
                                         )}
                                     </>
@@ -271,7 +257,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                                     <>
                                         <Bar yAxisId="left" dataKey="orders" fill="#82ca9d" name="orders" barSize={30} radius={[4, 4, 0, 0]} />
                                         <Line yAxisId="right" type="monotone" dataKey="atv" stroke="#8884d8" strokeWidth={3} name="atv" dot={{ r: 3 }} />
-                                        {showBaseline && baseline?.ordersBaseline && (
+                                        {baseline?.ordersBaseline && (
                                             <ReferenceLine yAxisId="left" y={baseline.ordersBaseline} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'right', value: '기준', fontSize: 10, fill: '#9ca3af' }} />
                                         )}
                                     </>

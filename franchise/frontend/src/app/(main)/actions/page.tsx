@@ -170,7 +170,7 @@ export default function ActionsListPage() {
                                         </td>
 
                                         <td className="px-6 py-4 text-center">
-                                            {action.status === 'COMPLETED' && (
+                                            {action.status === 'CLOSED' && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();

@@ -30,7 +30,10 @@ export default function PerformanceDashboardPage() {
 
     if (!role) return <div className="p-8">Loading...</div>;
 
-    return <AdminPerformanceDashboard isSv={role === 'SUPERVISOR'} />;
+    // SV role handles its own data fetching/view
+    if (role === 'SUPERVISOR') return <SvPerformanceView />;
+
+    return <AdminPerformanceDashboard isSv={false} />;
 }
 
 // --- SV VIEW ---
@@ -83,16 +86,15 @@ function SvPerformanceView() {
     if (loading) return <div className="p-12 text-center">Loading...</div>;
     if (!data) return <div className="p-12 text-center">데이터를 불러올 수 없습니다.</div>;
 
-    const { summary, chartData, ranking, storeList } = data;
+    const { summary, chartData, ranking, lowRanking, storeList } = data;
 
     // Helper for currency
     const formatCurrency = (amount: number) => {
         return (amount / 10000).toLocaleString() + '만원';
     };
 
-    // Sorting ranking
-    const sortedRanking = [...ranking].sort((a: any, b: any) => b.revenue - a.revenue);
-    const displayRanking = rankSort === 'top' ? sortedRanking.slice(0, 5) : [...sortedRanking].reverse().slice(0, 5);
+    // Use backend-provided top/low rankings
+    const displayRanking = rankSort === 'top' ? ranking : lowRanking;
 
     return (
         <div className="space-y-6 pb-20">
@@ -181,6 +183,8 @@ function SvPerformanceView() {
                                     dataKey="date"
                                     tickFormatter={(val: string) => val.slice(5)}
                                     tick={{ fontSize: 12 }}
+                                    axisLine={false}
+                                    tickLine={false}
                                 />
                                 <YAxis yAxisId="left" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />

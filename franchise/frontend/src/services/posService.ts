@@ -109,6 +109,13 @@ export interface SupervisorDashboardResponse {
         revenue: number;
         growth: number;
     }>;
+    lowRanking: Array<{
+        storeId: number;
+        storeName: string;
+        region: string;
+        revenue: number;
+        growth: number;
+    }>;
     storeList: Array<{
         storeId: number;
         storeName: string;
@@ -132,12 +139,37 @@ function toYmd(date: Date): string {
 }
 
 function getDefaultPeriodStart(periodType: 'WEEK' | 'MONTH'): string {
-    // Force date to 2025-03-01 as per user's backend data screenshot (Data exists in 2025)
-    // System time is 2026, so default logic requests 2026 (empty data).
-    // TODO: Remove this hardcoding when real-time data is available.
+    // Defaulting to 2025-08-31 to match the backend data range requested by the user.
+    return '2025-08-31';
+}
 
-    // Defaulting to 2025-03-01 for both cases to match the known-good data range.
-    return '2025-03-01';
+/**
+ * ✅ 지역 코드(예: SEOUL_01)를 사람이 읽기 쉬운 명칭으로 변환
+ */
+function formatRegionName(code: string): string {
+    if (!code) return '-';
+    const upper = code.toUpperCase();
+
+    if (upper.startsWith('SEOUL') || upper.startsWith('GYEONGGI') || upper.startsWith('INCHEON')) {
+        return '서울/경기';
+    }
+    if (upper.startsWith('BUSAN') || upper.startsWith('ULSAN') || upper.startsWith('GYEONGNAM')) {
+        return '부산/경남';
+    }
+    if (upper.startsWith('DAEGU') || upper.startsWith('GYEONGBUK') || upper.startsWith('대구') || upper.startsWith('경북')) {
+        return '대구/경북';
+    }
+    if (upper.startsWith('DAEJEON') || upper.startsWith('CHUNG') || upper.startsWith('GANGWON') || upper.startsWith('SEJONG') || upper.startsWith('대전') || upper.startsWith('충청') || upper.startsWith('강원')) {
+        return '강원/충청';
+    }
+    if (upper.startsWith('GWANGJU') || upper.startsWith('JEONLA') || upper.startsWith('JEOLLA') || upper.startsWith('JEON') || upper.startsWith('광주') || upper.startsWith('전라')) {
+        return '광주/전라';
+    }
+    if (upper.startsWith('JEJU') || upper.startsWith('제주')) {
+        return '제주';
+    }
+
+    return code; // 매칭되지 않으면 원본 반환
 }
 
 // =========================
@@ -169,14 +201,21 @@ function mapSvBackendToUi(
         ranking: (backend.ranking?.top5 ?? []).map((r) => ({
             storeId: r.storeId,
             storeName: r.storeName,
-            region: r.regionCode,
+            region: formatRegionName(r.regionCode),
+            revenue: r.sales,
+            growth: r.growthRate,
+        })),
+        lowRanking: (backend.ranking?.low5 ?? []).map((r) => ({
+            storeId: r.storeId,
+            storeName: r.storeName,
+            region: formatRegionName(r.regionCode),
             revenue: r.sales,
             growth: r.growthRate,
         })),
         storeList: (backend.performanceList ?? []).map((row) => ({
             storeId: row.storeId,
             storeName: row.storeName,
-            region: row.regionCode,
+            region: formatRegionName(row.regionCode),
             revenue: row.sales,
             margin: row.marginAmount, // ✅ FIX
             marginRate: row.marginRate,

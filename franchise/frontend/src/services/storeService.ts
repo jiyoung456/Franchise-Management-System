@@ -12,22 +12,24 @@ const getRegionName = (code: string): string => {
     if (!code) return '';
     const upperCode = code.toUpperCase();
 
-    if (upperCode.startsWith('SEOUL')) return '서울';
-    if (upperCode.startsWith('GYEONGGI') || upperCode.startsWith('GYEONGGL')) return '경기'; // 오타 대응
-    if (upperCode.startsWith('INCHEON')) return '인천';
-    if (upperCode.startsWith('CHUNGNAM')) return '충남';
-    if (upperCode.startsWith('CHUNGBUK')) return '충북';
-    if (upperCode.startsWith('GANGWON')) return '강원';
-    if (upperCode.startsWith('SEJONG')) return '세종';
-    if (upperCode.startsWith('BUSAN')) return '부산';
-    if (upperCode.startsWith('DAEGU')) return '대구';
-    if (upperCode.startsWith('ULSAN')) return '울산';
-    if (upperCode.startsWith('GWANGJU')) return '광주';
-    if (upperCode.startsWith('JEONNAM')) return '전남';
-    if (upperCode.startsWith('JEONBUK')) return '전북';
-    if (upperCode.startsWith('JEJU')) return '제주';
-    if (upperCode.startsWith('GYEONGNAM')) return '경남';
-    if (upperCode.startsWith('GYEONGBUK')) return '경북';
+    if (upperCode.startsWith('SEOUL') || upperCode.startsWith('GYEONGGI') || upperCode.startsWith('INCHEON') || upperCode.startsWith('GYEONGGL')) {
+        return '서울/경기';
+    }
+    if (upperCode.startsWith('BUSAN') || upperCode.startsWith('ULSAN') || upperCode.startsWith('GYEONGNAM')) {
+        return '부산/경남';
+    }
+    if (upperCode.startsWith('DAEGU') || upperCode.startsWith('GYEONGBUK') || upperCode.startsWith('대구') || upperCode.startsWith('경북')) {
+        return '대구/경북';
+    }
+    if (upperCode.startsWith('DAEJEON') || upperCode.startsWith('CHUNG') || upperCode.startsWith('GANGWON') || upperCode.startsWith('SEJONG') || upperCode.startsWith('대전') || upperCode.startsWith('충청') || upperCode.startsWith('강원')) {
+        return '강원/충청';
+    }
+    if (upperCode.startsWith('GWANGJU') || upperCode.startsWith('JEONLA') || upperCode.startsWith('JEOLLA') || upperCode.startsWith('JEON') || upperCode.startsWith('광주') || upperCode.startsWith('전라')) {
+        return '광주/전라';
+    }
+    if (upperCode.startsWith('JEJU') || upperCode.startsWith('제주')) {
+        return '제주';
+    }
 
     return code; // 매칭 안되면 원본 코드 반환
 };

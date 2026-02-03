@@ -140,6 +140,7 @@ export function StoreCreateModal({ isOpen, onClose, onSave }: StoreCreateModalPr
                                     <option value="서울/경기">서울/경기</option>
                                     <option value="부산/경남">부산/경남</option>
                                     <option value="대구/경북">대구/경북</option>
+                                    <option value="강원/충청">강원/충청</option>
                                     <option value="광주/전라">광주/전라</option>
                                     <option value="제주">제주</option>
                                 </select>
