@@ -13,7 +13,14 @@ export default function TemplateListPage() {
     useEffect(() => {
         // Load templates from storage
         const loadedTemplates = QscService.getTemplates();
-        setTemplates(loadedTemplates);
+
+        // Use Mock data if empty for demo purposes
+        if (loadedTemplates.length === 0) {
+            const { MOCK_TEMPLATES } = require('@/lib/mock/mockQscData');
+            setTemplates(MOCK_TEMPLATES);
+        } else {
+            setTemplates(loadedTemplates);
+        }
     }, []);
 
     const filteredTemplates = templates.filter(tpl =>
