@@ -8,7 +8,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @ToString
-public class Pos7Dto {
+public class Pos7dDto {
 
     @JsonProperty("pos_period_agg")
     private Integer posPeriodAgg;

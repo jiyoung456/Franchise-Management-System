@@ -3,11 +3,13 @@ package com.franchise.backend.briefing.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @ToString
-public class Qsc30Dto {
+public class Qsc30dDto {
 
     @JsonProperty("inspection_id")
     private Integer inspectionId;
@@ -18,7 +20,7 @@ public class Qsc30Dto {
     @JsonProperty("store_name")
     private String storeName;
 
-    private String confirmed;
+    private LocalDate confirmed;
 
     @JsonProperty("total_score")
     private Integer totalScore;

@@ -1,5 +1,6 @@
 package com.franchise.backend.briefing.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -10,15 +11,28 @@ import java.util.List;
 @ToString
 public class TargetDateDto {
 
+    @JsonProperty("user_id")
     private Integer userId;
+
     private String role;
     private String department;
 
-    private List<StoreDto> storeDtoList;
-    private List<Qsc30Dto> qsc30Dto30List;
-    private List<NoActionDto> noActionDto;
-    private List<EventDto> event48List;
-    private List<Pos7Dto> pos7Dto7List;
+    @JsonProperty("store_list")
+    private List<StoreDto> storeList;
+
+    @JsonProperty("qsc_30_list")
+    private List<Qsc30dDto> qsc30List;
+
+    @JsonProperty("no_action")
+    private List<NoActionDto> noAction;
+
+    @JsonProperty("event_48_list")
+    private List<Event48hDto> event48List;
+
+    @JsonProperty("pos_7_list")
+    private List<Pos7dDto> pos7List;
+
+    @JsonProperty("contract_end_imminent")
     private List<ContractEndImminentDto> contractEndImminent;
 }
 

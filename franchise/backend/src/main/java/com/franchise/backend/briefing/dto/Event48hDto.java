@@ -9,7 +9,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @ToString
-public class EventDto {
+public class Event48hDto {
 
     @JsonProperty("event_id")
     private Integer eventId;

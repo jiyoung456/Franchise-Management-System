@@ -19,19 +19,19 @@ public class BriefingRequest {
     private String department;
 
     @JsonProperty("store_list")
-    private List<StoreDto> storeDtoList;
+    private List<StoreDto> storeList;
 
     @JsonProperty("qsc_30_list")
-    private List<Qsc30Dto> qsc30Dto30List;
+    private List<Qsc30dDto> qsc30List;
 
     @JsonProperty("no_action")
-    private List<NoActionDto> noActionDto;
+    private List<NoActionDto> noActionList;
 
     @JsonProperty("event_48_list")
-    private List<EventDto> event48List;
+    private List<Event48hDto> event48List;
 
     @JsonProperty("pos_7_list")
-    private List<Pos7Dto> pos7Dto7List;
+    private List<Pos7dDto> pos7List;
 
     @JsonProperty("contract_end_imminent")
     private List<ContractEndImminentDto> contractEndImminent;
