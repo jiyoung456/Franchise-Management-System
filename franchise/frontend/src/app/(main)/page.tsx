@@ -72,15 +72,21 @@ function AdminDashboard() {
   const unresolvedActions = summary?.pendingActionCount ?? 0;
   const topRiskStores = summary?.riskTopStores ?? [];
 
-  // Reuse same mock chart data for simplicity (as backend doesn't provide this yet)
-  const qscTrendData = [
-    { month: '7월', score: 82 }, { month: '8월', score: 84 }, { month: '9월', score: 83 },
-    { month: '10월', score: 85 }, { month: '11월', score: 81 }, { month: '12월', score: 83 },
-  ];
-  const salesTrendData = [
-    { month: '7월', sales: 4200 }, { month: '8월', sales: 4500 }, { month: '9월', sales: 4300 },
-    { month: '10월', sales: 4800 }, { month: '11월', sales: 4600 }, { month: '12월', sales: 5100 },
-  ];
+  // Map backend trend data to chart format
+  const formatMonth = (m: string) => {
+    if (!m || !m.includes('-')) return m;
+    return `${parseInt(m.split('-')[1])}월`;
+  };
+
+  const qscTrendData = summary?.avgQscTrend?.map((p: any) => ({
+    month: formatMonth(p.month),
+    score: p.avgScore
+  })) ?? [];
+
+  const salesTrendData = summary?.salesChangeTrend?.map((p: any) => ({
+    month: formatMonth(p.month),
+    sales: p.changeRate || 0
+  })) ?? [];
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
 
@@ -134,10 +140,25 @@ function AdminDashboard() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            {/* QSC Trend */}
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 flex items-center mb-4"><Activity className="w-4 h-4 mr-2 text-blue-500" />평균 QSC 점수 추이</h3>
-              <div className="h-[200px] w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={qscTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} /><YAxis hide /><Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} /></LineChart></ResponsiveContainer></div>
+              <div className="h-[200px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={qscTrendData} margin={{ left: 10, right: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 12 }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval={0}
+                    />
+                    <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             {/* Sales Trend */}
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
@@ -151,7 +172,7 @@ function AdminDashboard() {
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-full">
           <h3 className="font-bold text-gray-900 flex items-center mb-4"><AlertTriangle className="w-4 h-4 mr-2 text-red-500" />위험 점포 TOP 5</h3>
           <div className="space-y-4">
-            {topRiskStores.length > 0 ? topRiskStores.map((store, i) => (
+            {topRiskStores.length > 0 ? (topRiskStores as any[]).map((store: any, i: number) => (
               <div key={i} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded transition-colors group">
                 <span className="text-sm font-medium text-gray-700 group-hover:text-red-700 w-full overflow-hidden text-ellipsis whitespace-nowrap">
                   {i + 1}. {store.storeName}

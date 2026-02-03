@@ -407,6 +407,14 @@ export interface AdminDashboardSummary {
         storeName: string;
         riskScore: number; // was totalRiskScore
     }[];
+    avgQscTrend: {
+        month: string;
+        avgScore: number;
+    }[];
+    salesChangeTrend: {
+        month: string;
+        changeRate: number | null;
+    }[];
 }
 
 export interface Notice {
