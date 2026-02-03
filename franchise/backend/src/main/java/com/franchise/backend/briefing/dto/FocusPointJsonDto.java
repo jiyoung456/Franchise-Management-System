@@ -7,7 +7,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @ToString
-public class FocusPointDto {
+public class FocusPointJsonDto {
 
     @JsonProperty("store_id")
     private Long storeId;

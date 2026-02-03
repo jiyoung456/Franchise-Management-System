@@ -12,7 +12,7 @@ import java.util.List;
 public class BriefingRequest {
 
     @JsonProperty("user_id")
-    private Integer userId;
+    private Long userId;
 
     @JsonProperty("audience_role")
     private String audienceRole;

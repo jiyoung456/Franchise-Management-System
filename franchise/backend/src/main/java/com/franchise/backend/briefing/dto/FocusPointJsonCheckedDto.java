@@ -7,7 +7,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @ToString
-public class FocusPointCheckedDto {
+public class FocusPointJsonCheckedDto {
 
     @JsonProperty("check_id")
     private Long checkId;

@@ -17,10 +17,10 @@ public class BriefingResponse {
     private LocalDate targetDate;
 
     @JsonProperty("focus_point_json")
-    private List<FocusPointDto> focusPointJson;
+    private List<FocusPointJsonDto> focusPointJson;
 
     @JsonProperty("focus_point_json_checked")
-    private List<FocusPointCheckedDto> focusPointJsonChecked;
+    private List<FocusPointJsonCheckedDto> focusPointJsonChecked;
 
     @JsonProperty("top_stroe_json")
     private TopStoreJsonDto topStroeJson;
