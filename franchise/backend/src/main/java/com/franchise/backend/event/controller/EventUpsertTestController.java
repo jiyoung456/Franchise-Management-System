@@ -32,7 +32,11 @@ public class EventUpsertTestController {
         EventRule rule = eventRuleRepository.findById(req.ruleId())
                 .orElseThrow(() -> new IllegalArgumentException("rule not found"));
 
-        User supervisor = store.getSupervisor(); // 점포 담당 SV
+        User supervisor = store.getSupervisor();
+
+        OffsetDateTime occurredAt = (req.occurredAt() != null)
+                ? req.occurredAt()
+                : OffsetDateTime.now();
 
         var result = eventUpsertService.upsertEventAndNotifyIfNew(
                 store,
@@ -43,7 +47,7 @@ public class EventUpsertTestController {
                 req.summary(),
                 req.relatedEntityType(),
                 req.relatedEntityId(),
-                OffsetDateTime.now()
+                occurredAt
         );
 
         return ResponseEntity.ok(result);
@@ -56,7 +60,8 @@ public class EventUpsertTestController {
             String severity,
             String summary,
             String relatedEntityType,
-            Long relatedEntityId
+            Long relatedEntityId,
+            OffsetDateTime occurredAt
     ) {}
-    //
+
 }

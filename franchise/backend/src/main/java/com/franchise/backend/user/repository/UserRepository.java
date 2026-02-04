@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // ===================== 알림 / 에스컬레이션 =====================
 
+
+
     // 지역별 SV 조회 (기존)
     List<User> findByRoleAndRegionOrderByUserNameAsc(Role role, String region);
 

@@ -3,39 +3,42 @@ package com.franchise.backend.notification.controller;
 import com.franchise.backend.notification.dto.NotificationCountResponse;
 import com.franchise.backend.notification.dto.NotificationResponse;
 import com.franchise.backend.notification.service.NotificationService;
+import com.franchise.backend.user.security.UserPrincipal;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/notifications")
 public class NotificationController {
 
     private final NotificationService notificationService;
 
-    public NotificationController(NotificationService notificationService) {
-        this.notificationService = notificationService;
-    }
-
-    // 오늘 알림 전체
+    // ✅ 오늘 알림 전체
     @GetMapping
-    public List<NotificationResponse> getNotifications() {
-
-        // 로그인 붙기 전 임시 유저
-        Long userId = 1L;
-
+    public List<NotificationResponse> getNotifications(UserPrincipal principal) {
+        Long userId = principal.getUserId();
         return notificationService.getTodayNotifications(userId);
     }
 
+    // ✅ 안 읽은 알림 수 (벨 배지)
     @GetMapping("/count")
-    public NotificationCountResponse unreadCount() {
-        Long userId = 1L;
+    public NotificationCountResponse unreadCount(UserPrincipal principal) {
+        Long userId = principal.getUserId();
         return notificationService.getUnreadCount(userId);
     }
 
-    @PostMapping("/{notificationId}/read")
-    public void markAsRead(@PathVariable Long notificationId) {
-        Long userId = 1L;
+    // ✅ 읽음 처리
+    @PatchMapping("/{notificationId}/read")
+    public ResponseEntity<Void> markAsRead(
+            UserPrincipal principal,
+            @PathVariable Long notificationId
+    ) {
+        Long userId = principal.getUserId();
         notificationService.markAsRead(userId, notificationId);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -76,6 +76,7 @@ public class NotificationCreateService {
         notificationRepository.save(notification);
 
         // 6) 그룹 마지막 알림 시각 갱신
-        group.markNotified(OffsetDateTime.now());
+        group.markNotified(com.franchise.backend.common.time.ServiceTime.nowOffset());
+
     }
 }
