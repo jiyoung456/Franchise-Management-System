@@ -2,8 +2,8 @@ package com.franchise.backend.qsc.service;
 
 import com.franchise.backend.qsc.entity.*;
 import com.franchise.backend.qsc.repository.*;
-import com.franchise.backend.qsc.template.dto.QscTemplateDetailResponse;
-import com.franchise.backend.qsc.template.dto.QscTemplateUpsertRequest;
+import com.franchise.backend.qsc.dto.QscTemplateDetailResponse;
+import com.franchise.backend.qsc.dto.QscTemplateUpsertRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
