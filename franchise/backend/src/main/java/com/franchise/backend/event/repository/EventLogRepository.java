@@ -92,4 +92,18 @@ public interface EventLogRepository extends JpaRepository<EventLog, Long> {
       AND e.storeId IN :storeIds
 """)
     long countCriticalOpenEventsByStoreIds(@Param("storeIds") List<Long> storeIds);
+
+    // ✅ (store_id + rule_id)로 OPEN/ACK 중 기존 이벤트 찾기
+    @Query("""
+    SELECT e
+    FROM EventLog e
+    WHERE e.storeId = :storeId
+      AND e.ruleId = :ruleId
+      AND e.status IN ('OPEN','ACK')
+""")
+    java.util.Optional<EventLog> findActiveByStoreIdAndRuleId(
+            @Param("storeId") Long storeId,
+            @Param("ruleId") Long ruleId
+    );
+
 }

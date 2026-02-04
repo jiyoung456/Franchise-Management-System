@@ -19,7 +19,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    //지역별 sv 불러오기
+    // ===================== 알림 / 에스컬레이션 =====================
+
+
+
+    // 지역별 SV 조회 (기존)
     List<User> findByRoleAndRegionOrderByUserNameAsc(Role role, String region);
+
+    // SV의 팀장(MANAGER) 조회
+    // 정책: department 당 MANAGER는 1명
+    Optional<User> findFirstByRoleAndDepartmentAndAccountStatusTrue(
+            Role role,
+            String department
+    );
+
+
+
 
 }
