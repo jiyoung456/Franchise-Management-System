@@ -5,9 +5,9 @@
 
 ---
 
-# 1. 아키텍처 개요
+## 1. 아키텍처 개요
 
-## 최종 인프라 구성
+### 최종 인프라 구성
 Frontend  →  S3 + CloudFront  
 Backend   →  EC2 + Docker (Spring Boot)  
 Database  →  RDS PostgreSQL  
@@ -16,7 +16,7 @@ DB 관리   →  Flyway Migration
 
 ---
 
-# 2. 전체 아키텍처 흐름
+## 2. 전체 아키텍처 흐름
 
 ```
 User
@@ -32,29 +32,29 @@ RDS (PostgreSQL)
 
 ---
 
-# 3. 기술 스택
+## 3. 기술 스택
 
-## Frontend
+### Frontend
 - React (Vite)
 - S3
 - CloudFront
 
-## Backend
+### Backend
 - Spring Boot
 - Docker
 - EC2
 
-## Database
+### Database
 - PostgreSQL (RDS)
 - Flyway
 
-## CI/CD
+### CI/CD
 - GitHub Actions
 - GHCR (Docker Registry)
 
 ---
 
-# 4. 환경 구분
+## 4. 환경 구분
 
 | 환경 | 용도 | DB |
 |--------|-----------|-----------|
@@ -63,46 +63,46 @@ RDS (PostgreSQL)
 
 ---
 
-# 5. 로컬 개발 방법
+## 5. 로컬 개발 방법
 
-## DB 실행
+### DB 실행
 ```bash
 cd franchise/infra/db
 docker compose up -d
 ```
 
-## Backend 실행
+### Backend 실행
 ```bash
 cd franchise/backend
 ./gradlew bootRun
 ```
 
-## 특징
+### 특징
 - 각자 로컬 DB 사용
 - Flyway로 자동 스키마 생성
 - 더미 데이터 포함
 
 ---
 
-# 6. Production 배포 구조
+## 6. Production 배포 구조
 
-## Backend
+### Backend
 - EC2 + Docker 컨테이너 실행
 - GitHub Actions 자동 배포
 
-## Database
+### Database
 - RDS PostgreSQL
 - EC2에서만 접근 가능
 
-## Frontend
+### Frontend
 - S3 정적 호스팅
 - CloudFront CDN
 
 ---
 
-# 7. 배포 프로세스 (공식 절차)
+## 7. 배포 프로세스 (공식 절차)
 
-## 순서
+### 순서
 1. RDS 생성
 2. EC2 + Docker 수동 배포 1회 성공
 3. GitHub Actions CI/CD 연결
@@ -111,7 +111,7 @@ cd franchise/backend
 
 ---
 
-# 8. 브랜치 전략
+## 8. 브랜치 전략
 
 | 브랜치 | 역할 |
 |-----------|----------------|
@@ -123,7 +123,7 @@ cd franchise/backend
 
 ---
 
-# 9. CI/CD 흐름
+## 9. CI/CD 흐름
 
 ```
 main push
@@ -141,15 +141,15 @@ EC2 pull & docker compose up
 
 ---
 
-# 10. DB 운영 규칙
+## 10. DB 운영 규칙
 
-## ❌ 금지
+### ❌ 금지
 - pgAdmin 직접 수정
 - RDS 직접 접속 수정
 - 기존 Migration 수정
 - 테이블 수동 변경
 
-## ✅ 필수
+### ✅ 필수
 - 모든 변경은 Flyway SQL 파일로 생성
 - 새 파일만 추가 (V3__, V4__, ...)
 예시:
@@ -158,7 +158,7 @@ V4__seed_demo_data.sql
 
 ---
 
-# 11. 더미 데이터 정책
+## 11. 더미 데이터 정책
 
 우리 서비스는 실제 데이터가 없으므로 **더미 데이터 기반 운영**
 
@@ -172,19 +172,19 @@ V10__reset_and_seed_demo.sql
 
 ---
 
-# 12. 팀 역할 분담
+## 12. 팀 역할 분담
 
-## Backend
+### Backend
 - API 개발
 - Flyway 관리
 - Dockerfile
 
-## Frontend
+### Frontend
 - React 개발
 - S3 배포
 - API 연결
 
-## Infra/DevOps
+### Infra/DevOps
 - RDS
 - EC2
 - CI/CD
@@ -192,22 +192,22 @@ V10__reset_and_seed_demo.sql
 
 ---
 
-# 13. Production 접근 정책
+## 13. Production 접근 정책
 
-## RDS
+### RDS
 - Public 접근 ❌
 - EC2만 접근 가능
 
-## EC2
+### EC2
 - SSH: 팀원 IP만 허용
 - 8080: ALB 또는 내부만 허용
 
-## HTTPS
+### HTTPS
 - ALB + ACM 적용 권장
 
 ---
 
-# 14. 절대 지켜야 할 규칙
+## 14. 절대 지켜야 할 규칙
 
 🚨 아래는 위반 시 장애 발생 가능
 
@@ -219,7 +219,7 @@ V10__reset_and_seed_demo.sql
 
 ---
 
-# 15. 한 줄 요약
+## 15. 한 줄 요약
 
 Docker = 실행  
 Flyway = DB 변경 관리  
