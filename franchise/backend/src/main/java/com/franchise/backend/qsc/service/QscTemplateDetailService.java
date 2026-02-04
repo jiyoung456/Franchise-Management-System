@@ -6,7 +6,7 @@ import com.franchise.backend.qsc.entity.QscTemplateItem;
 import com.franchise.backend.qsc.repository.QscTemplateCategoryRepository;
 import com.franchise.backend.qsc.repository.QscTemplateItemRepository;
 import com.franchise.backend.qsc.repository.QscTemplateRepository;
-import com.franchise.backend.qsc.template.dto.QscTemplateDetailResponse;
+import com.franchise.backend.qsc.dto.QscTemplateDetailResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

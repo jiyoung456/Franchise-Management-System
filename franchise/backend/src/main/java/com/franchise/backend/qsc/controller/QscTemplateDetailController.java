@@ -1,7 +1,7 @@
-package com.franchise.backend.qsc.template.controller;
+package com.franchise.backend.qsc.controller;
 
 import com.franchise.backend.qsc.service.QscTemplateDetailService;
-import com.franchise.backend.qsc.template.dto.QscTemplateDetailResponse;
+import com.franchise.backend.qsc.dto.QscTemplateDetailResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
