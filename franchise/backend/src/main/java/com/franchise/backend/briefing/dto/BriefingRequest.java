@@ -11,13 +11,8 @@ import java.util.List;
 @ToString
 public class BriefingRequest {
 
-    @JsonProperty("user_id")
-    private Long userId;
-
-    @JsonProperty("audience_role")
-    private String audienceRole;
-
-    private String department;
+    @JsonProperty("user_info")
+    private UserInfoDto userInfoDto;
 
     @JsonProperty("store_list")
     private List<StoreDto> storeList;

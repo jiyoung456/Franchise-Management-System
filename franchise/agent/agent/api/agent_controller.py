@@ -12,9 +12,7 @@ def run_briefing_agnet(request : Request, prompt: BriefingRequest) -> BriefingRe
         request=request,
         agent_name="briefing",
         payload={
-        "user_id": prompt.user_id,
-        "audience_role": prompt.audience_role,
-        "department": prompt.department,
+        "user_info": prompt.user_info,
         "store_list": prompt.store_list,
         "qsc_30_list": prompt.qsc_30_list,
         "no_action": prompt.no_action,
