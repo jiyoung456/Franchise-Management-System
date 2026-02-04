@@ -1,8 +1,8 @@
 package com.franchise.backend.notification.repository;
 
 import com.franchise.backend.notification.entity.Notification;
+import com.franchise.backend.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -10,21 +10,19 @@ import java.util.Optional;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    // 유저별 오늘 알림 전체
-    List<Notification> findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
-            Long userId,
+    // 유저별 기간 내 알림 조회 (오른쪽 상단 리스트)
+    List<Notification> findByUserAndCreatedAtBetweenOrderByCreatedAtDesc(
+            User user,
             LocalDateTime start,
             LocalDateTime end
     );
 
-    // 안 읽은 알림 개수
-    long countByUserIdAndIsReadFalse(Long userId);
+    // 안 읽은 알림 개수 (벨 뱃지)
+    long countByUserAndIsReadFalse(User user);
 
-    // 읽음 처리할 때: "내 알림인지" 검증 포함해서 가져오기
-    Optional<Notification> findByIdAndUserId(Long notificationId, Long userId);
+    // 읽음 처리 시: 내 알림인지 검증
+    Optional<Notification> findByIdAndUser(Long notificationId, User user);
 
-    // 알림 전체 개수도 필요하면 사용
-    long countByUserId(Long userId);
-
-
+    // 전체 알림 개수
+    long countByUser(User user);
 }

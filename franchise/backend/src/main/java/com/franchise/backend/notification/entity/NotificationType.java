@@ -1,4 +1,7 @@
 package com.franchise.backend.notification.entity;
 
-public class NotificationType {
+public enum NotificationType {
+    INITIAL,
+    REMIND,
+    ESCALATION
 }
