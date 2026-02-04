@@ -1,28 +1,28 @@
 package com.franchise.backend.briefing.repository;
 
-import com.franchise.backend.briefing.dto.StoreDto;
+import com.franchise.backend.briefing.dto.StoreInfoDto;
 import com.franchise.backend.store.entity.Store;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
-public interface StoreRepository extends JpaRepository<Store, Long> {
+public interface StoreInfoRepository extends JpaRepository<Store, Long> {
 
     //=====================
-    // 1. 유저가 담당하는 점포 조회
+    // 1. sv 유저가 담당하는 점포 조회
     //=====================
     @Query("""
-        select new com.franchise.backend.briefing.dto.StoreDto(
-            s.storeId,
+        select new com.franchise.backend.briefing.dto.StoreInfoDto(
+            s.id,
             s.storeName,
             s.currentState
         )
         from Store s
-        where s.currentSupervisorId = :userId
-    """)
-    List<StoreDto> findStoresBySupervisorId(
-            @Param("userId") Long userId
-    );
+            where s.supervisor.id = :userId
+        """)
+    List<StoreInfoDto> findUserInfoByLoginId(@Param("userId") Long userId);
+
 }

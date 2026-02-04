@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface UserPepository extends JpaRepository<User, Long> {
+public interface UserInfoRepository extends JpaRepository<User, Long> {
 
     //=====================
     // 1. 유저 정보 조회
@@ -22,6 +22,6 @@ public interface UserPepository extends JpaRepository<User, Long> {
         from User u
             where u.loginId = :loginId
         """)
-    Optional<UserInfoDto> findUserIdByLoginId(@Param("loginId") String loginId);
+    Optional<UserInfoDto> findUserInfoByLoginId(@Param("loginId") String loginId);
 
 }

@@ -23,7 +23,7 @@ public class QscCommentService {
          QscCommentResponse response = agentController.callQscCommentAgent(request);
 
         QscCommentAnalysis entity =
-                new QscCommentAnalysis(response, request);
+                new QscCommentAnalysis(request, response);
 
         qscCommentAnalysisRepository.save(entity);
 
