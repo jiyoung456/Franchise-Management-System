@@ -51,6 +51,35 @@ public class RiskReportService {
         );
     }
 
+    // 2.1) 날짜별
+    // 2) 최신 리포트(정량/정성)
+    public RiskReportResponse getReport(Integer storeId, LocalDate snapshotDate) {
+        RiskReport sr = riskReportRepository
+                .findByStoreIdAndSnapshotDate(storeId, snapshotDate)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No store_risk data for storeId=" + storeId + ", date=" + snapshotDate
+                ));
+
+        return new RiskReportResponse(
+                sr.getStoreId(),
+                sr.getSnapshotDate(),
+                sr.getRiskLabelFinal(),
+                sr.getQscDomainPct(),
+                sr.getPosDomainPct(),
+                sr.getQscCleanPct(),
+                sr.getQscServicePct(),
+                sr.getQscProductPct(),
+                sr.getPosSalesPct(),
+                sr.getPosAovPct(),
+                sr.getPosMarginPct(),
+                sr.getCommentDomain(),
+                sr.getCommentFocus(),
+                sr.getDetailComment(),
+                sr.getExternalFactorComment(),
+                sr.getAnalysisType()
+        );
+    }
+
     // 3) 히스토리 리스트
     public List<RiskHistoryItemResponse> getHistory(Integer storeId) {
         return riskReportRepository.findByStoreIdOrderBySnapshotDateDesc(storeId)
