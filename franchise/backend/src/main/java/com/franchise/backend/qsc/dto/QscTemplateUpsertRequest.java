@@ -1,4 +1,4 @@
-package com.franchise.backend.qsc.template.dto;
+package com.franchise.backend.qsc.dto;
 
 import java.time.LocalDate;
 import java.util.List;
