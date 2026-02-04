@@ -92,7 +92,7 @@ export default function PerformanceClient({ id }: { id: string }) {
             <div className="flex flex-col md:flex-row gap-4 h-auto md:h-16 items-center">
                 {/* Store Name Box */}
                 <div className="bg-white border border-gray-200 shadow-sm flex items-center px-6 h-full min-w-[300px] rounded-lg">
-                    <h1 className="text-xl font-bold text-gray-900">점포 명 : {store.name}</h1>
+                    <h1 className="text-xl font-bold text-gray-900">점포명 : {store.name}</h1>
                 </div>
 
                 {/* Status Box */}
@@ -168,7 +168,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                     {/* Go to Detail Button */}
                     <button
                         onClick={() => router.push(`/stores/${store.id}`)}
-                        className="w-full py-4 bg-white border-2 border-gray-800 text-gray-900 rounded-lg font-bold text-lg hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-white border border-gray-200 text-gray-900 rounded-lg font-bold text-lg hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2"
                     >
                         점포 상세 보기 <FileText className="w-5 h-5" />
                     </button>
