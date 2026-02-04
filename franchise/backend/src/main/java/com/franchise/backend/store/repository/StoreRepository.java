@@ -122,6 +122,9 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
         FROM Store s
     """)
     List<Long> findAllStoreIds();
+
+    //  open한 매장 수
+    long countByStoreOperationStatus(String storeOperationStatus);
 }
 
 
