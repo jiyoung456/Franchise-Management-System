@@ -18,15 +18,15 @@ DB 관리   →  Flyway Migration
 
 # 2. 전체 아키텍처 흐름
 
-User
-↓
-CloudFront (CDN)
-↓
-S3 (React 정적 파일)
-↓
-EC2 (Docker Spring Boot API)
-↓
-RDS (PostgreSQL)
+> User
+> ↓
+> CloudFront (CDN)
+> ↓
+> S3 (React 정적 파일)
+> ↓
+> EC2 (Docker Spring Boot API)
+> ↓
+> RDS (PostgreSQL)
 
 ---
 
@@ -64,12 +64,16 @@ RDS (PostgreSQL)
 # 5. 로컬 개발 방법
 
 ## DB 실행
+```bash
 cd franchise/infra/db
 docker compose up -d
+```
 
 ## Backend 실행
+```bash
 cd franchise/back
 ./gradlew bootRun
+```
 
 ## 특징
 - 각자 로컬 DB 사용
@@ -119,15 +123,15 @@ cd franchise/back
 
 # 9. CI/CD 흐름
 
-main push
-↓
-GitHub Actions build
-↓
-Docker image build
-↓
-GHCR push
-↓
-EC2 pull & docker compose up
+> main push
+> ↓
+> GitHub Actions build
+> ↓
+> Docker image build
+> ↓
+> GHCR push
+> ↓
+> EC2 pull & docker compose up
 
 자동 배포되므로 **EC2 수동 작업 금지**
 
