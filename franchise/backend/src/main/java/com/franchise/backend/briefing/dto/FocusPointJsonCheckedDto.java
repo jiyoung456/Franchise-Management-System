@@ -7,10 +7,10 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @ToString
-public class FocusPointCheckedDto {
+public class FocusPointJsonCheckedDto {
 
     @JsonProperty("check_id")
-    private Integer checkId;
+    private Long checkId;
 
     private Boolean check;
 

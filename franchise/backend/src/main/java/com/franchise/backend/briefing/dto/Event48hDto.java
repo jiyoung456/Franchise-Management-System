@@ -12,10 +12,10 @@ import lombok.*;
 public class Event48hDto {
 
     @JsonProperty("event_id")
-    private Integer eventId;
+    private Long eventId;
 
     @JsonProperty("store_id")
-    private Integer storeId;
+    private Long storeId;
 
     @JsonProperty("store_name")
     private String storeName;

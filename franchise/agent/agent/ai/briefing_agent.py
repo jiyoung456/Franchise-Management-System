@@ -8,7 +8,7 @@ from agent.utils.utils import extract_json
 # 상태 관리 (State)
 class AgentState(TypedDict):
     user_id: int
-    role: str
+    audience_role: str
     department: str
 
     store_list: List[Dict[str, Any]]
@@ -55,7 +55,7 @@ def run_briefing_llm(state: AgentState) -> AgentState:
 
 입력 데이터:
 user_id: {state["user_id"]}
-role: {state["role"]}
+audience_role: {state["audience_role"]}
 department: {state["department"]}
 
 store_list: {state["store_list"]}

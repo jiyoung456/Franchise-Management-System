@@ -13,7 +13,7 @@ def run_briefing_agnet(request : Request, prompt: BriefingRequest) -> BriefingRe
         agent_name="briefing",
         payload={
         "user_id": prompt.user_id,
-        "role": prompt.role,
+        "audience_role": prompt.audience_role,
         "department": prompt.department,
         "store_list": prompt.store_list,
         "qsc_30_list": prompt.qsc_30_list,
@@ -32,8 +32,8 @@ def analyze_comment(request: Request, prompt: CommentRequest) -> CommentResponse
         request=request,
         agent_name="comment",
         payload={
-        "store_name": prompt.store_name,
-        "sv_comment": prompt.sv_comment,
+        "inspection_id": prompt.inspection_id,
+        "summary_comment": prompt.summary_comment,
         }
     )
     return build_comment_response(result)

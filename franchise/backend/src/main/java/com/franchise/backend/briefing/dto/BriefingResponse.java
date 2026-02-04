@@ -3,6 +3,7 @@ package com.franchise.backend.briefing.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -12,17 +13,14 @@ import java.util.List;
 @ToString
 public class BriefingResponse {
 
-    @JsonProperty("target_date")
-    private TargetDateDto targetDate;
-
     @JsonProperty("focus_point_json")
-    private List<FocusPointDto> focusPointJson;
+    private List<FocusPointJsonDto> focusPointJson;
 
     @JsonProperty("focus_point_json_checked")
-    private List<FocusPointCheckedDto> focusPointJsonChecked;
+    private List<FocusPointJsonCheckedDto> focusPointJsonChecked;
 
-    @JsonProperty("top_stroe_json")
-    private TopStoreJsonDto topStroeJson;
+    @JsonProperty("top_store_json")
+    private TopStoreJsonDto topStoreJson;
 
     @JsonProperty("summary_text")
     private String summaryText;

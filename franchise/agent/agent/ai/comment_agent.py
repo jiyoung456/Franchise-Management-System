@@ -7,8 +7,10 @@ from agent.utils.utils import extract_json
 # 상태 관리 (State)
 class CommentState(TypedDict): 
     # 입력 
-    store_name: str 
-    sv_comment: str 
+    inspection_id: int 
+    summary_comment: str 
+
+    # 출력
     summary: str 
     topic_json: List[str] 
     keyword_json: List[str] 
@@ -22,11 +24,11 @@ def run_comment_llm(state: CommentState) -> CommentState:
     state["model_name"] = get_model_name()
     state["prompt_version"] = get_prompt_version()
     prompt = f'''
-    당신은 프랜차이즈 관리 전문가입니다. 아래 SV 코멘트를 분석해서 JSON으로 응답하세요.
+    당신은 프랜차이즈 QSC 점검 결과 코멘트 분석가입니다. 아래 SV 코멘트를 분석해서 JSON으로 응답하세요.
 
     [입력]
-    매장: {state["store_name"]}
-    코멘트: {state["sv_comment"]}
+    점검 아이디: {state["inspection_id"]}
+    코멘트: {state["summary_comment"]}
 
     [출력 규칙]
     - summary는 문자열(string)이며 한 문장으로 작성
@@ -38,7 +40,7 @@ def run_comment_llm(state: CommentState) -> CommentState:
     [출력 포맷(JSON)]
     {{
         "summary": "1줄 요약",
-        "topic_json": ["위생", "서비스", "품질", "시설", "인력", "매출"],
+        "topic_json": ["품질", "서비스", "위생", "안전"],
         "keyword_json": ["키워드1", "키워드2"]
     }}
     '''

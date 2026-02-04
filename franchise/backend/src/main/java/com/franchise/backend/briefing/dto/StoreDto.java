@@ -11,13 +11,13 @@ import lombok.*;
 public class StoreDto {
 
     @JsonProperty("store_id")
-    private Integer storeId;
+    private Long storeId;
 
     @JsonProperty("store_name")
     private String storeName;
 
-    @JsonProperty("risk_level")
-    private String riskLevel;
+    @JsonProperty("current_state")
+    private String currentState;
 
     // getters / setters
 

@@ -11,21 +11,21 @@ import lombok.*;
 public class Pos7dDto {
 
     @JsonProperty("pos_period_agg")
-    private Integer posPeriodAgg;
+    private Long posPeriodAgg;
 
     @JsonProperty("store_id")
-    private Integer storeId;
+    private Long storeId;
 
     @JsonProperty("store_name")
     private String storeName;
 
-    private Integer aov;
+    private Long aov;
 
     @JsonProperty("sale_amount")
     private Long saleAmount;
 
     @JsonProperty("order_count")
-    private Integer orderCount;
+    private Long orderCount;
 
     @JsonProperty("cogs_amount")
     private Long cogsAmount;

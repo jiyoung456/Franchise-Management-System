@@ -7,10 +7,10 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @ToString
-public class FocusPointDto {
+public class FocusPointJsonDto {
 
     @JsonProperty("store_id")
-    private Integer storeId;
+    private Long storeId;
 
     @JsonProperty("store_name")
     private String storeName;

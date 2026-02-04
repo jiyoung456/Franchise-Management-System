@@ -5,7 +5,7 @@ from datetime import datetime
 
 class BriefingRequest(BaseModel):
     user_id: int
-    role: str
+    audience_role: str
     department: str
 
     store_list: List[Dict[str, Any]]
@@ -16,7 +16,6 @@ class BriefingRequest(BaseModel):
     contract_end_imminent: List[Dict[str, Any]]
 
 class BriefingResponse(BaseModel): 
-    target_date : Dict[str, Any] 
     focus_point_json : List[Dict] 
     focus_point_json_checked : List[Dict] 
     top_stroe_json : Dict[str, int] 
@@ -24,15 +23,13 @@ class BriefingResponse(BaseModel):
     generate_at : datetime
 
 class CommentRequest(BaseModel):
-    store_name: str
-    sv_comment: str
+    inspection_id: int
+    summary_comment: str
 
 class CommentResponse(BaseModel) : 
-    source_text : str 
     topic_json : List[str] 
     keyword_json : List[str] 
     summary : str 
-    raw_response_json : Dict[str, Any] 
     analyzed_at : datetime 
     model_name : str 
     prompt_version : str

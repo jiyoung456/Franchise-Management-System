@@ -12,10 +12,10 @@ import java.time.LocalDate;
 public class Qsc30dDto {
 
     @JsonProperty("inspection_id")
-    private Integer inspectionId;
+    private Long inspectionId;
 
     @JsonProperty("store_id")
-    private Integer storeId;
+    private Long storeId;
 
     @JsonProperty("store_name")
     private String storeName;
