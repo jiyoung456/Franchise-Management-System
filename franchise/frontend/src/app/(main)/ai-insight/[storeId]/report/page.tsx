@@ -6,7 +6,7 @@ import { ArrowLeft, BrainCircuit, Download, PieChart as PieChartIcon, Activity, 
 import {
     PieChart, Pie, Cell, Tooltip
 } from 'recharts';
-import axios from 'axios';
+import api from '@/lib/api';
 
 interface Props {
     params: Promise<{ storeId: string }>;
@@ -47,7 +47,9 @@ export default function RiskReportPage({ params }: Props) {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`http://localhost:8080/api/risk/report/${storeId}?snapshotDate=${snapshotDate}`);
+                // Use api instance to include Auth headers automatically
+                // Proxy rewrites /api/... to http://localhost:8080/api/...
+                const response = await api.get(`/risk/report/${storeId}?snapshotDate=${snapshotDate}`);
                 setReportData(response.data);
             } catch (err) {
                 console.error('Failed to fetch report:', err);
