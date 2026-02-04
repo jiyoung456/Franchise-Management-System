@@ -5,6 +5,7 @@ import java.util.List;
 
 public record QscInspectionDetailResponse(
         Long inspectionId,
+        String inspectorName,
         Long templateId,
         Long storeId,
         OffsetDateTime inspectedAt,

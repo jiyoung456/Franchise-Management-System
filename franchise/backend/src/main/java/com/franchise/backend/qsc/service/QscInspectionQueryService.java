@@ -8,6 +8,8 @@ import com.franchise.backend.qsc.repository.QscMasterRepository;
 import com.franchise.backend.qsc.repository.QscInspectionPhotoRepository;
 import com.franchise.backend.qsc.repository.QscPhotoAiAnalysisRepository;
 import com.franchise.backend.qsc.repository.projection.InspectionItemDetailView;
+import com.franchise.backend.user.entity.User;
+import com.franchise.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +25,17 @@ public class QscInspectionQueryService {
     private final QscInspectionItemRepository itemRepository;
     private final QscInspectionPhotoRepository photoRepository;
     private final QscPhotoAiAnalysisRepository aiRepository;
+    private final UserRepository userRepository;
 
     public QscInspectionDetailResponse getDetail(Long inspectionId) {
 
         QscMaster master = masterRepository.findById(inspectionId)
                 .orElseThrow(() -> new IllegalArgumentException("Inspection not found. id=" + inspectionId));
+
+        String inspectorName = userRepository.findById(master.getInspectorId())
+                .map(User::getUserName)
+                .orElse(null);
+
 
         List<QscInspectionItem> items = itemRepository.findByInspectionId(inspectionId);
 
@@ -117,6 +125,7 @@ public class QscInspectionQueryService {
 
         return new QscInspectionDetailResponse(
                 master.getInspectionId(),
+                inspectorName,
                 master.getTemplateId(),
                 master.getStoreId(),
                 master.getInspectedAt(),
