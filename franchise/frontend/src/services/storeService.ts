@@ -8,7 +8,7 @@ import {
 
 // [권역 코드 매핑 로직]
 // 백엔드에서 넘어오는 region_code 앞자리를 보고 한글명으로 변환
-const getRegionName = (code: string): string => {
+export const getRegionName = (code: string): string => {
     if (!code) return '';
     const upperCode = code.toUpperCase();
 
@@ -22,7 +22,7 @@ const getRegionName = (code: string): string => {
         return '대구/경북';
     }
     if (upperCode.startsWith('DAEJEON') || upperCode.startsWith('CHUNG') || upperCode.startsWith('GANGWON') || upperCode.startsWith('SEJONG') || upperCode.startsWith('대전') || upperCode.startsWith('충청') || upperCode.startsWith('강원')) {
-        return '강원/충청';
+        return '대전/충청';
     }
     if (upperCode.startsWith('GWANGJU') || upperCode.startsWith('JEONLA') || upperCode.startsWith('JEOLLA') || upperCode.startsWith('JEON') || upperCode.startsWith('광주') || upperCode.startsWith('전라')) {
         return '광주/전라';
@@ -35,12 +35,15 @@ const getRegionName = (code: string): string => {
 };
 
 // 프론트엔드 한글 지역명 -> 백엔드용 코드 변환
-const getBackendRegionCode = (name: string): string => {
+export const getBackendRegionCode = (name: string): string => {
     switch (name) {
         case '서울/경기': return 'SEOUL_GYEONGGI';
         case '부산/경남': return 'BUSAN_GYEONGNAM';
+        case '대구/경북':
         case '대구/울산/경북': return 'DAEGU_ULSAN_GYEONGBUK';
+        case '대전/충청':
         case '강원/충청': return 'GANGWON_CHUNGCHEONG';
+        case '광주/전라':
         case '전라/광주': return 'JEONLA_GWANGJU';
         case '제주': return 'JEJU';
         default: return name;
