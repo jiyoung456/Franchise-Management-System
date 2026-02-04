@@ -93,7 +93,7 @@ function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div className="mb-2">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">운영 대시보드 (Admin)</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">운영 대시보드</h1>
         <p className="text-sm text-gray-500 mt-1">전체 가맹점의 운영 현황과 주요 위험 요소를 실시간으로 모니터링합니다.</p>
       </div>
 
@@ -279,10 +279,10 @@ function TeamLeaderDashboard({ user }: { user: User }) {
       {/* Header Section */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          반갑습니다, {user.userName}님! 👋
+          운영 대시보드
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          오늘의 프랜차이즈 운영 현황을 확인하세요.
+          팀에서 담당하고 있는 점포의 운영 현황을 확인하세요.
         </p>
       </div>
 
@@ -465,7 +465,7 @@ function SvDashboard({ user }: { user: User }) {
   return (
     <div className="space-y-8 pb-20">
       <div className="mb-2">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">운영 대시보드 (Supervisor)</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">운영 대시보드</h1>
         <p className="text-sm text-gray-500 mt-1">담당 가맹점의 현황을 한눈에 파악하세요.</p>
       </div>
 
