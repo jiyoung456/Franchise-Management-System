@@ -61,6 +61,48 @@ public class QscTemplate {
     public void preUpdate() {
         this.updatedAt = OffsetDateTime.now();
     }
+
+    // QscTemplate 생성 및 수정
+    public void updateBasic(
+            String templateName,
+            QscInspectionType inspectionType,
+            String version,
+            java.time.LocalDate effectiveFrom,
+            java.time.LocalDate effectiveTo,
+            Integer passScoreMin,
+            QscTemplateStatus status
+    ) {
+        this.templateName = templateName;
+        this.inspectionType = inspectionType;
+        this.version = version;
+        this.effectiveFrom = effectiveFrom;
+        this.effectiveTo = effectiveTo;
+        this.passScoreMin = passScoreMin;
+        if (status != null) this.status = status;
+    }
+
+    public static QscTemplate create(
+            Long createdByUserId,
+            String templateName,
+            QscInspectionType inspectionType,
+            String version,
+            java.time.LocalDate effectiveFrom,
+            java.time.LocalDate effectiveTo,
+            Integer passScoreMin,
+            QscTemplateStatus status
+    ) {
+        QscTemplate t = new QscTemplate();
+        t.createdByUserId = createdByUserId;
+        t.templateName = templateName;
+        t.inspectionType = inspectionType;
+        t.version = version;
+        t.effectiveFrom = effectiveFrom;
+        t.effectiveTo = effectiveTo;
+        t.passScoreMin = passScoreMin;
+        t.status = (status == null ? QscTemplateStatus.ACTIVE : status);
+        return t;
+    }
+
 }
 
 

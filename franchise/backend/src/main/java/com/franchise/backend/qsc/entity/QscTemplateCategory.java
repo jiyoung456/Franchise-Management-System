@@ -51,5 +51,19 @@ public class QscTemplateCategory {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    // QscTemplate 생성 및 수정
+    public void update(String categoryName, Integer categoryWeight) {
+        this.categoryName = categoryName;
+        this.categoryWeight = categoryWeight;
+    }
+
+    public static QscTemplateCategory create(QscTemplate template, QscCategoryCode code, String name, Integer weight) {
+        QscTemplateCategory c = new QscTemplateCategory();
+        c.template = template;
+        c.categoryCode = code;
+        c.categoryName = name;
+        c.categoryWeight = weight;
+        return c;
+    }
 
 }

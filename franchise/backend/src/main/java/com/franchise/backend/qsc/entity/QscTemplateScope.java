@@ -36,4 +36,13 @@ public class QscTemplateScope {
         this.createdAt = OffsetDateTime.now();
     }
 
+    // QscTemplate 생성 및 수정
+    public static QscTemplateScope create(QscTemplate template, QscScopeType scopeType, Long scopeRefId) {
+        QscTemplateScope s = new QscTemplateScope();
+        s.template = template;
+        s.scopeType = scopeType;
+        s.scopeRefId = scopeRefId;
+        return s;
+    }
+
 }

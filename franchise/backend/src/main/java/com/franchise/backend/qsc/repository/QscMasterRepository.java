@@ -1,6 +1,7 @@
 package com.franchise.backend.qsc.repository;
 
 import com.franchise.backend.qsc.entity.QscMaster;
+import com.franchise.backend.qsc.repository.projection.QscInspectionListView;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -349,7 +350,43 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
             @Param("offset") int offset
     );
 
+    @Query("""
+    select m
+    from QscMaster m
+    join Store s on s.id = m.storeId
+    where (:region is null or :region = '' or s.regionCode = :region)
+      and (:status is null or :status = '' or m.status = :status)
+""")
+    List<QscMaster> findByCondition(
+            @Param("region") String region,
+            @Param("status") String status
+    );
 
+
+    //지역, 상태 필터
+    @Query("""
+        select
+            m.inspectionId as inspectionId,
+            m.storeId as storeId,
+            s.storeName as storeName,
+            s.regionCode as regionCode,
+            m.status as status,
+            u.userName as inspectorName,
+            m.inspectedAt as inspectedAt,
+            m.totalScore as totalScore,
+            m.grade as grade,
+            m.isPassed as isPassed
+        from QscMaster m
+        join Store s on s.id = m.storeId
+        join User u on u.id = m.inspectorId
+        where (:region is null or :region = '' or s.regionCode = :region)
+          and (:status is null or :status = '' or m.status = :status)
+        order by m.inspectedAt desc
+    """)
+    List<QscInspectionListView> findList(
+            @Param("region") String region,
+            @Param("status") String status
+    );
 
 
 

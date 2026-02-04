@@ -1,6 +1,7 @@
 package com.franchise.backend.qsc.controller;
 
 import com.franchise.backend.qsc.dto.QscInspectionDetailResponse;
+import com.franchise.backend.qsc.dto.QscInspectionListResponse;
 import com.franchise.backend.qsc.dto.QscInspectionSaveRequest;
 import com.franchise.backend.qsc.service.QscInspectionCommandService;
 import com.franchise.backend.qsc.service.QscInspectionQueryService;
@@ -10,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -38,4 +40,13 @@ public class QscInspectionController {
     public QscInspectionDetailResponse getDetail(@PathVariable Long inspectionId) {
         return queryService.getDetail(inspectionId); // ✅ 수정
     }
+
+    @GetMapping
+    public List<QscInspectionListResponse> getList(
+            @RequestParam(required = false) String region, // Store.regionCode
+            @RequestParam(required = false) String status  // QscMaster.status (COMPLETED/CONFIRMED)
+    ) {
+        return queryService.getList(region, status);
+    }
+
 }

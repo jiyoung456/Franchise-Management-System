@@ -11,4 +11,5 @@ public interface QscTemplateItemRepository
 
     List<QscTemplateItem>
     findByTemplate_IdOrderByCategory_IdAscSortOrderAsc(Long templateId);
+    void deleteByTemplate_Id(Long templateId);
 }

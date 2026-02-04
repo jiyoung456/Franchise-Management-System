@@ -1,6 +1,7 @@
 package com.franchise.backend.qsc.repository;
 
 import com.franchise.backend.qsc.entity.QscTemplate;
+import com.franchise.backend.qsc.entity.QscTemplateScope;
 import com.franchise.backend.qsc.entity.QscTemplateStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
