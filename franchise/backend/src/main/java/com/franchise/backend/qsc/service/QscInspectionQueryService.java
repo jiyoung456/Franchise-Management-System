@@ -1,6 +1,7 @@
 package com.franchise.backend.qsc.service;
 
 import com.franchise.backend.qsc.dto.QscInspectionDetailResponse;
+import com.franchise.backend.qsc.dto.QscInspectionListResponse;
 import com.franchise.backend.qsc.entity.QscInspectionItem;
 import com.franchise.backend.qsc.entity.QscMaster;
 import com.franchise.backend.qsc.repository.QscInspectionItemRepository;
@@ -170,4 +171,22 @@ public class QscInspectionQueryService {
             String categoryName,
             Integer categoryWeight
     ) {}
+    public List<QscInspectionListResponse> getList(String region, String status) {
+        return masterRepository.findList(region, status)
+                .stream()
+                .map(v -> new QscInspectionListResponse(
+                        v.getInspectionId(),
+                        v.getStoreId(),
+                        v.getStoreName(),
+                        v.getRegionCode(),
+                        v.getStatus(),
+                        v.getInspectorName(),
+                        v.getInspectedAt(),
+                        v.getTotalScore(),
+                        v.getGrade(),
+                        v.getIsPassed()
+                ))
+                .toList();
+    }
+
 }

@@ -52,5 +52,17 @@ public class QscTemplateItem {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    // QscTemplate 생성 및 수정
+    public static QscTemplateItem create(QscTemplate template, QscTemplateCategory category, String itemName, Boolean isRequired, Integer sortOrder) {
+        QscTemplateItem i = new QscTemplateItem();
+        i.template = template;
+        i.category = category;
+        i.itemName = itemName;
+        i.isRequired = (isRequired == null ? true : isRequired);
+        i.sortOrder = sortOrder;
+        return i;
+    }
+
+
 
 }

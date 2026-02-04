@@ -93,4 +93,6 @@ public class AdminQscDashboardService {
     }
 
     private record MonthRange(OffsetDateTime startInclusive, OffsetDateTime endExclusive) {}
+
+
 }
