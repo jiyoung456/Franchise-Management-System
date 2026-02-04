@@ -421,5 +421,16 @@ export const QscService = {
             console.error('Failed to save inspection:', error);
             return false;
         }
+    },
+
+    // 관리자 QSC 대시보드 데이터 조회
+    getAdminDashboard: async (filters: { region?: string, regionCode?: string, passFilter?: string, limit?: number, offset?: number } = {}): Promise<any> => {
+        try {
+            const response = await api.get('/admin/qsc/dashboard', { params: filters });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to fetch admin dashboard:', error);
+            return null;
+        }
     }
 };

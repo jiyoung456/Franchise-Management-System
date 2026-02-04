@@ -17,7 +17,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
-import { StoreService } from '@/services/storeService';
+import { StoreService, getBackendRegionCode, getRegionName } from '@/services/storeService';
 import { QscService } from '@/services/qscService';
 import { AuthService } from '@/services/authService';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid } from 'recharts';
@@ -71,7 +71,7 @@ function SvQscDashboard() {
                 }
 
                 setStats({
-                    avgScore: summary.avgScore || 0,
+                    avgScore: Number((summary.avgScore || 0).toFixed(2)),
                     avgScoreChange: scoreChange,
                     completionRate: Math.round((summary.completionRate || 0) * 100),
                     completionTargetDiff: Math.round((summary.completionDelta || 0) * 100),
@@ -250,7 +250,64 @@ function SvQscDashboard() {
     );
 }
 
-// --- COMPONENT: ADMIN DASHBOARD (Modified to use StorageService) ---
+// --- CUSTOM DROPDOWN COMPONENT ---
+function FilterDropdown({
+    label,
+    value,
+    options,
+    onChange
+}: {
+    label?: string,
+    value: string,
+    options: { label: string, value: string }[],
+    onChange: (val: string) => void
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(opt => opt.value === value) || options[0];
+
+    return (
+        <div className="relative inline-block text-left min-w-[140px]">
+            <div className="flex items-center gap-2">
+                {label && <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{label}</span>}
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="flex items-center justify-between w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    {selectedOption.label}
+                    <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </button>
+            </div>
+
+            {isOpen && (
+                <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+                    <div className="origin-top-right absolute right-0 mt-2 w-full rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20 overflow-hidden">
+                        <div className="py-1">
+                            {options.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => {
+                                        onChange(opt.value);
+                                        setIsOpen(false);
+                                    }}
+                                    className={`${opt.value === value
+                                        ? 'bg-blue-600 text-white'
+                                        : 'text-gray-700 hover:bg-gray-100'
+                                        } block w-full text-left px-4 py-2 text-sm transition-colors`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
+
+// --- COMPONENT: ADMIN DASHBOARD ---
 function AdminQscDashboard({ user }: { user: any }) {
     const [inspections, setInspections] = useState<any[]>([]);
     const [stats, setStats] = useState({
@@ -262,209 +319,345 @@ function AdminQscDashboard({ user }: { user: any }) {
     const [loading, setLoading] = useState(true);
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [regionFilter, setRegionFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
-    const [visibleCount, setVisibleCount] = useState(5);
+    const [visibleCount, setVisibleCount] = useState(10);
+
+    const statusOptions = [
+        { label: '전체 상태', value: 'ALL' },
+        { label: '합격', value: 'PASS' },
+        { label: '불합격', value: 'FAIL' },
+    ];
 
     useEffect(() => {
         const fetchAdminData = async () => {
-            const allStores = await StoreService.getStores(); // Async wait
+            setLoading(true);
+            try {
+                const filters: any = {
+                    limit: 100,
+                    offset: 0
+                };
 
-            // For Admin, getting list for ALL stores is too heavy (120 * request). 
-            // Better to use getDashboardStats (parallel get latest).
-            // This is "Dashboard" after all, so current status is most important.
-            // If historical data is needed, we need a better API.
-            // Let's use getDashboardStats (fetched latest for all stores).
-            const data = await QscService.getDashboardStats(allStores);
+                // 상태 필터: 결과(합격/불합격)에 대한 다양한 파라미터 명칭 대응
+                if (statusFilter === 'PASS') {
+                    filters.isPassed = true;
+                    filters.passFilter = 'PASS';
+                    filters.passed = true;
+                } else if (statusFilter === 'FAIL') {
+                    filters.isPassed = false;
+                    filters.passFilter = 'FAIL';
+                    filters.passed = false;
+                }
 
-            // Fallback for Demo/Backend not ready
-            const finalData = data.length > 0 ? data : MOCK_INSPECTIONS;
+                const res = await QscService.getAdminDashboard(filters);
 
-            setInspections(finalData);
+                if (res) {
+                    // 백엔드가 배열을 반환하거나 { summary, list: { rows: [] } } 형태를 반환하는 경우 모두 대응
+                    let dataArray = [];
+                    let summaryData = null;
 
-            // KPI Calc
-            const avgScore = finalData.length > 0
-                ? Number((finalData.reduce((acc, cur) => acc + (cur.score || 0), 0) / finalData.length).toFixed(1))
-                : 0;
-            const passedCount = finalData.filter(i => i.isPassed).length;
-            const failedCount = finalData.length - passedCount;
+                    if (Array.isArray(res)) {
+                        dataArray = res;
+                    } else if (res.list && Array.isArray(res.list.rows)) {
+                        dataArray = res.list.rows;
+                        summaryData = res.summary;
+                    } else if (res.list && Array.isArray(res.list)) {
+                        dataArray = res.list;
+                        summaryData = res.summary;
+                    }
 
-            const currentMonthStr = new Date().toISOString().slice(0, 7);
-            const inspectedCount = new Set(finalData.filter(i => i.date.startsWith(currentMonthStr)).map(i => i.storeId)).size;
-            const completionRate = allStores.length > 0 ? Math.round((inspectedCount / allStores.length) * 100) : 85;
+                    // 점검 목록 매핑 (백엔드 필드명 정합: inspectorName, isPassed 사용)
+                    const mappedInspections = dataArray.map((row: any) => ({
+                        id: row.inspectionId ? row.inspectionId.toString() : (row.storeId ? row.storeId.toString() : Math.random().toString()),
+                        storeId: row.storeId ? row.storeId.toString() : '',
+                        storeName: row.storeName || '-',
+                        region: getRegionName(row.regionCode),
+                        sv: row.inspectorName || row.supervisorName || '-',
+                        date: row.inspectedAt ? row.inspectedAt.split('T')[0] : '-',
+                        score: row.totalScore || 0,
+                        grade: row.grade || '-',
+                        isPassed: row.isPassed !== undefined ? row.isPassed : row.passed
+                    }));
+                    setInspections(mappedInspections);
 
-            const gradeCounts: Record<string, number> = { S: 0, A: 0, B: 0, C: 0, D: 0 };
-            finalData.forEach(i => {
-                if (gradeCounts[i.grade] !== undefined) gradeCounts[i.grade]++;
-            });
-            const gData = [
-                { name: 'S', count: gradeCounts.S },
-                { name: 'A', count: gradeCounts.A },
-                { name: 'B', count: gradeCounts.B },
-                { name: 'C', count: gradeCounts.C },
-                { name: 'D', count: gradeCounts.D },
-            ];
+                    // 통계 데이터 업데이트
+                    if (summaryData) {
+                        setStats({
+                            avgScore: Number((summaryData.avgScore || 0).toFixed(2)),
+                            completionRate: Math.round(summaryData.completionRate || 0),
+                            failedCount: summaryData.failedStoreCount || 0
+                        });
 
-            setStats({
-                avgScore,
-                completionRate,
-                failedCount
-            });
-            setGradeData(gData);
-            setLoading(false);
+                        const gradeCounts = summaryData.gradeDistribution || {};
+                        const gData = [
+                            { name: 'S', count: gradeCounts.S || 0 },
+                            { name: 'A', count: gradeCounts.A || 0 },
+                            { name: 'B', count: gradeCounts.B || 0 },
+                            { name: 'C', count: gradeCounts.C || 0 },
+                            { name: 'D', count: gradeCounts.D || 0 },
+                        ];
+                        setGradeData(gData);
+                    } else if (dataArray.length > 0) {
+                        // 요약 데이터가 없을 경우 리스트에서 직접 계산
+                        const totalScore = dataArray.reduce((acc: number, curr: any) => acc + (curr.totalScore || 0), 0);
+                        const avgScore = totalScore / dataArray.length;
+                        const failedCount = dataArray.filter((item: any) => item.isPassed === false || item.passed === false).length;
+
+                        setStats(prev => ({
+                            ...prev,
+                            avgScore: Number(avgScore.toFixed(2)),
+                            failedCount: failedCount
+                        }));
+
+                        const distribution = dataArray.reduce((acc: any, curr: any) => {
+                            if (curr.grade) acc[curr.grade] = (acc[curr.grade] || 0) + 1;
+                            return acc;
+                        }, {});
+
+                        const gData = ['S', 'A', 'B', 'C', 'D'].map(g => ({
+                            name: g,
+                            count: distribution[g] || 0
+                        }));
+                        setGradeData(gData);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch admin dashboard:', error);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchAdminData();
-    }, []);
+    }, [statusFilter]);
 
-    // Filter Logic
     const filteredInspections = useMemo(() => {
-        let result = [...inspections].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        let result = [...inspections];
         if (searchTerm) {
-            result = result.filter(item => item.storeName.includes(searchTerm) || item.inspector.includes(searchTerm));
-        }
-        if (regionFilter !== 'ALL') {
-            result = result.filter(item => item.region === regionFilter);
-        }
-        if (statusFilter !== 'ALL') {
-            if (statusFilter === 'PASS') result = result.filter(item => item.isPassed);
-            if (statusFilter === 'FAIL') result = result.filter(item => !item.isPassed);
+            const lowerSearch = searchTerm.toLowerCase();
+            result = result.filter(item =>
+                item.storeName.toLowerCase().includes(lowerSearch) ||
+                (item.sv && item.sv.toLowerCase().includes(lowerSearch))
+            );
         }
         return result;
-    }, [inspections, searchTerm, regionFilter, statusFilter]);
+    }, [inspections, searchTerm]);
 
     const visibleInspections = filteredInspections.slice(0, visibleCount);
     const hasMore = visibleCount < filteredInspections.length;
 
-    if (loading) return <div className="p-10 text-center">데이터 로딩중...</div>;
+    if (loading) return (
+        <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">QSC 관리 (전사)</h1>
-                <p className="text-sm text-gray-500 mt-1">전사 QSC 점검 현황 및 품질 관리 리포트</p>
+                <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">QSC 품질 관리</h1>
+                <p className="text-md text-gray-500 mt-2">전체 가맹점의 QSC 점검 현황 및 등급별 분포를 모니터링합니다.</p>
             </div>
 
             {/* Admin KPI Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
-                {/* Avg Score */}
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-4">평균 QSC 점수</h3>
-                    <div className="space-y-1">
-                        <div className="text-sm text-gray-500">이번 달 평균 : <span className="text-xl font-bold text-gray-900">{stats.avgScore}점</span></div>
-                        <div className="text-sm text-gray-500">전월 대비 : <span className="text-red-500 font-bold">-3점</span></div>
+            <div className="grid gap-6 md:grid-cols-4">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                            <Award className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-500">평균 QSC 점수</h3>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black text-gray-900">{stats.avgScore}</span>
+                        <span className="text-gray-400 font-bold">점</span>
                     </div>
                 </div>
 
-                {/* Completion Rate */}
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-4">점검 완료율</h3>
-                    <div className="space-y-1">
-                        <div className="text-2xl font-bold text-gray-900">{stats.completionRate}%</div>
-                        <div className="text-sm text-gray-500">목표 대비 : <span className="text-blue-600 font-bold">+2%</span></div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-green-50 rounded-lg">
+                            <ClipboardCheck className="w-5 h-5 text-green-600" />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-500">점검 완료율</h3>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black text-green-600">{stats.completionRate}</span>
+                        <span className="text-gray-400 font-bold">%</span>
                     </div>
                 </div>
 
-                {/* Failed Stores */}
-                <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-                    <h3 className="text-base font-bold text-gray-900 mb-4">불합격 점포 수</h3>
-                    <div className="space-y-1">
-                        <div className="text-2xl font-bold text-red-600">{stats.failedCount}개</div>
-                        <div className="text-sm text-gray-500">전월 대비 : <span className="text-red-500 font-bold">+3</span></div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-red-50 rounded-lg">
+                            <AlertCircle className="w-5 h-5 text-red-600" />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-500">불합격 점포</h3>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black text-red-600">{stats.failedCount}</span>
+                        <span className="text-gray-400 font-bold">개</span>
                     </div>
                 </div>
 
-                {/* Grade Distribution */}
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-center">
-                    <h3 className="text-base font-bold text-gray-900 mb-2">등급 분포</h3>
-                    <div className="h-24 w-full">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <h3 className="text-sm font-bold text-gray-500 mb-4">등급 분포</h3>
+                    <div className="h-20 w-full mt-2">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={gradeData}>
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                                <Tooltip cursor={{ fill: 'transparent' }} />
                                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                                     {gradeData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={
-                                            entry.name === 'S' || entry.name === 'A' ? '#4ade80' :
-                                                entry.name === 'B' ? '#facc15' : '#f87171'
+                                            entry.name === 'S' || entry.name === 'A' ? '#10b981' :
+                                                entry.name === 'B' ? '#f59e0b' : '#ef4444'
                                         } />
                                     ))}
                                 </Bar>
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold' }} />
+                                <Tooltip cursor={{ fill: 'transparent' }} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
             </div>
 
-            {/* List Table */}
-            <div className="bg-white border border-gray-300 rounded-sm">
-                <div className="p-4 border-b border-gray-200 flex flex-wrap gap-4 items-center bg-gray-50">
-                    <div className="flex items-center gap-2">
-                        <Filter className="w-5 h-5 text-gray-500" />
-                        <span className="font-bold text-gray-700">필터:</span>
+            {/* List Table Section */}
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-gray-200 bg-white space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2">
+                                <Filter className="w-5 h-5 text-gray-400" />
+                                <span className="font-bold text-gray-700">필터:</span>
+                            </div>
+                            <FilterDropdown
+                                value={statusFilter}
+                                options={statusOptions}
+                                onChange={setStatusFilter}
+                            />
+                        </div>
+                        <div className="relative group w-full md:w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="점포명 또는 담당 SV 검색..."
+                                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <select className="border-gray-300 rounded text-sm p-2" value={regionFilter} onChange={e => setRegionFilter(e.target.value)}>
-                        <option value="ALL">전체 지역</option>
-                        <option value="서울/경기">서울/경기</option>
-                        <option value="부산/경남">부산/경남</option>
-                    </select>
-                    <select className="border-gray-300 rounded text-sm p-2" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                        <option value="ALL">전체 상태</option>
-                        <option value="PASS">합격</option>
-                        <option value="FAIL">불합격</option>
-                    </select>
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-white text-gray-600 font-bold border-b border-gray-300">
-                            <tr>
-                                <th className="px-6 py-4 whitespace-nowrap">점포명</th>
-                                <th className="px-6 py-4 whitespace-nowrap">지역</th>
-                                <th className="px-6 py-4 whitespace-nowrap">담당 SV</th>
-                                <th className="px-6 py-4 whitespace-nowrap">점검일</th>
-                                <th className="px-6 py-4 whitespace-nowrap">총점</th>
-                                <th className="px-6 py-4 whitespace-nowrap">등급</th>
-                                <th className="px-6 py-4 whitespace-nowrap">합격 여부</th>
-                                <th className="px-6 py-4 whitespace-nowrap">관리</th>
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-gray-50/50 border-b border-gray-200">
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">점포명</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">지역</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">담당 SV</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">점검일</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">총점</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">등급</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">결과</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">관리</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-100">
                             {visibleInspections.map(item => (
-                                <tr key={item.id} className="hover:bg-gray-50 border-b border-gray-100">
-                                    <td className="px-6 py-4 font-bold">{item.storeName}</td>
-                                    <td className="px-6 py-4 text-gray-600">{item.region}</td>
-                                    <td className="px-6 py-4 text-gray-600">{item.sv}</td>
-                                    <td className="px-6 py-4 text-gray-600">{item.date}</td>
-                                    <td className="px-6 py-4 font-bold">{item.score}점</td>
-                                    <td className="px-6 py-4"><span className="border px-2 py-1 rounded-sm text-xs font-bold">{item.grade}</span></td>
+                                <tr key={item.id} className="hover:bg-blue-50/30 transition-colors group">
                                     <td className="px-6 py-4">
-                                        {item.isPassed ? <span className="text-green-600 font-bold">합격</span> : <span className="text-red-600 font-bold">불합격</span>}
+                                        <div className="font-bold text-gray-900">{item.storeName}</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Link href={`/qsc/report/${item.id}?storeId=${item.storeId}`} className="text-blue-600 hover:underline font-medium">리포트</Link>
+                                        <span className="text-gray-600">{item.region}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-500">
+                                                {item.sv?.substring(0, 1)}
+                                            </div>
+                                            <span className="text-gray-600 font-medium">{item.sv || '-'}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1.5 text-gray-500">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            <span>{item.date}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="font-extrabold text-blue-600">{item.score}</span>
+                                        <span className="text-[10px] text-gray-400 font-bold ml-0.5">점</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-sm border ${item.grade === 'S' || item.grade === 'A' ? 'bg-green-50 border-green-200 text-green-700' :
+                                            item.grade === 'B' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                                                'bg-red-50 border-red-200 text-red-700'
+                                            }`}>
+                                            {item.grade}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        {item.isPassed ? (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                합격
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                불합격
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <Link
+                                            href={`/qsc/report/${item.id}?storeId=${item.storeId}`}
+                                            className="inline-flex items-center justify-center px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            상세 보기
+                                        </Link>
                                     </td>
                                 </tr>
                             ))}
                             {visibleInspections.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
-                                        등록된 점검 이력이 없습니다.
+                                    <td colSpan={8} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="p-4 bg-gray-50 rounded-full">
+                                                <Search className="w-8 h-8 text-gray-300" />
+                                            </div>
+                                            <p className="text-gray-500 font-medium">검색 결과가 없습니다.</p>
+                                            <button
+                                                onClick={() => { setStatusFilter('ALL'); setSearchTerm(''); }}
+                                                className="text-blue-600 text-sm font-bold hover:underline mt-2"
+                                            >
+                                                필터 초기화
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
                 </div>
+
                 {hasMore && (
-                    <div className="p-4 text-center border-t border-gray-200">
-                        <button onClick={() => setVisibleCount(p => p + 5)} className="text-sm font-bold text-gray-600">더 보기</button>
+                    <div className="p-6 text-center border-t border-gray-100 bg-gray-50/30">
+                        <button
+                            onClick={() => setVisibleCount(p => p + 10)}
+                            className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all"
+                        >
+                            더 많은 점검 결과 보기
+                            <ChevronDown className="w-4 h-4" />
+                        </button>
                     </div>
                 )}
             </div>
         </div>
     );
 }
+
 
 // --- MAIN PAGE COMPONENT ---
 export default function QscDashboardPage() {
