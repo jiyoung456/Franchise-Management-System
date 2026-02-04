@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { Search, AlertTriangle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
@@ -42,7 +42,7 @@ export default function AiRiskHomePage() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get('http://localhost:8080/api/risk');
+                const response = await api.get('/risk');
 
                 console.log('API Response:', response.data);
 
