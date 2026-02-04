@@ -1,4 +1,7 @@
 package com.franchise.backend.briefing.repository;
 
-public interface ContractEndImminentRepository {
+import com.franchise.backend.store.entity.Store;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ContractEndImminentRepository extends JpaRepository<Store, Long> {
 }
