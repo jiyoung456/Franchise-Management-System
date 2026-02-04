@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronRight, Activity, Calendar, AlertTriangle, CheckCircle, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '@/lib/api';
 
 interface Props {
     params: Promise<{ storeId: string }>;
@@ -76,8 +76,8 @@ export default function AiRiskHistoryPage({ params }: Props) {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // GET /api/risk/report/{storeId}/history
-                const response = await axios.get(`http://localhost:8080/api/risk/report/${storeId}/history`);
+                // Use api instance for Auth (Proxy via /api/risk/...)
+                const response = await api.get(`/risk/report/${storeId}/history`);
 
                 if (Array.isArray(response.data)) {
                     setHistory(response.data);
@@ -345,8 +345,8 @@ export default function AiRiskHistoryPage({ params }: Props) {
                                         key={page}
                                         onClick={() => handlePageChange(page)}
                                         className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium transition-colors ${currentPage === page
-                                                ? 'bg-indigo-600 text-white'
-                                                : 'text-gray-600 hover:bg-gray-100'
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'text-gray-600 hover:bg-gray-100'
                                             }`}
                                     >
                                         {page}
