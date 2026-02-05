@@ -30,8 +30,8 @@ public class NotificationSchedule {
 
         String t = eventType.trim().toUpperCase();
 
-        if (t.equals("POS")) return new int[]{7, 14};
-        if (t.equals("QSC")) return new int[]{3, 7};
+        if (t.contains("POS")) return new int[]{7, 14};
+        if (t.contains("QSC")) return new int[]{3, 7};
 
         return new int[]{Integer.MAX_VALUE, Integer.MAX_VALUE};
     }
