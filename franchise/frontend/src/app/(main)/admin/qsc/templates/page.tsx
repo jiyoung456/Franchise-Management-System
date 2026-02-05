@@ -1,119 +1,167 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { StorageService, QSCTemplate } from '@/lib/storage'; // ensure import matches
 import Link from 'next/link';
-import { Plus, Search, FileText, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { QSCTemplate } from '@/types';
+import { adminQscService } from '@/services/adminQscService';
 
 export default function TemplateListPage() {
     const [templates, setTemplates] = useState<QSCTemplate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [filters, setFilters] = useState({
+        type: '',
+        status: '',
+        scope: '',
+        keyword: ''
+    });
 
     useEffect(() => {
-        // Init Storage (just in case)
-        StorageService.init();
-        const data = StorageService.getTemplates();
-        setTemplates(data);
-        setIsLoading(false);
-    }, []);
+        const fetchTemplates = async () => {
+            setIsLoading(true);
+            try {
+                // 직접 백엔드 DTO 배열을 받아옵니다.
+                const data = await adminQscService.getTemplates({
+                    type: filters.type || undefined,
+                    status: filters.status || undefined,
+                    keyword: filters.keyword || undefined
+                });
 
-    if (isLoading) return <div className="p-8 text-center text-gray-500">Loading templates...</div>;
+                console.log("DEBUG: DB에서 가져온 원본 데이터:", data);
+                setTemplates(data);
+            } catch (error) {
+                console.error('Failed to load templates:', error);
+                setTemplates([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchTemplates();
+    }, [filters]);
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">QSC 점검 템플릿 관리</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        정기 점검 및 위생 점검에 사용할 체크리스트 템플릿을 생성하고 관리합니다.
+                    <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">점검 템플릿 관리 (Backend Direct)</h1>
+                    <p className="text-sm text-gray-400 mt-1 font-medium">
+                        백엔드 API(/api/admin/qsc/templates)와 직접 연동된 데이터입니다.
                     </p>
                 </div>
                 <Link
                     href="/admin/qsc/templates/new"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm flex items-center"
+                    className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 flex items-center transition-all hover:-translate-y-0.5"
                 >
-                    <Plus className="w-4 h-4 mr-2" />
-                    새 템플릿 생성
+                    <Plus className="w-4 h-4 mr-2 stroke-[3]" />
+                    새 점검 템플릿 등록
                 </Link>
             </div>
 
             {/* Filter Bar */}
-            <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="템플릿 명칭 검색..."
-                        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-6">
+                <div className="flex items-center gap-2 text-gray-500 whitespace-nowrap">
+                    <SlidersHorizontal className="w-4 h-4" />
+                    <span className="text-sm font-bold">필터</span>
                 </div>
-                <select className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">전체 상태</option>
-                    <option value="active">사용 중</option>
-                    <option value="inactive">미사용</option>
-                </select>
+
+                <div className="flex flex-1 items-center gap-3">
+                    <select
+                        value={filters.type}
+                        onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+                        className="px-3 py-2 border border-gray-100 bg-gray-50/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-gray-600"
+                    >
+                        <option value="">전체 유형</option>
+                        <option value="REGULAR">정기 점검</option>
+                        <option value="SPECIAL">특별 점검</option>
+                    </select>
+
+                    <select
+                        value={filters.status}
+                        onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                        className="px-3 py-2 border border-gray-100 bg-gray-50/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium text-gray-600"
+                    >
+                        <option value="">활성 상태</option>
+                        <option value="ACTIVE">사용 중</option>
+                        <option value="INACTIVE">미사용</option>
+                    </select>
+
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+                        <input
+                            type="text"
+                            placeholder="템플릿 명칭 검색"
+                            value={filters.keyword}
+                            onChange={(e) => setFilters(prev => ({ ...prev, keyword: e.target.value }))}
+                            className="w-full pl-9 pr-4 py-2 bg-gray-50/50 border border-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Template List */}
-            <div className="grid gap-4">
-                {templates.map(tpl => (
-                    <div key={tpl.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group hover:border-blue-200 transition-all">
-                        <div className="flex items-start gap-4">
-                            <div className={`p-3 rounded-lg ${tpl.effective_to === null ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                                <FileText className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                                        {tpl.title}
-                                    </h3>
-                                    <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-500">
-                                        v{tpl.version}
-                                    </span>
-                                    {tpl.effective_to === null ? (
-                                        <span className="flex items-center text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full ml-2">
-                                            <CheckCircle className="w-3 h-3 mr-1" />
-                                            Active
-                                        </span>
-                                    ) : (
-                                        <div className="flex flex-col items-start ml-2">
-                                            <span className="flex items-center text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                                                <XCircle className="w-3 h-3 mr-1" />
-                                                Expired
-                                            </span>
-                                            <span className="text-[10px] text-gray-400 mt-0.5">
-                                                ~ {tpl.effective_to}
-                                            </span>
+            <div className="space-y-4">
+                {isLoading ? (
+                    <div className="py-20 text-center">
+                        <div className="inline-block w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                        <p className="text-gray-400 text-sm mt-4 font-medium">데이터를 불러오는 중입니다...</p>
+                    </div>
+                ) : (
+                    <>
+                        {templates.map(tpl => (
+                            <div key={tpl.templateId} className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-blue-200 shadow-sm hover:shadow-md transition-all group relative">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                            <FileText className="w-6 h-6 stroke-[1.5]" />
                                         </div>
-                                    )}
-                                </div>
-                                <p className="text-sm text-gray-500 mt-1 mb-2">
-                                    {tpl.description}
-                                </p>
-                                <div className="flex items-center gap-4 text-xs text-gray-400">
-                                    <span className="flex items-center">
-                                        <Calendar className="w-3 h-3 mr-1" />
-                                        {tpl.createdAt} 생성
-                                    </span>
-                                    <span>•</span>
-                                    <span>총 {tpl.items.length}개 항목</span>
+                                        <div>
+                                            <div className="flex items-center gap-3">
+                                                <h3 className="text-[17px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                    {tpl.templateName}
+                                                </h3>
+                                                {tpl.status === 'ACTIVE' ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-50 text-green-600">
+                                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                                        사용 중
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-gray-50 text-gray-400">
+                                                        미사용
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-1.5 text-sm font-medium text-gray-400">
+                                                <span>{tpl.inspectionType === 'REGULAR' ? '정기 점검' : tpl.inspectionType === 'SPECIAL' ? '특별 점검' : '재점검'}</span>
+                                                <span className="text-gray-200">·</span>
+                                                <span>{tpl.scope || '전체 매장'}</span>
+                                                <span className="text-gray-200">·</span>
+                                                <span className="font-mono text-xs">Ver {tpl.version}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Link
+                                        href={`/admin/qsc/templates/${tpl.templateId}`}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gray-50 text-gray-500 font-bold text-[13px] hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent hover:border-blue-100"
+                                    >
+                                        상세
+                                        <ChevronRight className="w-4 h-4" />
+                                    </Link>
                                 </div>
                             </div>
-                        </div>
+                        ))}
 
-                        <Link
-                            href={`/admin/qsc/templates/${tpl.id}`}
-                            className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                        >
-                            관리 / 수정
-                        </Link>
-                    </div>
-                ))}
-
-                {templates.length === 0 && (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                        <p className="text-gray-500">등록된 템플릿이 없습니다.</p>
-                    </div>
+                        {templates.length === 0 && (
+                            <div className="text-center py-24 bg-gray-50/50 rounded-3xl border border-dashed border-gray-100">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FileText className="w-8 h-8 text-gray-300" />
+                                </div>
+                                <p className="text-gray-400 font-bold">등록된 템플릿이 없습니다.</p>
+                                <p className="text-gray-300 text-sm mt-1">새로운 점검 기준을 만들어 보세요.</p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>
