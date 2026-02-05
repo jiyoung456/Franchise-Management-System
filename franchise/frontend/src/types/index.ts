@@ -110,37 +110,39 @@ export interface StoreUpdateRequest {
 
 // QSC
 export interface QSCItem {
-    id: string;
-    categoryId: string;
-    name: string;
+    templateItemId: number | string;
+    itemName: string;
     criteria?: string;
     weight?: number;
-    inputType: 'SCORE';
+    inputType?: 'SCORE';
     isRequired?: boolean;
     sortOrder?: number;
+    subcategory?: string;
+    categoryId?: string; // Kept for frontend grouping logic
 }
 
 export interface QSCTemplate {
-    id: string;
-    title: string;
+    templateId: number | string;
+    templateName: string;
     description?: string;
     version: string;
-    type: '정기' | '특별' | '재점검';
+    inspectionType: 'REGULAR' | 'SPECIAL' | 'REINSPECTION' | string;
     scope?: string;
     effectiveFrom?: string;
     effectiveTo?: string | null;
-    isActive?: boolean;
+    status?: 'ACTIVE' | 'INACTIVE' | string;
+    isActive?: boolean; // Keep for some UI state if needed, but primary is status
     createdAt?: string;
     updatedAt?: string;
     createdBy?: string;
-    items: QSCItem[];
+    itemCount?: number;
     categories?: {
-        id: string;
-        code: string;
-        name: string;
-        weight: number;
+        templateCategoryId: number;
+        categoryCode: string;
+        categoryName: string;
         items: QSCItem[];
     }[];
+    items: QSCItem[]; // Keep flat list for UI convenience but populate from categories
 }
 
 export interface Inspection {

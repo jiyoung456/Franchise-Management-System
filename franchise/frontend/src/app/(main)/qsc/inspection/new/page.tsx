@@ -65,11 +65,11 @@ export default function NewInspectionPage() {
     // Helper: Select Template and Go Next
     const handleTemplateSelect = async (template: QSCTemplate) => {
         try {
-            const detail = await QscService.getTemplateDetail(template.id);
+            const detail = await QscService.getTemplateDetail(template.templateId.toString());
             if (detail) {
                 setDetailedTemplate(detail);
-                setSelectedTemplateId(template.id);
-                setSelectedType(detail.type || '정기');
+                setSelectedTemplateId(template.templateId as string);
+                setSelectedType(detail.inspectionType || 'REGULAR');
                 setStep('INSPECTION');
             } else {
                 alert('템플릿 상세 정보를 불러오는 데 실패했습니다.');
@@ -81,12 +81,12 @@ export default function NewInspectionPage() {
     };
 
     // Derived Data
-    const availableTypes = Array.from(new Set(templates.map(t => t.type)));
+    const availableTypes = Array.from(new Set(templates.map(t => t.inspectionType)));
     const availableVersions = templates
-        .filter(t => t.type === selectedType)
+        .filter(t => t.inspectionType === selectedType)
         .sort((a, b) => b.version.localeCompare(a.version));
 
-    const currentTemplate = detailedTemplate || templates.find(t => t.id === selectedTemplateId) || availableVersions[0];
+    const currentTemplate = detailedTemplate || templates.find(t => t.templateId.toString() === selectedTemplateId) || availableVersions[0];
     const templateItems: QSCItem[] = currentTemplate ? currentTemplate.items : [];
 
     // Store Logic
@@ -127,7 +127,7 @@ export default function NewInspectionPage() {
         let maxTotal = 0;
 
         templateItems.forEach(item => {
-            const rawScore = scores[item.id] || 0;
+            const rawScore = scores[item.templateItemId as string] || 0;
             // Direct 1-5 score sum
             currentTotal += rawScore;
             // Max score sum (weight)
@@ -171,7 +171,7 @@ export default function NewInspectionPage() {
             storeName: selectedStore?.name,
             region: selectedStore?.region,
             sv: inspectorName, // Use loaded inspector name
-            type: currentTemplate.type,
+            type: currentTemplate.inspectionType,
             score: result.totalScore,
             grade: result.finalGrade,
             isPassed: result.isPassed,
@@ -181,7 +181,7 @@ export default function NewInspectionPage() {
             answers: scores,
             overallComment: overallComment,
             overallPhotos: overallPhotos,
-            templateId: currentTemplate.id
+            templateId: currentTemplate.templateId
         };
 
         // Call Backend
@@ -210,16 +210,16 @@ export default function NewInspectionPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {availableTypes.length > 0 ? (
                         availableTypes.map(type => {
-                            const typeTemplates = templates.filter(t => t.type === type).sort((a, b) => b.version.localeCompare(a.version));
+                            const typeTemplates = templates.filter(t => t.inspectionType === type).sort((a, b) => b.version.localeCompare(a.version));
                             const latest = typeTemplates[0];
                             return (
-                                <div key={latest.id} onClick={() => handleTemplateSelect(latest)}
+                                <div key={latest.templateId} onClick={() => handleTemplateSelect(latest)}
                                     className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer p-6 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                                         <Search className="w-16 h-16 text-blue-500" />
                                     </div>
-                                    <span className="inline-block px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-3">{latest.type}</span>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">{latest.title}</h3>
+                                    <span className="inline-block px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold mb-3">{latest.inspectionType}</span>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">{latest.templateName}</h3>
                                     <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-4">
                                         <span className="text-xs font-mono text-gray-400">Latest v{latest.version}</span>
                                         <button className="text-sm font-bold text-blue-600 flex items-center group-hover:translate-x-1 transition-transform">
@@ -270,14 +270,14 @@ export default function NewInspectionPage() {
                     <div>
                         <label className="block text-xs font-bold text-gray-500 mb-1">점검 유형</label>
                         <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-600">
-                            {currentTemplate.type}
+                            {currentTemplate.inspectionType === 'REGULAR' ? '정기 점검' : currentTemplate.inspectionType === 'SPECIAL' ? '특별 점검' : '재점검'}
                         </div>
                     </div>
                     {/* Version - Read Only */}
                     <div>
                         <label className="block text-xs font-bold text-gray-500 mb-1">점검 템플릿 버전</label>
                         <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-600">
-                            {currentTemplate.title} (v{currentTemplate.version})
+                            {currentTemplate.templateName} (v{currentTemplate.version})
                         </div>
                     </div>
                     {/* Store Search - Improved */}
@@ -317,22 +317,22 @@ export default function NewInspectionPage() {
                         if (catItems.length === 0) return null;
 
                         return (
-                            <div key={cat.id} className="space-y-3">
+                            <div key={cat.templateCategoryId} className="space-y-3">
                                 <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
-                                    <span className={`w-1.5 h-5 rounded-full ${cat.code === 'QUALITY' ? 'bg-blue-600' : cat.code === 'SERVICE' ? 'bg-green-600' : cat.code === 'CLEANLINESS' ? 'bg-purple-600' : 'bg-orange-500'}`}></span>
-                                    <h2 className="text-lg font-bold text-gray-900">{cat.name}</h2>
+                                    <span className={`w-1.5 h-5 rounded-full ${cat.categoryCode === 'QUALITY' ? 'bg-blue-600' : cat.categoryCode === 'SERVICE' ? 'bg-green-600' : cat.categoryCode === 'CLEANLINESS' ? 'bg-purple-600' : 'bg-orange-500'}`}></span>
+                                    <h2 className="text-lg font-bold text-gray-900">{cat.categoryName}</h2>
                                 </div>
                                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                                     <div className="divide-y divide-gray-100">
                                         {catItems.map(item => {
-                                            const val = scores[item.id] || 0;
+                                            const val = scores[item.templateItemId as string] || 0;
                                             return (
-                                                <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                                <div key={item.templateItemId} className="p-4 hover:bg-gray-50 transition-colors">
                                                     <div className="space-y-3">
                                                         <div>
                                                             <div className="flex items-center gap-2 mb-1">
                                                                 {item.isRequired && <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-1 py-0.5 rounded">필수</span>}
-                                                                <span className="font-bold text-gray-800 text-sm">{item.name}</span>
+                                                                <span className="font-bold text-gray-800 text-sm">{item.itemName}</span>
                                                             </div>
                                                             {item.criteria && <p className="text-xs text-gray-500 ml-1 whitespace-pre-line">{item.criteria}</p>}
                                                         </div>
@@ -342,7 +342,7 @@ export default function NewInspectionPage() {
                                                                 return (
                                                                     <button
                                                                         key={score}
-                                                                        onClick={() => handleScoreChange(item.id, score)}
+                                                                        onClick={() => handleScoreChange(item.templateItemId as string, score)}
                                                                         className={`flex-1 py-1.5 text-xs font-bold rounded border ${val === score
                                                                             ? 'bg-blue-600 text-white border-blue-600'
                                                                             : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'}`}

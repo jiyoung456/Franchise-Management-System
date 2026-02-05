@@ -28,14 +28,14 @@ export const QscService = {
             const data = response.data || [];
 
             return data.map((item: any) => ({
-                id: item.templateId.toString(),
-                title: item.templateName,
+                templateId: item.templateId.toString(),
+                templateName: item.templateName,
                 description: '백엔드 연동 템플릿',
                 version: item.version,
-                type: inspectionTypeMap[item.inspectionType] || '정기',
+                inspectionType: item.inspectionType,
                 scope: '전체 매장', // Default as not in Summary DTO
                 items: [],
-                isActive: true
+                status: 'ACTIVE'
             }));
         } catch (error) {
             console.error('Failed to fetch templates:', error);
@@ -75,13 +75,13 @@ export const QscService = {
             });
 
             return {
-                id: data.templateId.toString(),
-                title: data.templateName,
+                templateId: data.templateId.toString(),
+                templateName: data.templateName,
                 version: data.version,
-                type: inspectionTypeMap[data.inspectionType] || '정기',
+                inspectionType: data.inspectionType,
                 items: allItems,
                 categories: categories
-            };
+            } as any; // Cast to bypass strict legacy structure if needed, but matching DTO is primary
         } catch (error) {
             console.error(`Failed to fetch template detail (${templateId}):`, error);
             return undefined;

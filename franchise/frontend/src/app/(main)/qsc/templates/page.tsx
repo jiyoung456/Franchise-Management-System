@@ -2,30 +2,38 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { QscService } from '@/services/qscService';
+import { adminQscService } from '@/services/adminQscService';
 import { QSCTemplate } from '@/types';
-import { Plus, Search, Filter, Info, ChevronRight, FileCheck, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Search, Filter, ChevronRight, FileCheck, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function TemplateListPage() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [typeFilter, setTypeFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
     const [templates, setTemplates] = useState<QSCTemplate[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Load templates from storage
-        const loadedTemplates = QscService.getTemplates();
+        const fetchTemplates = async () => {
+            setIsLoading(true);
+            try {
+                // 직접 백엔드 API 연동
+                const data = await adminQscService.getTemplates({
+                    type: typeFilter || undefined,
+                    status: statusFilter || undefined,
+                    keyword: searchTerm || undefined
+                });
+                setTemplates(data);
+            } catch (error) {
+                console.error('Failed to load templates:', error);
+                setTemplates([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
 
-        // Use Mock data if empty for demo purposes
-        if (loadedTemplates.length === 0) {
-            const { MOCK_TEMPLATES } = require('@/lib/mock/mockQscData');
-            setTemplates(MOCK_TEMPLATES);
-        } else {
-            setTemplates(loadedTemplates);
-        }
-    }, []);
-
-    const filteredTemplates = templates.filter(tpl =>
-        tpl.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        fetchTemplates();
+    }, [searchTerm, typeFilter, statusFilter]);
 
     return (
         <div className="space-y-8 mx-auto w-full pb-20">
@@ -59,22 +67,26 @@ export default function TemplateListPage() {
                             <span>필터</span>
                         </div>
 
-                        {/* Mock Filter Chips/Inputs */}
                         <div className="flex flex-wrap gap-2 flex-1 md:justify-end">
-                            <select className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none">
-                                <option>전체 유형</option>
-                                <option>정기 점검</option>
-                                <option>특별 점검</option>
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value)}
+                                className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none"
+                            >
+                                <option value="">전체 유형</option>
+                                <option value="REGULAR">정기 점검</option>
+                                <option value="SPECIAL">특별 점검</option>
+                                <option value="REINSPECTION">재점검</option>
                             </select>
-                            <select className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none">
-                                <option>전체 범위</option>
-                                <option>전체 매장</option>
-                                <option>특정 권역</option>
-                            </select>
-                            <select className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none">
-                                <option>활성 상태</option>
-                                <option>사용 중</option>
-                                <option>비활성</option>
+
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                className="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none"
+                            >
+                                <option value="">활성 상태</option>
+                                <option value="ACTIVE">사용 중</option>
+                                <option value="INACTIVE">비활성</option>
                             </select>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -93,51 +105,59 @@ export default function TemplateListPage() {
 
                     {/* List Items */}
                     <div className="p-6 space-y-4">
-                        {filteredTemplates.map(tpl => (
-                            <div key={tpl.id} className="group relative flex flex-col md:flex-row md:items-center justify-between p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
-                                        <FileCheck className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">{tpl.title}</h3>
-                                            {tpl.isActive ? (
-                                                <span className="flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                                                    <CheckCircle2 className="w-3 h-3" /> 사용 중
-                                                </span>
-                                            ) : (
-                                                <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                                                    <XCircle className="w-3 h-3" /> 비활성
-                                                </span>
-                                            )}
+                        {isLoading ? (
+                            <div className="text-center py-12 text-gray-500 font-medium">데이터를 불러오는 중...</div>
+                        ) : (
+                            <>
+                                {templates.map(tpl => (
+                                    <div key={tpl.templateId} className="group relative flex flex-col md:flex-row md:items-center justify-between p-5 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200">
+                                        <div className="flex items-start gap-4">
+                                            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
+                                                <FileCheck className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-700 transition-colors">
+                                                        {tpl.templateName}
+                                                    </h3>
+                                                    {tpl.status === 'ACTIVE' ? (
+                                                        <span className="flex items-center gap-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                                                            <CheckCircle2 className="w-3 h-3" /> 사용 중
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                            <XCircle className="w-3 h-3" /> 비활성
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-sm text-gray-500 flex flex-wrap gap-x-3 items-center font-medium">
+                                                    <span>{tpl.inspectionType === 'REGULAR' ? '정기 점검' : tpl.inspectionType === 'SPECIAL' ? '특별 점검' : '재점검'}</span>
+                                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                    <span>{tpl.scope || '전체 매장'}</span>
+                                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                    <span className="font-medium text-gray-700">Ver {tpl.version}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-gray-500 flex flex-wrap gap-x-3 items-center">
-                                            <span>{tpl.type}</span>
-                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                            <span>{tpl.scope}</span>
-                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                            <span className="font-medium text-gray-700">Ver {tpl.version}</span>
+
+                                        <div className="mt-4 md:mt-0 flex items-center justify-end">
+                                            <Link
+                                                href={`/qsc/templates/${tpl.templateId}`}
+                                                className="flex items-center gap-1.5 px-4 py-2 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 font-bold text-sm transition-colors"
+                                            >
+                                                상세
+                                                <ChevronRight className="w-4 h-4" />
+                                            </Link>
                                         </div>
                                     </div>
-                                </div>
+                                ))}
 
-                                <div className="mt-4 md:mt-0 flex items-center justify-end">
-                                    <Link
-                                        href={`/qsc/templates/${tpl.id}`}
-                                        className="flex items-center gap-1.5 px-4 py-2 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 font-bold text-sm transition-colors"
-                                    >
-                                        상세
-                                        <ChevronRight className="w-4 h-4" />
-                                    </Link>
-                                </div>
-                            </div>
-                        ))}
-
-                        {filteredTemplates.length === 0 && (
-                            <div className="text-center py-12 text-gray-500">
-                                <p>검색 결과가 없습니다.</p>
-                            </div>
+                                {templates.length === 0 && (
+                                    <div className="text-center py-20 bg-gray-50 rounded-xl">
+                                        <p className="text-gray-400 font-bold">등록된 템플릿이 없습니다.</p>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
