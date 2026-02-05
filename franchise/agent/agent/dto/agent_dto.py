@@ -4,10 +4,7 @@ from datetime import datetime
 
 
 class BriefingRequest(BaseModel):
-    user_id: int
-    audience_role: str
-    department: str
-
+    user_info: Dict[str, Any]
     store_list: List[Dict[str, Any]]
     qsc_30_list: List[Dict[str, Any]]
     no_action: List[Dict[str, Any]]

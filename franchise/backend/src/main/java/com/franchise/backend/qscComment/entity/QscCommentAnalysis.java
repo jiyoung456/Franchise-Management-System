@@ -59,8 +59,8 @@ public class QscCommentAnalysis {
     private LocalDateTime createdAt;
 
     public QscCommentAnalysis(
-            QscCommentResponse response,
-            QscCommentRequest request
+            QscCommentRequest request,
+            QscCommentResponse response
     ) {
         this.inspectionId = request.getInspectionId();
         this.sourceText = request.getSummaryComment();

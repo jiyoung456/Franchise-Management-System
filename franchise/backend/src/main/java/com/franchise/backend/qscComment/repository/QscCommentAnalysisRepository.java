@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface QscCommentAnalysisRepository
-        extends JpaRepository<QscCommentAnalysis, Long> {
+public interface QscCommentAnalysisRepository extends JpaRepository<QscCommentAnalysis, Long> {
 }
 

@@ -7,10 +7,7 @@ from agent.utils.utils import extract_json
 
 # 상태 관리 (State)
 class AgentState(TypedDict):
-    user_id: int
-    audience_role: str
-    department: str
-
+    user_info: Dict[str, Any]
     store_list: List[Dict[str, Any]]
     qsc_30_list: List[Dict[str, Any]]
     no_action: List[Dict[str, Any]]
@@ -21,7 +18,6 @@ class AgentState(TypedDict):
     top_store_json: Dict[str, int]
     focus_point_json: List[Dict[str, Any]]
     focus_point_json_checked: List[Dict[str, Any]]
-
     summary: str
 
     generate_at: datetime
@@ -54,9 +50,7 @@ def run_briefing_llm(state: AgentState) -> AgentState:
 4. 가맹점 관리자가 바로 이해할 수 있는 짧은 요약 문단을 작성한다
 
 입력 데이터:
-user_id: {state["user_id"]}
-audience_role: {state["audience_role"]}
-department: {state["department"]}
+user_info: {state["user_info"]}
 
 store_list: {state["store_list"]}
 qsc_30_list: {state["qsc_30_list"]}

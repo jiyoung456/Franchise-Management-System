@@ -10,14 +10,11 @@ import lombok.*;
 @ToString
 public class Pos7dDto {
 
-    @JsonProperty("pos_period_agg")
-    private Long posPeriodAgg;
+    @JsonProperty("pos_period_agg_id")
+    private Long posPeriodAggId;
 
     @JsonProperty("store_id")
     private Long storeId;
-
-    @JsonProperty("store_name")
-    private String storeName;
 
     private Long aov;
 

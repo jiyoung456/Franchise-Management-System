@@ -1,9 +1,7 @@
 package com.franchise.backend.briefing.entity;
 
-import com.franchise.backend.briefing.dto.BriefingResponse;
-import com.franchise.backend.briefing.dto.FocusPointJsonCheckedDto;
-import com.franchise.backend.briefing.dto.FocusPointJsonDto;
-import com.franchise.backend.briefing.dto.TopStoreJsonDto;
+import com.franchise.backend.briefing.dto.*;
+import com.franchise.backend.user.entity.Role;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,8 +29,9 @@ public class AgentBriefings {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "audience_role", nullable = false)
-    private String audienceRole;
+    private Role audienceRole;
 
     @Column(name = "target_date", nullable = false)
     private LocalDate targetDate;
@@ -59,12 +58,11 @@ public class AgentBriefings {
     private LocalDateTime createdAt;
 
     public AgentBriefings(
-            Long userId,
-            String audienceRole,
+            BriefingRequest request,
             BriefingResponse response
     ) {
-        this.userId = userId;
-        this.audienceRole = audienceRole;
+        this.userId = request.getUserInfoDto().getUserId();
+        this.audienceRole = request.getUserInfoDto().getRole();
         this.targetDate = LocalDate.now();
         this.generateAt = response.getGenerateAt();
         this.topStoreJson = response.getTopStoreJson();

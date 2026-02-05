@@ -24,7 +24,7 @@ public class BriefingService {
         BriefingResponse response = agentController.callBriefingAgent(request);
 
         AgentBriefings entity =
-                new AgentBriefings(request.getUserId(), request.getAudienceRole(), response);
+                new AgentBriefings(request, response);
 
         agentBriefingsRepository.save(entity);
 

@@ -17,9 +17,6 @@ public class Qsc30dDto {
     @JsonProperty("store_id")
     private Long storeId;
 
-    @JsonProperty("store_name")
-    private String storeName;
-
     private LocalDate confirmed;
 
     @JsonProperty("total_score")
