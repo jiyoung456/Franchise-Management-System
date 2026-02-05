@@ -19,7 +19,6 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
-    private User user;
 
     public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
         this.notificationRepository = notificationRepository;
@@ -33,6 +32,7 @@ public class NotificationService {
         LocalDate today = LocalDate.now();
         LocalDateTime start = today.atStartOfDay();          // 오늘 00:00:00
         LocalDateTime end = today.plusDays(1).atStartOfDay();// 내일 00:00:00
+        User user = getUser(userId);
 
         List<Notification> notifications =
                 notificationRepository.findByUserAndCreatedAtBetweenOrderByCreatedAtDesc(
@@ -54,6 +54,7 @@ public class NotificationService {
     // 안 읽은 알림 개수 (종 아이콘 배지)
     @Transactional(readOnly = true)
     public NotificationCountResponse getUnreadCount(Long userId) {
+        User user = getUser(userId);
         long unread = notificationRepository.countByUserAndIsReadFalse(user);
         return new NotificationCountResponse(unread);
     }

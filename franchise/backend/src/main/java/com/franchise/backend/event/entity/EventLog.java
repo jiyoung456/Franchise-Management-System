@@ -1,5 +1,6 @@
 package com.franchise.backend.event.entity;
 
+import com.franchise.backend.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -64,6 +65,11 @@ public class EventLog {
         this.occurrenceCount = (this.occurrenceCount == null ? 1 : this.occurrenceCount + 1);
     }
 
+    public void accumulateOccurrence(OffsetDateTime occurredAt) {
+        this.lastOccurrenceAt = occurredAt;
+        this.occurrenceCount = (this.occurrenceCount == null ? 1 : this.occurrenceCount + 1);
+    }
+
     public static EventLog create(
             Long ruleId,
             Long storeId,
@@ -104,6 +110,10 @@ public class EventLog {
 
         return e;
     }
+
+
+
+
 
 
 }
