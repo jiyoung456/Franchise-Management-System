@@ -19,21 +19,48 @@ import {
     ArrowLeft,
     LayoutDashboard,
     Calendar,
-    User
+    User,
+    Activity,
+    Info,
+    Bell,
+    ClipboardList
 } from 'lucide-react';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+    ResponsiveContainer, Cell, LineChart, Line, Legend, ComposedChart, ReferenceLine
+} from 'recharts';
+import { ScoreBar } from '@/components/common/ScoreBar';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import { DashboardService } from '@/services/dashboardService';
-import { SupervisorDashboardSummary, User as UserType } from '@/types';
+import { StoreService } from '@/services/storeService';
+import { QscService } from '@/services/qscService';
+import { ActionService } from '@/services/actionService';
+import { SupervisorDashboardSummary, User as UserType, ActionItem } from '@/types';
 
 // --- Types (Local) ---
 interface SvRiskStore {
-  storeId: number;
-  storeName: string;
-  state: 'NORMAL' | 'WATCHLIST' | 'RISK';
-  region: string;
-  supervisor: string;
-  qscScore: number;
-  lastInspectionDate: string | null;
-  currentStateScore: number;
+    storeId?: number;
+    storeName?: string;
+    state?: 'NORMAL' | 'WATCHLIST' | 'RISK';
+    riskLevel?: 'HIGH' | 'MEDIUM' | 'LOW' | string; // mock compatibility
+    id?: number; // mock compatibility
+    name?: string; // mock compatibility
+    score?: number; // mock compatibility
+    region?: string;
+    supervisor?: string;
+    qscScore?: number;
+    lastInspectionDate?: string | null;
+    currentStateScore?: number;
+    category?: string;
+    reason?: string;
+    action?: any; // mock compatibility
+    report?: any;
+    events?: any[];
+    actions?: ActionItem[];
+    qscInspections?: any[];
+    owner?: string;
+    address?: string;
+    openDate?: string;
 }
 
 
@@ -127,9 +154,9 @@ const RiskStoreCard = ({ store, onOpenReport }: { store: SvRiskStore; onOpenRepo
                 {/* Content Box */}
                 <div className="bg-gray-50 rounded-xl p-4 mb-4">
                     <p className="text-sm font-semibold text-gray-700 leading-relaxed">
-                      위험점수 {store.currentStateScore}점
-                      <br />
-                      최근점검 {store.lastInspectionDate ?? '-'}
+                        위험점수 {store.currentStateScore}점
+                        <br />
+                        최근점검 {store.lastInspectionDate ?? '-'}
                     </p>
                 </div>
 
@@ -150,7 +177,7 @@ const RiskStoreCard = ({ store, onOpenReport }: { store: SvRiskStore; onOpenRepo
     );
 };
 
-// Report Drawer Component
+// Report Drawer Component (Matched with StoreDetailContent)
 const ReportDrawer = ({
     isOpen,
     onClose,
@@ -160,13 +187,18 @@ const ReportDrawer = ({
     onClose: () => void;
     store: SvRiskStore | null
 }) => {
-    const [activeTab, setActiveTab] = useState('INFO');
-
-    useEffect(() => {
-        if (isOpen) setActiveTab('INFO');
-    }, [isOpen]);
-
     if (!isOpen || !store) return null;
+
+    // Timeline data mapped from store status history or mock
+    const timelineData = store.report?.statusHistory?.map((h: any) => ({
+        date: h.date,
+        score: h.score,
+        level: h.status === 'RISK' ? 3 : h.status === 'WATCHLIST' ? 2 : 1
+    })) || [
+            { date: '2025-12', level: 1 },
+            { date: '2026-01', level: 2 },
+            { date: 'Today', level: store.state === 'RISK' ? 3 : store.state === 'WATCHLIST' ? 2 : 1 }
+        ];
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -175,7 +207,7 @@ const ReportDrawer = ({
                 onClick={onClose}
             />
             <div className="relative w-full max-w-lg bg-gray-50 h-full shadow-2xl overflow-y-auto animate-slide-in-right flex flex-col">
-                {/* 1. Header (Back Button) */}
+                {/* 1. Header Row */}
                 <div className="bg-white px-6 py-4 flex items-center border-b border-gray-100">
                     <button
                         onClick={onClose}
@@ -190,136 +222,74 @@ const ReportDrawer = ({
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 space-y-4 overflow-y-auto flex-1">
-
-                    {/* Header Card */}
-                    <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex justify-between items-start">
+                <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                    {/* Store Title & Status */}
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex justify-between items-center">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-1">{store.name}</h2>
-                            <p className="text-sm text-gray-400 font-medium">서울 / sv01</p>
+                            <h2 className="text-xl font-bold text-gray-900">{store.storeName || store.name}</h2>
+                            <p className="text-xs text-gray-400 font-bold mt-1 uppercase">
+                                {store.region || '서울'} / {store.supervisor || 'sv01'}
+                            </p>
                         </div>
-                        <div className="flex flex-col items-end space-y-2">
-                            <span className="px-2 py-0.5 rounded bg-green-50 text-green-600 text-xs font-bold border border-green-100">
-                                OPEN
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold border ${store.riskLevel === 'HIGH' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                리스크: {store.riskLevel === 'HIGH' ? '위험' : store.riskLevel}
-                            </span>
+                        <div className="flex flex-col items-end gap-2">
+                            <StatusBadge
+                                status={store.state === 'NORMAL' ? '정상' : store.state === 'WATCHLIST' ? '관찰' : '위험'}
+                                type={store.state === 'NORMAL' ? 'success' : store.state === 'WATCHLIST' ? 'warning' : 'danger'}
+                            />
                         </div>
                     </div>
 
-                    {/* AI Summary Banner */}
+                    {/* AI Report Summary */}
                     <div className="bg-white rounded-xl p-4 border border-blue-100 shadow-sm flex items-center relative overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
                         <div className="pl-3">
-                            <p className="text-xs font-bold text-blue-500 mb-1">AI 요약 리포트</p>
-                            <p className="text-sm text-gray-700 font-medium">
-                                특이사항: {store.reason}
+                            <p className="text-[10px] font-black text-blue-500 mb-1 uppercase tracking-tight">AI 요약 리포트</p>
+                            <p className="text-sm text-gray-700 font-medium leading-relaxed">
+                                {store.report?.reason || store.reason || "종합적인 위험 점검 결과 특이사항이 없습니다."}
                             </p>
                         </div>
                     </div>
 
-                    {/* Metrics Section */}
+                    {/* Metrics Row */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm text-center">
-                            <p className="text-xs font-bold text-gray-500 mb-2">종합 위험 점수</p>
-                            <div className="flex items-end justify-center mb-2">
-                                <span className="text-4xl font-bold text-green-500 leading-none">98</span>
-                                <span className="text-sm text-gray-400 mb-1 ml-1">/ 100</span>
+                            <h3 className="text-xs font-bold text-gray-500 mb-3 flex items-center justify-center gap-1">
+                                종합 위험 점수
+                                {(store.currentStateScore || 0) > 80 && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
+                            </h3>
+                            <div className="flex items-end justify-center gap-1 mb-3">
+                                <span className={`text-4xl font-extrabold ${(store.currentStateScore || 0) > 80 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {store.currentStateScore || 0}
+                                </span>
+                                <span className="text-gray-400 text-sm font-medium mb-1">/ 100</span>
                             </div>
-                            <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
-                                <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '98%' }}></div>
-                            </div>
+                            <ScoreBar value={store.currentStateScore || 0} />
                         </div>
-                        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm text-center flex flex-col justify-center">
+                        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex flex-col items-center justify-center">
                             <p className="text-xs font-bold text-gray-500 mb-1">최근 QSC 점수</p>
-                            <span className="text-3xl font-bold text-blue-600">96점</span>
+                            <span className="text-2xl font-black text-blue-600">{store.report?.qscScore || store.qscScore || 0}점</span>
                         </div>
                     </div>
 
-                    {/* Timeline */}
+                    {/* Timeline Chart */}
                     <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-gray-900 text-sm">상태 변경 타임라인</h3>
-                            <div className="flex space-x-2 text-[10px]">
-                                <span className="flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span>정상</span>
-                                <span className="flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-orange-400 mr-1"></span>관찰</span>
-                                <span className="flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1"></span>위험</span>
-                            </div>
-                        </div>
-                        <div className="h-24 flex items-end justify-between px-2 relative text-xs text-gray-400 border-l border-b border-gray-100 pb-2">
-                            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-blue-100 -z-10"></div>
-                            <div className="flex flex-col items-center z-10">
-                                <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-500 bg-white mb-2"></span>
-                                2025-12
-                            </div>
-                            <div className="flex flex-col items-center z-10">
-                                <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-500 bg-white mb-2"></span>
-                                2026-01
-                            </div>
-                            <div className="flex flex-col items-center z-10">
-                                <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-500 bg-white mb-2"></span>
-                                Today
-                            </div>
+                        <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-gray-400" />
+                            상태 변경 타임라인
+                        </h3>
+                        <div className="h-32 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={timelineData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                                    <YAxis domain={[0, 4]} ticks={[1, 2, 3]} hide />
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px' }} />
+                                    <Line type="stepAfter" dataKey="level" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: '#3b82f6' }} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Tabs & Content */}
-                    <div>
-                        <div className="flex border-b border-gray-200 bg-white px-2 rounded-t-xl">
-                            {['INFO', 'EVENT', 'ACTION', 'QSC'].map((tab) => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === tab
-                                            ? 'text-blue-600'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                        }`}
-                                >
-                                    {tab === 'INFO' && '가게 정보'}
-                                    {tab === 'EVENT' && '최근 이벤트'}
-                                    {tab === 'ACTION' && '조치 현황'}
-                                    {tab === 'QSC' && 'QSC 점검'}
-                                    {activeTab === tab && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="bg-white p-5 rounded-b-xl border border-t-0 border-gray-200 shadow-sm min-h-[200px]">
-                            {activeTab === 'INFO' && (
-                                <div className="space-y-6">
-                                    <div className="flex items-center text-sm font-bold text-gray-900">
-                                        <FileText className="w-4 h-4 mr-2" />
-                                        기본 정보
-                                    </div>
-                                    <dl className="grid grid-cols-3 gap-y-4 text-sm">
-                                        <dt className="text-gray-500 col-span-1 font-medium">오픈일</dt>
-                                        <dd className="text-blue-600 col-span-2 font-medium">
-                                            {store.openDate || '2021-01-10'} (D+1853일)
-                                        </dd>
-
-                                        <dt className="text-gray-500 col-span-1 font-medium">마지막 상태 변경일</dt>
-                                        <dd className="text-gray-900 col-span-2">-</dd>
-
-                                        <dt className="text-gray-500 col-span-1 font-medium">점주명</dt>
-                                        <dd className="text-gray-900 col-span-2">{store.owner || '김지훈'}</dd>
-
-                                        <dt className="text-gray-500 col-span-1 font-medium">주소</dt>
-                                        <dd className="text-gray-900 col-span-2">{store.address || '서울 강남구'}</dd>
-                                    </dl>
-                                </div>
-                            )}
-                            {activeTab !== 'INFO' && (
-                                <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-sm">
-                                    <p>해당 탭의 정보가 없습니다.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    {/* Store Management Section Removed */}
                 </div>
             </div>
         </div>
@@ -358,15 +328,38 @@ export default function SVDashboard({ user }: { user: UserType }) {
     }, [user]);
 
     const handleOpenReport = async (store: SvRiskStore) => {
-      const report = await DashboardService.getRiskReport(store.storeId);
-      console.log(report); // ← 먼저 콘솔 확인
+        try {
+            const sid = store.storeId || store.id;
+            if (!sid) return;
 
-      setSelectedDrawerStore({
-        ...store,
-        report // 나중에 Drawer에서 사용
-      });
+            setLoading(true);
+            const [report, events, qscData, actionData] = await Promise.all([
+                DashboardService.getRiskReport(Number(sid)),
+                StoreService.getStoreEvents(sid.toString(), 10),
+                QscService.getStoreQscList(Number(sid)),
+                ActionService.getActions()
+            ]);
 
-      setIsDrawerOpen(true);
+            setSelectedDrawerStore({
+                ...store,
+                storeId: Number(sid),
+                storeName: store.storeName || store.name || '',
+                state: store.state || (store.riskLevel === 'HIGH' ? 'RISK' : store.riskLevel === 'MEDIUM' ? 'WATCHLIST' : 'NORMAL'),
+                currentStateScore: store.currentStateScore || store.score || 0,
+                report,
+                events,
+                qscInspections: qscData,
+                actions: actionData.filter((a: ActionItem) => a.storeId?.toString() === sid.toString())
+            });
+            setIsDrawerOpen(true);
+        } catch (error) {
+            console.error("Failed to load report data", error);
+            // Fallback to what we have
+            setSelectedDrawerStore(store);
+            setIsDrawerOpen(true);
+        } finally {
+            setLoading(false);
+        }
     };
 
 
@@ -484,8 +477,8 @@ export default function SVDashboard({ user }: { user: UserType }) {
                                                 {/* Priority/Risk Badge matching Manager Briefing */}
                                                 <div className="flex gap-2 mt-2.5">
                                                     <span className={`text-xs font-bold px-2 py-0.5 rounded border ${item.risk === 'HIGH' ? 'border-red-100 text-red-600 bg-red-50' :
-                                                            item.risk === 'MEDIUM' ? 'border-orange-100 text-orange-600 bg-orange-50' :
-                                                                'border-blue-100 text-blue-600 bg-blue-50'
+                                                        item.risk === 'MEDIUM' ? 'border-orange-100 text-orange-600 bg-orange-50' :
+                                                            'border-blue-100 text-blue-600 bg-blue-50'
                                                         }`}>
                                                         {item.risk}
                                                     </span>
