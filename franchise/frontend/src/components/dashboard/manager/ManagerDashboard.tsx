@@ -14,25 +14,34 @@ export function ManagerDashboard({ user }: ManagerDashboardProps) {
     const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [drawerType, setDrawerType] = useState<'EVENT' | 'ACTION'>('EVENT');
+    const [initialSvName, setInitialSvName] = useState<string | undefined>(undefined);
+    const [eventSummary, setEventSummary] = useState<string | undefined>(undefined);
+    const [eventId, setEventId] = useState<string | undefined>(undefined);
 
-    const handleViewDetail = (id: string, type: 'EVENT' | 'ACTION') => {
+    const handleViewDetail = (id: string, type: 'EVENT' | 'ACTION', svName?: string, summary?: string, evtId?: string) => {
         setSelectedStoreId(id);
         setDrawerType(type);
+        setInitialSvName(svName);
+        setEventSummary(summary);
+        setEventId(evtId);
         setIsDrawerOpen(true);
     };
 
     const handleCloseDrawer = () => {
         setIsDrawerOpen(false);
-        setTimeout(() => setSelectedStoreId(null), 300);
+        setTimeout(() => {
+            setSelectedStoreId(null);
+            setEventSummary(undefined);
+            setEventId(undefined);
+        }, 300);
     };
 
     return (
         <div className="pb-24 space-y-10">
             {/* Header Section - Matched with EventManagement style */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-13">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">팀장 대시보드</h1>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xl text-gray-700">
                         반갑습니다, <span className="text-[#1a73e8] font-bold">{user.userName}</span> 팀장님. 오늘의 핵심 매장 지표를 분석했습니다.
                     </p>
                 </div>
@@ -66,6 +75,9 @@ export function ManagerDashboard({ user }: ManagerDashboardProps) {
                 onClose={handleCloseDrawer}
                 storeId={selectedStoreId}
                 viewType={drawerType}
+                initialSvName={initialSvName}
+                eventSummary={eventSummary}
+                eventId={eventId}
             />
         </div>
     );
