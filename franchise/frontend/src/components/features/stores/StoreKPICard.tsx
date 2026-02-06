@@ -53,11 +53,11 @@ export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded
     // Metrics Fallback (if loading or error)
     const metrics = dashboardData ? {
         sales: dashboardData.summary.totalSales,
-        salesGrowth: dashboardData.summary.totalSalesRate,
+        salesGrowth: dashboardData.summary.totalSalesRate ?? 0,
         atv: dashboardData.summary.aov,
-        atvGrowth: dashboardData.summary.aovRate,
+        atvGrowth: dashboardData.summary.aovRate ?? 0,
         orders: dashboardData.summary.totalOrders,
-        ordersGrowth: dashboardData.summary.totalOrdersRate
+        ordersGrowth: dashboardData.summary.totalOrdersRate ?? 0
     } : {
         sales: 0, salesGrowth: 0,
         atv: 0, atvGrowth: 0,
