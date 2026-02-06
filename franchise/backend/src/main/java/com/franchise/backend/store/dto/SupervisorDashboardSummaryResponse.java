@@ -9,6 +9,9 @@ import java.util.List;
 @AllArgsConstructor
 public class SupervisorDashboardSummaryResponse {
 
+
+
+
     // 상단 카드
     private long assignedStoreCount;     // 담당 점포 수
     private long riskStoreCount;         // 위험 점포 수

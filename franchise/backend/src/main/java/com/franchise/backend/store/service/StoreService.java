@@ -203,7 +203,8 @@ public class StoreService {
                             regionDisplay,
                             supervisorDisplay,
                             qscScore,
-                            lastInspectionDate
+                            lastInspectionDate,
+                            s.getCurrentStateScore()
                     );
                 })
                 .collect(Collectors.toList());
