@@ -11,6 +11,8 @@ import { ArrowLeft, Save, Plus, Trash2, GripVertical, Info } from 'lucide-react'
 export default function TemplateClient({ id }: { id: string }) {
     const router = useRouter();
 
+console.log("TemplateClient mounted, id =", id);
+
     const [form, setForm] = useState<QSCTemplate>({
         templateId: '',
         templateName: '',
@@ -346,7 +348,7 @@ export default function TemplateClient({ id }: { id: string }) {
             {/* Checklist Editor Components */}
             <div className="space-y-10">
                 {mainCategories.map(cat => renderCategoryBlock(cat))}
-                {renderCategoryBlock({ id: 'brand', label: '안전 (Safety)' })}
+                {renderCategoryBlock({ id: 'safety', label: '안전 (Safety)' })}
             </div>
         </div>
     );

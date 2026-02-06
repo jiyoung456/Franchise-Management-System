@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Getter
 @NoArgsConstructor
@@ -25,8 +27,10 @@ public class QscTemplate {
     private String templateName;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "inspection_type", nullable = false)
-    private QscInspectionType inspectionType; // REGULAR, SPECIAL, REINSPECTION
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "inspection_type", nullable = false, columnDefinition = "qsc_inspection_type")
+    private QscInspectionType inspectionType;
+    // REGULAR, SPECIAL, REINSPECTION
 
     @Column(name = "version", nullable = false)
     private String version;
@@ -41,7 +45,8 @@ public class QscTemplate {
     private Integer passScoreMin;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "qsc_template_status")
     private QscTemplateStatus status = QscTemplateStatus.ACTIVE;
 
     @Column(name = "created_at", nullable = false)
