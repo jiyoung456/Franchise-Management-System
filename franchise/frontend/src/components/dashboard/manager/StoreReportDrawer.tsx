@@ -1,25 +1,141 @@
-import { X, ExternalLink, Activity, Calendar, Clock, BarChart3, ChevronRight, CheckCircle2, AlertTriangle, Send } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, ExternalLink, Activity, Calendar, Clock, BarChart3, ChevronRight, CheckCircle2, AlertTriangle, Send, Loader2 } from 'lucide-react';
+import { StoreService } from '@/services/storeService';
+import { ActionService } from '@/services/actionService';
+import { StoreDetail } from '@/types';
 
 interface StoreReportDrawerProps {
     isOpen: boolean;
     onClose: () => void;
     storeId: string | null;
     viewType?: 'EVENT' | 'ACTION';
+    initialSvName?: string;
+    eventSummary?: string;
+    eventId?: string;
 }
 
-export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT' }: StoreReportDrawerProps) {
+export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT', initialSvName, eventSummary, eventId }: StoreReportDrawerProps) {
+    const [storeDetail, setStoreDetail] = useState<StoreDetail | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [description, setDescription] = useState('');
+    const [title, setTitle] = useState('');
+    const [actionType, setActionType] = useState('VISIT');
+    const [targetMetric, setTargetMetric] = useState('QSC');
+    const [dueDate, setDueDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 3);
+        return d.toISOString().split('T')[0];
+    });
+    const [priority, setPriority] = useState('HIGH');
+
+    // Reset form when drawer opens
+    useEffect(() => {
+        if (isOpen) {
+            setTitle('');
+            setDescription('');
+            setActionType('VISIT');
+            setPriority('HIGH');
+            setDueDate(() => {
+                const d = new Date();
+                d.setDate(d.getDate() + 3);
+                return d.toISOString().split('T')[0];
+            });
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (isOpen && storeId) {
+            const fetchDetail = async () => {
+                try {
+                    setIsLoading(true);
+                    const detail = await StoreService.getStoreDetail(storeId);
+                    setStoreDetail(detail);
+                    if (detail) {
+                        // SV 이름이 ID 형태인 경우(예: sv01), 조치 관리 목록에서 실명 찾아보기
+                        if (!initialSvName && detail.supervisor && (detail.supervisor.includes('sv') || /\d/.test(detail.supervisor))) {
+                            const allActions = await ActionService.getActions();
+                            const storeAction = allActions.find(a => String(a.storeId) === String(storeId) && a.assigneeName);
+                            if (storeAction?.assigneeName) {
+                                setStoreDetail(prev => prev ? { ...prev, supervisor: storeAction.assigneeName! } : prev);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch store detail:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            fetchDetail();
+        }
+    }, [isOpen, storeId]);
+
+    const handleSubmitAction = async () => {
+        if (!storeId || !storeDetail) return;
+
+        try {
+            setIsSubmitting(true);
+            // Map UI action type to Backend constant
+            const backendActionType =
+                actionType === 'EDUCATION' ? 'TRAINING' :
+                    actionType === 'RESOURCES' ? 'PERSONNEL' :
+                        actionType; // VISIT, PROMOTION, FACILITY match
+
+            // Ensure we have a numeric ID for the supervisor
+            let svId = Number(storeDetail.currentSupervisorId);
+            if (isNaN(svId) || svId === 0) {
+                // Try to extract ID if it's like "sv01" -> 1 (This is a guess, but helpful for 500 errors)
+                const idMatch = String(storeDetail.currentSupervisorId).match(/\d+/);
+                svId = idMatch ? Number(idMatch[0]) : 0;
+            }
+
+            const success = await ActionService.createAction({
+                storeId: Number(storeId),
+                title: title || `${storeDetail.name} 조치 요청`,
+                description: description,
+                actionType: backendActionType,
+                priority: priority,
+                dueDate: dueDate,
+                assignedToUserId: svId,
+                relatedEventId: eventId ? Number(eventId) : undefined
+            });
+
+            if (success) {
+                alert('조치 지시가 성공적으로 발송되었습니다.');
+                onClose();
+            } else {
+                alert('조치 지시 발송에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('Action creation failed:', error);
+            alert('오류가 발생했습니다.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     if (!isOpen || !storeId) return null;
 
-    const storeName = "강남역점"; // Mock
+    if (isLoading) {
+        return (
+            <div className="fixed inset-0 z-50 flex justify-end">
+                <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
+                <div className="relative w-full max-w-2xl bg-[#f8fafc] h-full flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <div
-                className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] animate-in fade-in duration-300"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
                 onClick={onClose}
             />
 
-            <div className="relative w-full max-w-xl bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="relative w-full max-w-2xl bg-[#f8fafc] h-full shadow-2xl flex flex-col">
                 {/* Header */}
                 <div className="px-6 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div>
@@ -27,18 +143,17 @@ export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT'
                             <span className="px-2 py-0.5 rounded bg-[#1a73e8]/10 text-[#1a73e8] text-[10px] font-bold uppercase tracking-wider">
                                 {viewType === 'EVENT' ? '이벤트 상세 리포트' : '조치 생성'}
                             </span>
-
                         </div>
                         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            {storeName}
-                            <button className="text-slate-400 hover:text-blue-600 transition-colors">
+                            {storeDetail?.name || '로딩 중...'}
+                            <button className="text-slate-400 hover:text-blue-600">
                                 <ExternalLink className="w-4 h-4" />
                             </button>
                         </h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                        className="p-2 hover:bg-slate-200 rounded-full"
                     >
                         <X className="w-5 h-5 text-slate-500" />
                     </button>
@@ -86,7 +201,7 @@ export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT'
                                         <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">+2.4%</span>
                                     </div>
                                     <h4 className="text-sm font-bold text-slate-900 mb-1">운영 건전성 점수 (Operation Health)</h4>
-                                    <div className="text-2xl font-black text-slate-900">76 / 100</div>
+                                    <div className="text-2xl font-black text-slate-900">{storeDetail?.qscScore || 0} / 100</div>
                                     <p className="text-[10px] text-slate-400 mt-2">지난달 평균 대비 전체 운영 성과 점수</p>
                                 </div>
                             </div>
@@ -120,26 +235,118 @@ export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT'
                             </div>
                         </>
                     ) : (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                            <div className="space-y-4">
-                                <label className="block text-sm font-bold text-slate-900 px-1"></label>
-                                <textarea
-                                    className="w-full h-40 bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-                                    placeholder="담당 SV에게 보낼 상세 지시 내용을 입력하세요..."
-                                    defaultValue="[긴급 조치 사항] 인력 이탈에 따른 운영 공백 보완을 위해 이번 주말 피크 타임 지원 인력 파견 및 점검을 지시합니다."
-                                />
+                        <div className="space-y-6">
+                            {/* Form Table */}
+                            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                                <table className="w-full text-sm border-collapse">
+                                    <tbody className="divide-y divide-slate-100">
+                                        <tr>
+                                            <td className="w-32 px-4 py-3 bg-slate-50 font-bold text-slate-600 border-r border-slate-100">대상 점포</td>
+                                            <td className="px-4 py-3 text-slate-700">{storeDetail?.name}</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-4 py-3 bg-slate-50 font-bold text-slate-600 border-r border-slate-100">연관 이벤트</td>
+                                            <td className="px-4 py-3 text-slate-700">
+                                                {eventSummary ? (
+                                                    <span className="font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded-md text-[13px]">
+                                                        {eventSummary}
+                                                    </span>
+                                                ) : (
+                                                    <span className="italic opacity-60">이벤트 연동 데이터 불러오는 중...</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-4 py-3 bg-slate-50 font-bold text-slate-600 border-r border-slate-100">조치 유형</td>
+                                            <td className="px-3 py-2">
+                                                <select
+                                                    value={actionType}
+                                                    onChange={(e) => setActionType(e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent border-none focus:ring-0 focus:outline-none text-slate-900 cursor-pointer"
+                                                >
+                                                    <option value="TRAINING">교육</option>
+                                                    <option value="VISIT">방문</option>
+                                                    <option value="RECHECK">재점검</option>
+                                                    <option value="PROMOTION">프로모션</option>
+                                                    <option value="FACILITY">시설 개선</option>
+                                                    <option value="PERSONNEL">인력 보강</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-4 py-3 bg-slate-50 font-bold text-slate-600 border-r border-slate-100">담당자</td>
+                                            <td className="px-3 py-2 text-slate-900">
+                                                <select className="w-full px-2 py-1.5 bg-transparent border-none focus:ring-0 focus:outline-none text-slate-900 cursor-pointer">
+                                                    <option>{initialSvName || storeDetail?.supervisor || '담당자 선택'}</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-4 py-3 bg-slate-50 font-bold text-slate-600 border-r border-slate-100">목표 지표</td>
+                                            <td className="px-3 py-2">
+                                                <select
+                                                    value={targetMetric}
+                                                    onChange={(e) => setTargetMetric(e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent border-none focus:ring-0 text-slate-900 cursor-pointer"
+                                                >
+                                                    <option value="QSC">QSC</option>
+                                                    <option value="SALES">매출</option>
+                                                    <option value="HYGIENE">위생점수</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-4 py-3 bg-slate-50 font-bold text-slate-600 border-r border-slate-100">기한</td>
+                                            <td className="px-3 py-2">
+                                                <input
+                                                    type="date"
+                                                    value={dueDate}
+                                                    onChange={(e) => setDueDate(e.target.value)}
+                                                    className="w-full px-2 py-1 border-none focus:ring-0 text-slate-700 bg-transparent"
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="px-4 py-3 bg-slate-50 font-bold text-slate-600 border-r border-slate-100">우선순위</td>
+                                            <td className="px-3 py-2">
+                                                <select
+                                                    value={priority}
+                                                    onChange={(e) => setPriority(e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent border-none focus:ring-0 focus:outline-none text-slate-900 cursor-pointer"
+                                                >
+                                                    <option value="CRITICAL">CRITICAL (즉시 조치)</option>
+                                                    <option value="HIGH">HIGH (빠른 대응)</option>
+                                                    <option value="MEDIUM">MEDIUM (일주일 이내)</option>
+                                                    <option value="LOW">LOW (순차 대응)</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
 
-                            <div className="space-y-4">
-                                <label className="block text-sm font-bold text-slate-900 px-1">담당 SV 지정</label>
-                                <div className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:border-blue-200 transition-all cursor-pointer group">
-                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">HK</div>
-                                    <div>
-                                        <div className="text-sm font-bold text-slate-900">강현우 SV</div>
-
+                            {/* Title & Content Section */}
+                            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                                <div className="flex border-b border-slate-100">
+                                    <div className="w-28 px-4 py-4 bg-slate-50 font-bold text-slate-600 border-r border-slate-100 flex items-center">제목</div>
+                                    <div className="flex-1 px-4">
+                                        <input
+                                            type="text"
+                                            placeholder="조치 제목을 입력하세요"
+                                            className="w-full py-4 bg-transparent border-none focus:ring-0 focus:outline-none text-sm placeholder:text-slate-300"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                        />
                                     </div>
-                                    <CheckCircle2 className="w-5 h-5 ml-auto text-blue-600" />
+                                </div>
+                                <div className="p-4 space-y-2">
+                                    <label className="block text-xs font-bold text-slate-400 uppercase">조치 내용</label>
+                                    <textarea
+                                        className="w-full h-48 bg-white border border-slate-100 rounded-lg p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 placeholder:text-slate-300 resize-none"
+                                        placeholder="조치 내용을 상세히 입력하세요."
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -148,10 +355,19 @@ export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT'
 
                 {/* Footer Actions */}
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3">
-
-                    <button className="flex-2 py-3 bg-[#1a73e8] text-white rounded-xl text-sm font-bold hover:bg-[#1557b0] transition-all shadow-lg shadow-blue-200 px-8 flex items-center justify-center gap-2">
-                        {viewType === 'EVENT' ? 'SV 조치 요청' : '조치 지시 발송'}
-                        <Send className="w-4 h-4" />
+                    <button
+                        disabled={isSubmitting}
+                        onClick={handleSubmitAction}
+                        className="w-full py-3 bg-[#1a73e8] text-white rounded-xl text-sm font-bold hover:bg-[#1557b0] shadow-lg shadow-blue-200 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {isSubmitting ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                            <>
+                                {viewType === 'EVENT' ? 'SV 조치 요청' : '생성된 조치 저장'}
+                                <Send className="w-4 h-4" />
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

@@ -63,14 +63,25 @@ const mapBackendStoreToFrontend = (backendStore: any): Store => {
         // [중요] 여기서 변환 로직 적용
         region: getRegionName(regionCode),
 
-        supervisor: backendStore.supervisor || '',
+        // SV Name mapping
+        supervisor: backendStore.assignedToUserName ||
+            backendStore.supervisorName ||
+            backendStore.assignedToUser?.name ||
+            backendStore.supervisor?.name ||
+            backendStore.supervisor || '',
         qscScore: backendStore.qscScore || 0,
         lastInspectionDate: backendStore.lastInspectionDate || null,
         description: '',
-        manager: '',
+        manager: backendStore.assignedToUserName ||
+            backendStore.supervisorName ||
+            backendStore.assignedToUser?.name ||
+            backendStore.supervisor?.name || '',
         storePhone: '',
         regionCode: regionCode,
-        currentSupervisorId: '',
+        currentSupervisorId: backendStore.assignedToUserId ||
+            backendStore.supervisorId ||
+            backendStore.assignedToUser?.id ||
+            backendStore.supervisorLoginId || '',
         operationStatus: 'OPEN',
         currentState: backendStore.state || 'NORMAL',
         currentStateScore: backendStore.qscScore || 0,
@@ -123,13 +134,24 @@ export const StoreService = {
                 state: backendStore.currentState,
                 region: getRegionName(regionCode), // 상세 조회 시 변환
                 description: '',
-                manager: backendStore.supervisorLoginId || '',
+                manager: backendStore.assignedToUserName ||
+                    backendStore.supervisorName ||
+                    backendStore.assignedToUser?.name ||
+                    backendStore.supervisor?.name ||
+                    backendStore.supervisorLoginId || '',
                 storePhone: backendStore.ownerPhone || '',
-                supervisor: backendStore.supervisorLoginId || '',
+                supervisor: backendStore.assignedToUserName ||
+                    backendStore.supervisorName ||
+                    backendStore.assignedToUser?.name ||
+                    backendStore.supervisor?.name ||
+                    backendStore.supervisorLoginId || '',
                 qscScore: backendStore.qscScore || 0,
                 lastInspectionDate: null,
                 regionCode: regionCode,
-                currentSupervisorId: backendStore.supervisorLoginId || '',
+                currentSupervisorId: backendStore.assignedToUserId ||
+                    backendStore.supervisorId ||
+                    backendStore.assignedToUser?.id ||
+                    backendStore.supervisorLoginId || '',
                 operationStatus: backendStore.storeOperationStatus,
                 currentState: backendStore.currentState,
                 currentStateScore: backendStore.currentStateScore || 0,
