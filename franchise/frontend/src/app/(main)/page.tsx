@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react';
 import { AuthService } from '@/services/authService';
 import { StoreService } from '@/services/storeService';
 import { User, Store } from '@/types';
+import { ManagerDashboard } from '@/components/dashboard/manager/ManagerDashboard';
 
 // --- MOCK DATA FOR SV DASHBOARD ---
 const MOCK_VISIT_STATUS = {
@@ -192,221 +193,7 @@ function AdminDashboard() {
   );
 }
 
-// --- TEAM LEADER DASHBOARD ---
-function TeamLeaderDashboard({ user }: { user: User }) {
-  const router = useRouter();
-  const [myStores, setMyStores] = useState<Store[]>([]);
-  const [dashboardData, setDashboardData] = useState<ManagerDashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'RISK' | 'WATCHLIST' | 'NORMAL'>('ALL');
-  const [sortConfig, setSortConfig] = useState<{ key: 'qscScore' | 'lastInspectionDate' | null; direction: 'asc' | 'desc' }>({ key: null, direction: 'desc' });
-
-  const [actionCount, setActionCount] = useState(0);
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        setLoading(true);
-        // User is manager, call getManagerDashboard
-        const data = await DashboardService.getManagerDashboard();
-
-        // We still need list of stores for the table, so keep fetching stores
-        // But summary cards should come from 'data'
-        const stores = await StoreService.getStores();
-
-        setMyStores(stores);
-        setDashboardData(data);
-
-      } catch (error) {
-        console.error("Failed to load team leader dashboard data", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
-
-  const riskStoresCount = dashboardData?.riskStoreCount ?? 0;
-  const gapStoresCount = dashboardData?.managementGapCount ?? 0;
-  const newEventsCount = dashboardData?.newEventCount ?? 0;
-
-  // Filter & Sort Logic
-  const filteredStores = myStores
-    .filter(s => {
-      const storeName = (s as any).name || (s as any).storeName || '';
-      const supervisorName = (s as any).supervisor || '';
-      const matchesSearch = storeName.includes(searchTerm) || supervisorName.includes(searchTerm);
-      const storeState = (s as any).state || (s as any).currentState || 'NORMAL';
-      const matchesStatus = statusFilter === 'ALL' || storeState === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      if (!sortConfig.key) return 0;
-
-      // Handle nulls safely
-      let valA: any = a[sortConfig.key];
-      let valB: any = b[sortConfig.key];
-
-      if (sortConfig.key === 'lastInspectionDate') {
-        const dateA = valA ? new Date(valA).getTime() : 0;
-        const dateB = valB ? new Date(valB).getTime() : 0;
-        return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
-      }
-
-      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-  const handleSort = (key: 'qscScore' | 'lastInspectionDate') => {
-    setSortConfig(current => ({
-      key,
-      direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
-    }));
-  };
-
-  const handleStatusFilter = (status: 'ALL' | 'RISK' | 'WATCHLIST' | 'NORMAL') => {
-    setStatusFilter(status);
-  };
-
-  if (loading) return <div className="p-12 text-center text-gray-500">Loading Dashboard...</div>;
-
-  return (
-    <div className="space-y-8">
-      {/* Header Section */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          운영 대시보드
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          팀에서 담당하고 있는 점포의 운영 현황을 확인하세요.
-        </p>
-      </div>
-
-      {/* Top Metric Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center h-[180px]">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">위험 점포 수</h3>
-          <p className="text-sm text-gray-500 mb-4">현재 상태가 위험 등급인 점포 개수</p>
-          <span className="text-5xl font-extrabold text-red-600">{riskStoresCount}</span>
-        </div>
-
-        <Link href="/events" className="group">
-          <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center h-[180px] hover:border-blue-300 transition-colors cursor-pointer group-hover:bg-blue-50/10">
-            <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600">신규 이벤트 수</h3>
-            <p className="text-sm text-gray-500 mb-4">최근 48시간 내 신규 생성 이벤트 수<br /><span className="text-xs text-blue-500">(클릭 시 이벤트 리스트로 이동)</span></p>
-            <span className="text-5xl font-extrabold text-gray-900 group-hover:text-blue-600">{newEventsCount}</span>
-          </div>
-        </Link>
-        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center justify-center text-center h-[180px]">
-          <h3 className="text-xl font-bold text-gray-900 mb-2">관리 공백 점포 수</h3>
-          <p className="text-sm text-gray-500 mb-4">SV 방문 공백이 한 달 넘는 점포 수</p>
-          <span className="text-5xl font-extrabold text-gray-900">{gapStoresCount}</span>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="bg-white p-1 rounded-sm border border-gray-300 shadow-sm flex items-center">
-        <div className="bg-white px-6 py-4 font-bold text-2xl text-gray-900 mr-4 border-r border-transparent">
-          검색
-        </div>
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            placeholder="담당 점포명 또는 담당 SV를 입력하세요"
-            className="w-full text-lg focus:outline-none placeholder:text-gray-300 px-4"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Store List Table */}
-      <div className="bg-white border border-gray-300 rounded-sm shadow-sm overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-white border-b border-gray-300">
-            <tr>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[200px]">점포명</th>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[240px]">
-                상태
-                <div className="flex gap-1 mt-1 text-xs font-normal">
-                  <button onClick={() => handleStatusFilter('ALL')} className={`${statusFilter === 'ALL' ? 'text-blue-600 font-bold' : 'text-gray-400 hover:text-blue-500'}`}>전체</button>
-                  <span className="text-gray-300">|</span>
-                  <button onClick={() => handleStatusFilter('RISK')} className={`${statusFilter === 'RISK' ? 'text-red-600 font-bold' : 'text-gray-400 hover:text-red-500'}`}>위험</button>
-                  <span className="text-gray-300">|</span>
-                  <button onClick={() => handleStatusFilter('WATCHLIST')} className={`${statusFilter === 'WATCHLIST' ? 'text-orange-600 font-bold' : 'text-gray-400 hover:text-orange-500'}`}>주의</button>
-                  <span className="text-gray-300">|</span>
-                  <button onClick={() => handleStatusFilter('NORMAL')} className={`${statusFilter === 'NORMAL' ? 'text-green-600 font-bold' : 'text-gray-400 hover:text-green-500'}`}>정상</button>
-                </div>
-              </th>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[120px]">권역</th>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[120px]">담당SV</th>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => handleSort('qscScore')}>
-                QSC 점수
-                <span className="block text-xs font-normal text-blue-500 mt-1">
-                  {sortConfig.key === 'qscScore' ? (sortConfig.direction === 'desc' ? '▼ 높은순' : '▲ 낮은순') : '정렬 필터'}
-                </span>
-              </th>
-              <th className="px-6 py-4 font-bold text-gray-900 border-r border-gray-200 w-[200px] cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => handleSort('lastInspectionDate')}>
-                최근 점검일
-                <span className="block text-xs font-normal text-blue-500 mt-1">
-                  {sortConfig.key === 'lastInspectionDate' ? (sortConfig.direction === 'desc' ? '▼ 최신순' : '▲ 오래된순') : '정렬 필터'}
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredStores.map((store) => (
-              <tr
-                key={store.id}
-                onClick={() => router.push(`/stores/${store.id}`)}
-                className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
-              >
-                <td className="px-6 py-6 font-bold text-gray-900 border-r border-gray-200 group-hover:text-blue-600 transition-colors">{store.name}</td>
-                <td className="px-6 py-6 border-r border-gray-200">
-                  <span className={`font-bold px-2 py-1 rounded ${store.state === 'RISK' ? 'bg-red-50 text-red-600' :
-                    store.state === 'WATCHLIST' ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600'
-                    }`}>
-                    {store.state === 'RISK' ? '위험' : store.state === 'WATCHLIST' ? '주의' : '정상'}
-                  </span>
-                </td>
-                <td className="px-6 py-6 text-gray-900 border-r border-gray-200">{store.region}</td>
-                <td className="px-6 py-6 text-gray-900 border-r border-gray-200">{store.supervisor}</td>
-                <td className="px-6 py-6 border-r border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 bg-gray-100 rounded h-2 overflow-hidden">
-                      <div
-                        className={`h-full rounded ${store.qscScore >= 90 ? 'bg-green-500' :
-                          store.qscScore >= 70 ? 'bg-orange-400' : 'bg-red-500'
-                          }`}
-                        style={{ width: `${store.qscScore}%` }}
-                      />
-                    </div>
-                    <span className="font-bold text-gray-900 w-12 text-right">{store.qscScore}점</span>
-                  </div>
-                </td>
-                <td className="px-6 py-6 text-gray-900">{store.lastInspectionDate || '-'}</td>
-              </tr>
-            ))}
-            {filteredStores.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                  검색된 점포가 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        <div className="p-4 text-center text-blue-500 text-sm font-medium border-t border-gray-200 bg-blue-50">
-          - 본 리스트는 팀장님 담당 SV들의 관할 점포만 표시됩니다.
-        </div>
-      </div>
-    </div >
-  );
-}
 
 // --- SV DASHBOARD (Original) ---
 function SvDashboard({ user }: { user: User }) {
@@ -652,7 +439,7 @@ export default function Home() {
       {user.role === 'ADMIN' ? (
         <AdminDashboard />
       ) : user.role === 'MANAGER' ? (
-        <TeamLeaderDashboard user={user} />
+        <ManagerDashboard user={user} />
       ) : (
         <SvDashboard user={user} />
       )}

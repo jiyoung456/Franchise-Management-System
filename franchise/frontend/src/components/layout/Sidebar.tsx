@@ -44,7 +44,6 @@ export function Sidebar() {
     // Custom Navigation for Team Leader
     const teamLeaderNav = [
         { name: '홈', href: '/dashboard', icon: LayoutDashboard, section: 1 },
-        { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, section: 1 },
         { name: '이벤트 관리', href: '/events', icon: Calendar, section: 3 }, // Using Calendar for Event as per mock
         { name: '조치 관리', href: '/actions', icon: Hammer, section: 3 },
         { name: '게시판', href: '/board', icon: Megaphone, section: 4 },
