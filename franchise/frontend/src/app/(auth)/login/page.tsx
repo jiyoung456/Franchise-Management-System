@@ -56,7 +56,7 @@ export default function LoginPage() {
                     return;
                 }
 
-                router.push('/');
+                router.push('/dashboard');
             } else {
                 if (result.code === 'LOCKED') {
                     alert(result.message);

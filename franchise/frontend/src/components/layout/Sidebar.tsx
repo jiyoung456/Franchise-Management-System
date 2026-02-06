@@ -8,7 +8,7 @@ import { AuthService } from '@/services/authService';
 import { Logo } from '@/components/common/Logo';
 
 const navigation = [
-    { name: '홈', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'], section: 1 },
+    { name: '홈', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'], section: 1 },
     { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, roles: ['SUPERVISOR'], section: 1 },
     { name: '점포 관리', href: '/stores/my', icon: Store, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: 'QSC 관리', href: '/qsc', icon: ClipboardCheck, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
@@ -43,7 +43,7 @@ export function Sidebar() {
 
     // Custom Navigation for Team Leader
     const teamLeaderNav = [
-        { name: '홈', href: '/', icon: LayoutDashboard, section: 1 },
+        { name: '홈', href: '/dashboard', icon: LayoutDashboard, section: 1 },
         { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, section: 1 },
         { name: '이벤트 관리', href: '/events', icon: Calendar, section: 3 }, // Using Calendar for Event as per mock
         { name: '조치 관리', href: '/actions', icon: Hammer, section: 3 },
