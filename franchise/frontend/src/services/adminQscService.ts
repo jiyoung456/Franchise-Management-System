@@ -81,53 +81,95 @@ function mapCodeToFrontendId(code: string): string {
         'SERVICE': 'service',
         'CLEANLINESS': 'hygiene',
         'SAFETY': 'safety',
-        'BRAND': 'brand'
     };
     return map[code] || 'quality';
 }
 
 function mapToUpsertRequest(t: QSCTemplate) {
-    const categoryMap: Record<string, any[]> = {
-        'QUALITY': [], 'SERVICE': [], 'CLEANLINESS': [], 'SAFETY': [], 'BRAND': []
-    };
+  const idMap: Record<string, 'QUALITY'|'SERVICE'|'CLEANLINESS'|'SAFETY'> = {
+    quality: 'QUALITY',
+    service: 'SERVICE',
+    hygiene: 'CLEANLINESS',
+    safety: 'SAFETY',
+  };
 
-    const idMap: Record<string, string> = {
-        'quality': 'QUALITY', 'service': 'SERVICE', 'hygiene': 'CLEANLINESS', 'brand': 'BRAND', 'safety': 'SAFETY'
-    };
+  const requiredCodes: Array<'QUALITY'|'SERVICE'|'CLEANLINESS'|'SAFETY'> =
+    ['QUALITY','SERVICE','CLEANLINESS','SAFETY'];
 
-    t.items.forEach(item => {
-        const backendCode = idMap[item.categoryId || 'quality'] || 'QUALITY';
-        categoryMap[backendCode].push({
-            itemName: item.itemName,
-            isRequired: item.isRequired || false,
-            sortOrder: item.sortOrder || 0
-        });
-    });
+  const weights: Record<typeof requiredCodes[number], number> = {
+    QUALITY: 30, SERVICE: 30, CLEANLINESS: 30, SAFETY: 10,
+  };
 
-    const categories = Object.keys(categoryMap)
-        .filter(code => categoryMap[code].length > 0)
-        .map(code => ({
-            categoryCode: code,
-            categoryName: getCategoryName(code),
-            items: categoryMap[code]
-        }));
+  const names: Record<typeof requiredCodes[number], string> = {
+    QUALITY: '품질(Quality)',
+    SERVICE: '서비스(Service)',
+    CLEANLINESS: '청결(Cleanliness)',
+    SAFETY: '안전(Safety)',
+  };
+
+  // 1) 아이템을 카테고리별로 모으기
+  const bucket: Record<typeof requiredCodes[number], any[]> = {
+    QUALITY: [], SERVICE: [], CLEANLINESS: [], SAFETY: [],
+  };
+
+  (t.items ?? []).forEach((item) => {
+    const code = idMap[item.categoryId || 'quality'] || 'QUALITY';
+    bucket[code].push(item);
+  });
+
+  // 2) 카테고리별 sortOrder를 1..N으로 강제 부여(중복 방지)
+  const categories = requiredCodes.map((code) => {
+    const items = bucket[code].map((item, idx) => ({
+      itemName: item.itemName,
+      isRequired: item.isRequired ?? false,
+      sortOrder: idx + 1,
+    }));
 
     return {
-        title: t.templateName,
-        description: t.description,
-        version: t.version,
-        inspectionType: t.inspectionType,
-        scope: t.scope || 'ALL',
-        isActive: t.status === 'ACTIVE',
-        effectiveFrom: t.effectiveFrom || new Date().toISOString().split('T')[0],
-        effectiveTo: t.effectiveTo,
-        categories: categories
+      categoryCode: code,
+      categoryName: names[code],
+      categoryWeight: weights[code],
+      items,
     };
+  });
+
+  return {
+    templateName: t.templateName,
+    inspectionType: t.inspectionType,
+    version: t.version,
+    effectiveFrom: t.effectiveFrom,     // "YYYY-MM-DD"
+    effectiveTo: t.effectiveTo ?? null,
+    passScoreMin: 80,
+    status: t.status ?? 'ACTIVE',
+    scope: mapScope(t.scope),           // {scopeType, scopeRefId}
+    categories,
+  };
 }
+
+
+function mapScope(scope?: string) {
+  // UI 문자열을 백엔드 enum으로 매핑
+  // 지금 UI는 "전체 매장", "브랜드 공통" 같은 값을 쓰고 있음
+  if (!scope || scope === '전체 매장') return { scopeType: 'GLOBAL', scopeRefId: null };
+  if (scope === '브랜드 공통') return { scopeType: 'GLOBAL', scopeRefId: null }; // 정책에 따라 바꿔도 됨
+  return { scopeType: 'GLOBAL', scopeRefId: null };
+}
+
+function getCategoryWeight(code: string): number {
+  // 너희 규칙: Q/S/C 각 30, 안전 10(2문항), 총합 100 같은 정책이면 이렇게
+  const weights: Record<string, number> = {
+    QUALITY: 30,
+    SERVICE: 30,
+    CLEANLINESS: 30,
+    SAFETY: 10,
+  };
+  return weights[code] ?? 0;
+}
+
 
 function getCategoryName(code: string): string {
     const names: Record<string, string> = {
-        'QUALITY': '품질(Quality)', 'SERVICE': '서비스(Service)', 'CLEANLINESS': '청결(Cleanliness)', 'SAFETY': '안전(Safety)', 'BRAND': '브랜드(Brand)'
+        'QUALITY': '품질(Quality)', 'SERVICE': '서비스(Service)', 'CLEANLINESS': '청결(Cleanliness)', 'SAFETY': '안전(Safety)',
     };
     return names[code] || '기타';
 }

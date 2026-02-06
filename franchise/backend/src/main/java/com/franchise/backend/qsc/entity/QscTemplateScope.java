@@ -3,6 +3,8 @@ package com.franchise.backend.qsc.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -22,7 +24,8 @@ public class QscTemplateScope {
     private QscTemplate template;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "scope_type", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "scope_type", nullable = false, columnDefinition = "qsc_scope_type")
     private QscScopeType scopeType; // GLOBAL, REGION, STORE, DIRECT
 
     @Column(name = "scope_ref_id")

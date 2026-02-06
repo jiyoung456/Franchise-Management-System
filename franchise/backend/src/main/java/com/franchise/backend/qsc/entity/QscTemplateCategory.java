@@ -3,6 +3,8 @@ package com.franchise.backend.qsc.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -24,7 +26,8 @@ public class QscTemplateCategory {
     private QscTemplate template;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "category_code", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "category_code", nullable = false, columnDefinition = "qsc_category_code")
     private QscCategoryCode categoryCode; // CLEANLINESS, SERVICE, QUALITY, SAFETY
 
     @Column(name = "category_name", nullable = false)
