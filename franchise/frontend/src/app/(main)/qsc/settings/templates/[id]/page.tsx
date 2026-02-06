@@ -9,7 +9,7 @@ export default function TemplateDetailPage() {
     const params = useParams();
     const router = useRouter();
     const id = params.id as string;
-    const template = MOCK_TEMPLATES.find(t => t.id === id) || MOCK_TEMPLATES[0];
+    const template = MOCK_TEMPLATES.find(t => t.templateId === id) || MOCK_TEMPLATES[0];
 
     const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export default function TemplateDetailPage() {
                 <div className="border border-gray-400 p-6 rounded-sm text-center space-y-2">
                     <h3 className="font-bold text-lg mb-4 underline decoration-gray-300 underline-offset-4">기본 정보</h3>
                     <div className="text-gray-900">
-                        {template?.title}, {template?.description}, 정기 점검, 전체 매장, 2025-01-01, 2026-01-15, 김관리, 현재 버전 {template?.version}, {template?.isActive ? '사용 중' : '비활성'}
+                        {template?.templateName}, {template?.description}, 정기 점검, 전체 매장, 2025-01-01, 2026-01-15, 김관리, 현재 버전 {template?.version}, {template?.isActive ? '사용 중' : '비활성'}
                     </div>
                 </div>
 

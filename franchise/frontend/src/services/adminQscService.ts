@@ -10,7 +10,11 @@ export const adminQscService = {
 
             // Backend Response: { success: true, data: { items: [...] } }
             if (response.data && response.data.data && Array.isArray(response.data.data.items)) {
-                return response.data.data.items;
+                return response.data.data.items.map((item: any) => ({
+                    ...item,
+                    templateName: item.title || item.templateName || '',
+                    status: item.status || (item.isActive ? 'ACTIVE' : 'INACTIVE') || 'ACTIVE'
+                }));
             }
             return [];
         } catch (error) {
@@ -46,6 +50,10 @@ export const adminQscService = {
 
             return {
                 ...data,
+                templateName: data.title || data.templateName || '',
+                status: data.status || 'ACTIVE',
+                scope: data.scope === 'ALL' ? '전체 매장' : data.scope === 'BRAND' ? '브랜드 공통' : (data.scope || '전체 매장'),
+                createdAt: data.create_at || '-',
                 items: flattenedItems
             };
         } catch (error) {
