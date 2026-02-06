@@ -139,7 +139,7 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                             {template && (
                                 <>
                                     <span className="text-gray-300">|</span>
-                                    <span className="flex items-center gap-1"><FileText className="w-4 h-4" /> {template.title} (v{template.version})</span>
+                                    <span className="flex items-center gap-1"><FileText className="w-4 h-4" /> {template.templateName} (v{template.version})</span>
                                 </>
                             )}
                         </div>

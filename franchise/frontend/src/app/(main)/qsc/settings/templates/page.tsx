@@ -16,7 +16,7 @@ export default function TemplateListPage() {
     }));
 
     const filteredTemplates = templates.filter(tpl =>
-        tpl.title.includes(searchTerm)
+        tpl.templateName.includes(searchTerm)
     );
 
     return (
@@ -56,12 +56,12 @@ export default function TemplateListPage() {
                     {/* List Items */}
                     <div className="space-y-3">
                         {filteredTemplates.map(tpl => (
-                            <div key={tpl.id} className="flex items-center justify-between border border-gray-400 p-4 rounded-sm bg-white hover:bg-gray-50 transition-colors">
+                            <div key={tpl.templateId} className="flex items-center justify-between border border-gray-400 p-4 rounded-sm bg-white hover:bg-gray-50 transition-colors">
                                 <div className="text-gray-900 font-medium">
-                                    {tpl.title}, {tpl.scope}, {tpl.type}, 현재 버전 {tpl.version}, {tpl.isActive ? '사용 중' : '비활성'}
+                                    {tpl.templateName}, {tpl.scope}, {tpl.inspectionType}, 현재 버전 {tpl.version}, {tpl.isActive ? '사용 중' : '비활성'}
                                 </div>
                                 <Link
-                                    href={`/qsc/settings/templates/${tpl.id}`}
+                                    href={`/qsc/settings/templates/${tpl.templateId}`}
                                     className="px-4 py-1.5 border border-gray-400 rounded bg-white text-gray-700 text-sm hover:bg-gray-100"
                                 >
                                     관리/수정
