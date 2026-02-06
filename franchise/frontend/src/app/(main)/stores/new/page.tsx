@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Store, MapPin, Calendar, User, FileText, CheckCircle } from 'lucide-react';
-import { AuthService } from '@/services/authService';
 import { StoreService } from '@/services/storeService';
 import { useRouter } from 'next/navigation';
 
@@ -27,24 +26,23 @@ export default function NewStorePage() {
     const [svs, setSvs] = useState<any[]>([]);
 
     useEffect(() => {
-        // Load SVs from Storage
         const fetchSvs = async () => {
-            const users = await AuthService.getUsers();
-            const supervisors = users.filter(u => u.role === 'SUPERVISOR');
-            setSvs(supervisors);
+            if (!formData.regionCode) return;
+            const data = await StoreService.getSupervisorsByRegion(formData.regionCode);
+            setSvs(data);
         };
         fetchSvs();
-    }, []);
+    }, [formData.regionCode]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
 
         if (name === 'currentSupervisorId') {
-            const selectedSv = svs.find(sv => sv.id === value);
+            const selectedSv = svs.find(sv => sv.loginId === value);
             setFormData(prev => ({
                 ...prev,
                 [name]: value,
-                svName: selectedSv ? selectedSv.name : '',
+                svName: selectedSv ? selectedSv.userName : '',
                 svTeam: selectedSv ? selectedSv.department : '' // Map department to team
             }));
         } else {
@@ -65,28 +63,7 @@ export default function NewStorePage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const newStoreId = Date.now().toString();
-        const selectedSv = svs.find(sv => sv.name === formData.svName);
-
-        const newStore: any = {
-            id: newStoreId,
-            ...formData,
-            currentSupervisorId: formData.currentSupervisorId,
-            operationStatus: 'OPEN', // Default to OPEN for simplicity or adjust based on openedAt
-            currentState: 'NORMAL',
-            currentStateScore: 80,
-            qscScore: 0,
-            // openedAt and contractEndAt are already in formData with correct keys if we updated them
-            // but formData keeps keys like 'openDate' if we didn't update state keys? 
-            // Ah, I updated initial State keys above.
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            statusHistory: [],
-            monthlyRevenue: 0,
-            growthRate: 0
-        };
-
-        const success = await StoreService.addStore(newStore);
+        const success = await StoreService.addStore(formData);
         if (success) {
             alert(`신규 점포가 등록되었습니다.\n(담당 SV: ${formData.svName})`);
             router.push('/stores');
@@ -104,7 +81,7 @@ export default function NewStorePage() {
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">신규 점포 등록</h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        새로운 가맹점 또는 직영점을 시스템에 등록합니다.
+                        새로운 점포를 시스템에 등록합니다.
                     </p>
                 </div>
             </div>
@@ -140,8 +117,9 @@ export default function NewStorePage() {
                             >
                                 <option value="서울/경기">서울/경기</option>
                                 <option value="부산/경남">부산/경남</option>
-                                <option value="대구/경북">대구/경북</option>
-                                <option value="광주/전라">광주/전라</option>
+                                <option value="대구/울산/경북">대구/울산/경북</option>
+                                <option value="강원/충청">강원/충청</option>
+                                <option value="전라/광주">전라/광주</option>
                                 <option value="제주">제주</option>
                             </select>
                         </div>
@@ -245,11 +223,9 @@ export default function NewStorePage() {
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                             >
                                 <option value="">담당 SV 선택</option>
-                                {svs
-                                    .filter(sv => sv.department === formData.regionCode)
-                                    .map(sv => (
-                                        <option key={sv.id} value={sv.id}>{sv.userName}</option>
-                                    ))}
+                                {svs.map(sv => (
+                                    <option key={sv.loginId} value={sv.loginId}>{sv.userName}</option>
+                                ))}
                             </select>
                         </div>
                         <div>

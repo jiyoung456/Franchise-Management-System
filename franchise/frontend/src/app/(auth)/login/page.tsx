@@ -56,7 +56,7 @@ export default function LoginPage() {
                     return;
                 }
 
-                router.push('/');
+                router.push('/dashboard');
             } else {
                 if (result.code === 'LOCKED') {
                     alert(result.message);
@@ -79,10 +79,8 @@ export default function LoginPage() {
         <div className="flex w-full max-w-5xl bg-white shadow-2xl rounded-2xl overflow-hidden min-h-[600px] my-20">
             {/* LEFT PANEL: Branding & Signup Action */}
             <div className="hidden md:flex flex-col w-1/2 bg-[#F8FAFC] p-12 relative min-h-[600px] items-center justify-center">
-                {/* Branding Text Top Left */}
-                <div className="absolute top-10 left-10">
-                    <h1 className="text-3xl font-extrabold text-[#2CA4D9] tracking-tighter">알피자</h1>
-                </div>
+
+
 
                 {/* Center Content */}
                 <div className="flex flex-col items-center justify-center gap-6 mt-10">
@@ -116,7 +114,7 @@ export default function LoginPage() {
             <div className="w-full md:w-1/2 p-12 bg-white flex flex-col justify-center">
                 {/* Mobile Heading */}
                 <div className="md:hidden text-center mb-8">
-                    <h1 className="text-3xl font-extrabold text-[#2CA4D9] tracking-tighter mb-4">알피자</h1>
+
                     <h2 className="text-2xl font-bold text-gray-800">로그인</h2>
                 </div>
 

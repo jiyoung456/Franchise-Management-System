@@ -5,8 +5,9 @@ import com.franchise.backend.pos.entity.PosPeriodAgg.PosPeriodType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
-import java.awt.print.Pageable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -100,4 +101,28 @@ public interface PosPeriodAggRepository extends JpaRepository<PosPeriodAgg, Long
             @Param("type") PosPeriodType type,
             @Param("periodStarts") List<LocalDate> periodStarts
     );
+
+    //관리자 홈 pos
+    @Query("""
+    select p.periodStart as periodStart,
+           sum(p.salesAmount) as totalSales
+    from PosPeriodAgg p
+    where p.periodType = :type
+      and p.periodStart >= :from
+      and p.periodStart <= :to
+    group by p.periodStart
+    order by p.periodStart asc
+""")
+    List<AdminMonthlySalesProjection> findAdminMonthlySalesSum(
+            @Param("type") PosPeriodAgg.PosPeriodType type,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
+    public interface AdminMonthlySalesProjection {
+        LocalDate getPeriodStart();
+        BigDecimal getTotalSales();
+    }
+
+
 }

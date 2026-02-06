@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { StorageService, Attachment } from '@/lib/storage'; // Removed User from here
 import { AuthService } from '@/services/authService';
+import { BoardService } from '@/services/boardService';
 import { User } from '@/types';
 import { ArrowLeft, Save, AlertTriangle, Paperclip, X } from 'lucide-react';
 
@@ -69,27 +70,24 @@ export default function BoardWritePage() {
         setAttachments(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!title.trim() || !content.trim()) {
             alert('제목과 내용을 모두 입력해주세요.');
             return;
         }
 
-        const newNotice = {
-            id: Date.now().toString(),
+        const success = await BoardService.createPost({
             title: title,
             content: content,
-            author: currentUser.userName, // Changed from name to userName
-            date: new Date().toISOString(),
-            role: 'ADMIN' as const,
-            isImportant: isImportant,
-            viewCount: 0,
-            attachments: attachments
-        };
+            isPinned: isImportant
+        });
 
-        StorageService.saveNotice(newNotice);
-        alert('게시글이 등록되었습니다.');
-        router.push('/board');
+        if (success) {
+            alert('게시글이 등록되었습니다.');
+            router.push('/board');
+        } else {
+            alert('게시글 등록에 실패했습니다.');
+        }
     };
 
     return (

@@ -8,25 +8,14 @@ import { AuthService } from '@/services/authService';
 import { Logo } from '@/components/common/Logo';
 
 const navigation = [
-    { name: '홈', href: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'], section: 1 },
+    { name: '홈', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'], section: 1 },
     { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, roles: ['SUPERVISOR'], section: 1 },
     { name: '점포 관리', href: '/stores/my', icon: Store, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: 'QSC 관리', href: '/qsc', icon: ClipboardCheck, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: 'POS 관리', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: '위험현황', href: '/ai-insight', icon: AlertTriangle, roles: ['ADMIN'], section: 3 },
     { name: '이벤트 관리', href: '/events', icon: Calendar, roles: ['ADMIN', 'SUPERVISOR'], section: 3 },
-    { name: '조치 관리', href: '/actions', icon: Hammer, roles: ['SUPERVISOR'], section: 3 },
-    {
-        name: '조치/권한관리',
-        href: '#',
-        icon: Hammer,
-        roles: ['ADMIN'],
-        section: 3,
-        children: [
-            { name: '조치 관리', href: '/actions', roles: ['ADMIN'] },
-            { name: '권한 관리', href: '/admin/users', roles: ['ADMIN'] }
-        ]
-    },
+    { name: '조치 관리', href: '/actions', icon: Hammer, roles: ['ADMIN', 'SUPERVISOR'], section: 3 },
     { name: '게시판', href: '/board', icon: Megaphone, roles: ['ADMIN', 'SUPERVISOR'], section: 4 },
 ];
 
@@ -54,8 +43,7 @@ export function Sidebar() {
 
     // Custom Navigation for Team Leader
     const teamLeaderNav = [
-        { name: '홈', href: '/', icon: LayoutDashboard, section: 1 },
-        { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, section: 1 },
+        { name: '홈', href: '/dashboard', icon: LayoutDashboard, section: 1 },
         { name: '이벤트 관리', href: '/events', icon: Calendar, section: 3 }, // Using Calendar for Event as per mock
         { name: '조치 관리', href: '/actions', icon: Hammer, section: 3 },
         { name: '게시판', href: '/board', icon: Megaphone, section: 4 },
@@ -109,7 +97,7 @@ export function Sidebar() {
     }
 
     // State for Accordion
-    const [expandedMenus, setExpandedMenus] = useState<string[]>(['QSC 관리', '조치/권한관리']); // Default open for QSC/Action for demo
+    const [expandedMenus, setExpandedMenus] = useState<string[]>(['QSC 관리']); // Default open for QSC for demo
 
     const toggleMenu = (name: string) => {
         setExpandedMenus(prev =>

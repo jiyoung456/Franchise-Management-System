@@ -19,7 +19,7 @@ export default function PerformanceClient({ id }: { id: string }) {
     // State
     const [chartTab, setChartTab] = useState<'SALES' | 'GROWTH' | 'ORDERS'>('SALES');
     const [period, setPeriod] = useState<'WEEK' | 'MONTH'>('MONTH');
-    const [showBaseline, setShowBaseline] = useState(true);
+
     const [store, setStore] = useState<StoreDetail | null>(null);
     const [dashboardData, setDashboardData] = useState<PosKpiDashboardResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -33,16 +33,19 @@ export default function PerformanceClient({ id }: { id: string }) {
             // Check User Role
             StorageService.init();
             const user = StorageService.getCurrentUser();
-            if (user?.role === 'SUPERVISOR') {
-                setIsSv(true);
-            }
+            const svStatus = user?.role === 'SUPERVISOR';
+            setIsSv(svStatus);
 
             try {
-                const [storeInfo, posInfo] = await Promise.all([
-                    StoreService.getStore(storeId),
-                    PosService.getDashboard(Number(storeId), period)
-                ]);
+                // Use current date logic from service
+                const today = new Date().toISOString().split('T')[0];
+
+                // Fetch Store Info
+                const storeInfo = await StoreService.getStore(storeId);
                 setStore(storeInfo);
+
+                // Fetch POS KPI Data (Common API requested by user)
+                const posInfo = await PosService.getDashboard(Number(storeId), period);
                 setDashboardData(posInfo);
             } catch (error) {
                 console.error("Failed to load performance data", error);
@@ -68,12 +71,12 @@ export default function PerformanceClient({ id }: { id: string }) {
     })() : [];
 
     const metrics = dashboardData ? {
-        sales: dashboardData.summary.totalSales,
-        salesGrowth: dashboardData.summary.totalSalesRate,
-        atv: dashboardData.summary.aov,
-        atvGrowth: dashboardData.summary.aovRate,
-        orders: dashboardData.summary.totalOrders,
-        ordersGrowth: dashboardData.summary.totalOrdersRate
+        sales: dashboardData.summary?.totalSales ?? 0,
+        salesGrowth: dashboardData.summary?.totalSalesRate ?? 0,
+        atv: dashboardData.summary?.aov ?? 0,
+        atvGrowth: dashboardData.summary?.aovRate ?? 0,
+        orders: dashboardData.summary?.totalOrders ?? 0,
+        ordersGrowth: dashboardData.summary?.totalOrdersRate ?? 0
     } : {
         sales: 0, salesGrowth: 0,
         atv: 0, atvGrowth: 0,
@@ -89,7 +92,7 @@ export default function PerformanceClient({ id }: { id: string }) {
             <div className="flex flex-col md:flex-row gap-4 h-auto md:h-16 items-center">
                 {/* Store Name Box */}
                 <div className="bg-white border border-gray-200 shadow-sm flex items-center px-6 h-full min-w-[300px] rounded-lg">
-                    <h1 className="text-xl font-bold text-gray-900">점포 명 : {store.name}</h1>
+                    <h1 className="text-xl font-bold text-gray-900">점포명 : {store.name}</h1>
                 </div>
 
                 {/* Status Box */}
@@ -165,7 +168,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                     {/* Go to Detail Button */}
                     <button
                         onClick={() => router.push(`/stores/${store.id}`)}
-                        className="w-full py-4 bg-white border-2 border-gray-800 text-gray-900 rounded-lg font-bold text-lg hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2"
+                        className="w-full py-4 bg-white border border-gray-200 text-gray-900 rounded-lg font-bold text-lg hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2"
                     >
                         점포 상세 보기 <FileText className="w-5 h-5" />
                     </button>
@@ -182,12 +185,6 @@ export default function PerformanceClient({ id }: { id: string }) {
                 <div className="lg:col-span-2 bg-white border border-gray-200 shadow-sm p-6 rounded-lg flex flex-col h-[600px]">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg font-bold text-gray-900">성과 추이 그래프</h2>
-                        <button
-                            onClick={() => setShowBaseline(!showBaseline)}
-                            className={`px-3 py-1 text-xs font-bold border rounded transition-colors ${showBaseline ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-300'}`}
-                        >
-                            기준선 {showBaseline ? 'ON' : 'OFF'}
-                        </button>
                     </div>
 
                     {/* Chart Tabs */}
@@ -240,7 +237,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                                 {chartTab === 'SALES' && (
                                     <>
                                         <Area yAxisId="left" type="monotone" dataKey="sales" fill="#eff6ff" stroke="#3b82f6" strokeWidth={3} name="sales" dot={{ r: 3 }} activeDot={{ r: 6 }} />
-                                        {showBaseline && baseline?.salesBaseline && (
+                                        {baseline?.salesBaseline && (
                                             <ReferenceLine yAxisId="left" y={baseline.salesBaseline} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'right', value: '기준선', fontSize: 10, fill: '#9ca3af' }} />
                                         )}
                                     </>
@@ -250,7 +247,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                                     <>
                                         <ReferenceLine yAxisId="left" y={0} stroke="#666" />
                                         <Line yAxisId="left" type="monotone" dataKey="growth" stroke="#ef4444" strokeWidth={3} name="growth" dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                        {showBaseline && baseline?.salesWarnRate && (
+                                        {baseline?.salesWarnRate && (
                                             <ReferenceLine yAxisId="left" y={baseline.salesWarnRate} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: '경고', fontSize: 10, fill: '#ef4444' }} />
                                         )}
                                     </>
@@ -260,7 +257,7 @@ export default function PerformanceClient({ id }: { id: string }) {
                                     <>
                                         <Bar yAxisId="left" dataKey="orders" fill="#82ca9d" name="orders" barSize={30} radius={[4, 4, 0, 0]} />
                                         <Line yAxisId="right" type="monotone" dataKey="atv" stroke="#8884d8" strokeWidth={3} name="atv" dot={{ r: 3 }} />
-                                        {showBaseline && baseline?.ordersBaseline && (
+                                        {baseline?.ordersBaseline && (
                                             <ReferenceLine yAxisId="left" y={baseline.ordersBaseline} stroke="#9ca3af" strokeDasharray="3 3" label={{ position: 'right', value: '기준', fontSize: 10, fill: '#9ca3af' }} />
                                         )}
                                     </>

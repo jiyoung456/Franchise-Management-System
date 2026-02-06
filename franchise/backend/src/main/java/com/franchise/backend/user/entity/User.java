@@ -80,7 +80,7 @@ public class User {
 
     @PrePersist
     public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = com.franchise.backend.common.time.ServiceTime.nowLocal();
         this.createdAt = now;
         this.updatedAt = now;
 

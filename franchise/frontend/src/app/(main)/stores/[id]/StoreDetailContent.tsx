@@ -10,7 +10,7 @@ import { ActionService } from '@/services/actionService';
 import { notFound, useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
     MapPin, Calendar, User, FileText, Activity, AlertTriangle,
-    CheckCircle, History, ArrowRight, Settings, Bell, Siren, ClipboardList, ChevronRight
+    CheckCircle, ArrowRight, Settings, Bell, Siren, ClipboardList, ChevronRight
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -57,7 +57,7 @@ export default function StoreDetailContent() {
     const [actions, setActions] = useState<ActionItem[]>([]);
     const [qscInspections, setQscInspections] = useState<any[]>([]);
 
-    const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'history' | 'risk' | 'qsc'>(
+    const [activeTab, setActiveTab] = useState<'info' | 'events' | 'actions' | 'risk' | 'qsc'>(
         (searchParams.get('tab') as any) || 'info'
     );
     const [currentUser, setCurrentUser] = useState<UserType | null>(null);
@@ -270,8 +270,8 @@ export default function StoreDetailContent() {
                         <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={statusChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                                <YAxis domain={[0, 4]} ticks={[1, 2, 3]} tickFormatter={(val) => val === 1 ? '정상' : val === 2 ? '관찰' : '위험'} width={60} />
+                                <XAxis dataKey="date" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                                <YAxis domain={[0, 4]} ticks={[1, 2, 3]} tickFormatter={(val) => val === 1 ? '정상' : val === 2 ? '관찰' : '위험'} width={60} axisLine={false} tickLine={false} />
                                 <Tooltip labelStyle={{ color: '#333' }} />
                                 <Line type="stepAfter" dataKey="level" stroke="#2b6cb0" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                                 <ReferenceLine y={1} stroke="#22c55e" strokeDasharray="3 3" opacity={0.3} />
@@ -288,7 +288,7 @@ export default function StoreDetailContent() {
                 <div className="lg:col-span-3 bg-white border border-gray-200 shadow-sm flex flex-col min-h-[500px] rounded-lg">
                     {/* Tab Header */}
                     <div className="flex border-b border-gray-200">
-                        {['info', 'events', 'actions', 'qsc', 'history', 'risk'].map((tab) => (
+                        {['info', 'events', 'actions', 'qsc', 'risk'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
@@ -298,7 +298,6 @@ export default function StoreDetailContent() {
                                 {tab === 'events' && '최근 이벤트'}
                                 {tab === 'actions' && '조치 현황'}
                                 {tab === 'qsc' && 'QSC 점검'}
-                                {tab === 'history' && '상태변경 이력'}
                                 {tab === 'risk' && '위험 상세'}
                             </button>
                         ))}
@@ -328,17 +327,21 @@ export default function StoreDetailContent() {
                                     <Bell className="w-5 h-5 text-indigo-500" /> 최근 이벤트 (Log)
                                 </h3>
                                 <ul className="space-y-4">
-                                    {events.map((evt: any) => (
-                                        <li key={evt.eventId || evt.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-bold border ${evt.eventType === 'QSC' || evt.type === 'QSC' ? 'bg-blue-50 text-blue-600 border-blue-100' : evt.eventType === 'RISK' || evt.type === 'RISK' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-100 text-gray-600'}`}>
-                                                    {evt.eventType || evt.type || 'EVENT'}
-                                                </span>
-                                                <span className="text-xs text-gray-400">{(evt.occurredAt || evt.timestamp || '').toString().replace('T', ' ').slice(0, 16)}</span>
-                                            </div>
-                                            <p className="font-bold text-gray-900 mb-1">{evt.summary || evt.message || '이벤트 내용 없음'}</p>
-                                        </li>
-                                    ))}
+                                    {events.length > 0 ? (
+                                        events.map((evt: any) => (
+                                            <li key={evt.eventId || evt.id} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${evt.eventType === 'QSC' || evt.type === 'QSC' ? 'bg-blue-50 text-blue-600 border-blue-100' : evt.eventType === 'RISK' || evt.type === 'RISK' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-100 text-gray-600'}`}>
+                                                        {evt.eventType || evt.type || 'EVENT'}
+                                                    </span>
+                                                    <span className="text-xs text-gray-400">{(evt.occurredAt || evt.timestamp || '').toString().replace('T', ' ').slice(0, 16)}</span>
+                                                </div>
+                                                <p className="font-bold text-gray-900 mb-1">{evt.summary || evt.message || '이벤트 내용 없음'}</p>
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 text-center py-8">이벤트 이력이 없습니다.</p>
+                                    )}
                                 </ul>
                             </div>
                         )}
@@ -349,18 +352,22 @@ export default function StoreDetailContent() {
                                     <ClipboardList className="w-5 h-5 text-blue-500" /> 조치 현황
                                 </h3>
                                 <div className="space-y-4">
-                                    {actions.map((action: ActionItem) => (
-                                        <div key={action.id} className="flex justify-between items-center border border-gray-100 p-4 rounded-lg">
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`w-2 h-2 rounded-full ${action.status === 'COMPLETED' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
-                                                    <p className="font-bold text-gray-900">{action.title}</p>
+                                    {actions.length > 0 ? (
+                                        actions.map((action: ActionItem) => (
+                                            <div key={action.id} className="flex justify-between items-center border border-gray-100 p-4 rounded-lg">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className={`w-2 h-2 rounded-full ${action.status === 'COMPLETED' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
+                                                        <p className="font-bold text-gray-900">{action.title}</p>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500 pl-4">담당자: {action.assignee} | 기한: {action.dueDate}</p>
                                                 </div>
-                                                <p className="text-sm text-gray-500 pl-4">담당자: {action.assignee} | 기한: {action.dueDate}</p>
+                                                <button onClick={() => router.push(`/actions/${action.id}`)} className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50">상세</button>
                                             </div>
-                                            <button onClick={() => router.push(`/actions/${action.id}`)} className="px-3 py-1 text-sm border border-gray-200 rounded hover:bg-gray-50">상세</button>
-                                        </div>
-                                    ))}
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 text-center py-8">진행 중인 조치 사항이 없습니다.</p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -391,30 +398,18 @@ export default function StoreDetailContent() {
                             </div>
                         )}
 
-                        {activeTab === 'history' && (
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                    <History className="w-5 h-5 text-gray-500" /> 상태 변경 이력
-                                </h3>
-                                <div className="space-y-4">
-                                    {(store.statusHistory || []).map((h, i) => (
-                                        <div key={i} className="border-l-2 pl-4 border-gray-200">
-                                            <div className="font-bold">{h.newStatus}</div>
-                                            <div className="text-sm text-gray-500">{h.date} - {h.reason}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         {activeTab === 'risk' && (
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900 mb-4">위험 분석 상세</h3>
-                                <div className="bg-red-50 p-4 rounded-lg">
-                                    {riskProfile.factors.map((f, i) => (
-                                        <div key={i} className="mb-2 text-red-800">{f.label} - {f.value}</div>
-                                    ))}
-                                </div>
+                                {riskProfile.factors.length > 0 ? (
+                                    <div className="bg-red-50 p-4 rounded-lg">
+                                        {riskProfile.factors.map((f, i) => (
+                                            <div key={i} className="mb-2 text-red-800">{f.label} - {f.value}</div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">분석된 위험 요인이 없습니다.</p>
+                                )}
                             </div>
                         )}
                     </div>

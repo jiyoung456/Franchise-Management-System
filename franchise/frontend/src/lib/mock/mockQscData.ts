@@ -61,46 +61,46 @@ export const MOCK_INSPECTIONS: Inspection[] = [
 // 2. Mock Templates
 export const MOCK_TEMPLATES: QSCTemplate[] = [
     {
-        id: '1',
-        title: '2025 상반기 정기 점검',
+        templateId: '1',
+        templateName: '2025 상반기 정기 점검',
         description: '전사 정기 QSC 점검입니다.',
         version: 'Regular_250110', // Example format
-        type: '정기 점검',
+        inspectionType: '정기 점검',
         scope: '전체 매장',
-        effective_from: '2025-01-10',
-        effective_to: null,
+        effectiveFrom: '2025-01-10',
+        effectiveTo: null,
         isActive: true, // Added for UI
         createdAt: '2025-01-10',
         updatedAt: '2025-01-10',
         createdBy: '김관리',
         items: [
             // Quality (품질) - 6 items
-            { id: 'q1', categoryId: 'quality', subcategory: '원재료 관리', name: '유통기한 경과 식자재 미보관', weight: 5, inputType: 'SCORE', isRequired: true },
-            { id: 'q2', categoryId: 'quality', subcategory: '원재료 관리', name: '식자재 선입선출 준수', weight: 5, inputType: 'SCORE', isRequired: true },
-            { id: 'q3', categoryId: 'quality', subcategory: '레시피 준수', name: '메뉴 매뉴얼 준수 (레시피)', weight: 5, inputType: 'SCORE' },
-            { id: 'q4', categoryId: 'quality', subcategory: '조리완성도', name: '음식 제공 온도 적정성', weight: 5, inputType: 'SCORE' },
-            { id: 'q5', categoryId: 'quality', subcategory: '조리완성도', name: '음식 비주얼 및 플레이팅', weight: 5, inputType: 'SCORE' },
-            { id: 'q6', categoryId: 'quality', subcategory: '원재료 관리', name: '식자재 보관 상태 적정성', weight: 5, inputType: 'SCORE' },
+            { templateItemId: 'q1', categoryId: 'quality', subcategory: '원재료 관리', itemName: '유통기한 경과 식자재 미보관', weight: 5, inputType: 'SCORE', isRequired: true, sortOrder: 1 },
+            { templateItemId: 'q2', categoryId: 'quality', subcategory: '원재료 관리', itemName: '식자재 선입선출 준수', weight: 5, inputType: 'SCORE', isRequired: true, sortOrder: 2 },
+            { templateItemId: 'q3', categoryId: 'quality', subcategory: '레시피 준수', itemName: '메뉴 매뉴얼 준수 (레시피)', weight: 5, inputType: 'SCORE', sortOrder: 3 },
+            { templateItemId: 'q4', categoryId: 'quality', subcategory: '조리완성도', itemName: '음식 제공 온도 적정성', weight: 5, inputType: 'SCORE', sortOrder: 4 },
+            { templateItemId: 'q5', categoryId: 'quality', subcategory: '조리완성도', itemName: '음식 비주얼 및 플레이팅', weight: 5, inputType: 'SCORE', sortOrder: 5 },
+            { templateItemId: 'q6', categoryId: 'quality', subcategory: '원재료 관리', itemName: '식자재 보관 상태 적정성', weight: 5, inputType: 'SCORE', sortOrder: 6 },
 
             // Service (서비스) - 6 items
-            { id: 's1', categoryId: 'service', subcategory: '고객응대', name: '고객 입/퇴점 인사 철저', weight: 5, inputType: 'SCORE' },
-            { id: 's2', categoryId: 'service', subcategory: '복장 및 태도', name: '유니폼 및 명찰 패용 상태', weight: 5, inputType: 'SCORE' },
-            { id: 's3', categoryId: 'service', subcategory: '운영 정확성', name: '주문 접수 정확도', weight: 5, inputType: 'SCORE' },
-            { id: 's4', categoryId: 'service', subcategory: '고객응대', name: '고객 문의 응대 친절도', weight: 5, inputType: 'SCORE' },
-            { id: 's5', categoryId: 'service', subcategory: '운영 정확성', name: '서비스 제공 속도', weight: 5, inputType: 'SCORE' },
-            { id: 's6', categoryId: 'service', subcategory: '복장 및 태도', name: '직원 위생 상태 (손 청결 등)', weight: 5, inputType: 'SCORE' },
+            { templateItemId: 's1', categoryId: 'service', subcategory: '고객응대', itemName: '고객 입/퇴점 인사 철저', weight: 5, inputType: 'SCORE', sortOrder: 7 },
+            { templateItemId: 's2', categoryId: 'service', subcategory: '복장 및 태도', itemName: '유니폼 및 명찰 패용 상태', weight: 5, inputType: 'SCORE', sortOrder: 8 },
+            { templateItemId: 's3', categoryId: 'service', subcategory: '운영 정확성', itemName: '주문 접수 정확도', weight: 5, inputType: 'SCORE', sortOrder: 9 },
+            { templateItemId: 's4', categoryId: 'service', subcategory: '고객응대', itemName: '고객 문의 응대 친절도', weight: 5, inputType: 'SCORE', sortOrder: 10 },
+            { templateItemId: 's5', categoryId: 'service', subcategory: '운영 정확성', itemName: '서비스 제공 속도', weight: 5, inputType: 'SCORE', sortOrder: 11 },
+            { templateItemId: 's6', categoryId: 'service', subcategory: '복장 및 태도', itemName: '직원 위생 상태 (손 청결 등)', weight: 5, inputType: 'SCORE', sortOrder: 12 },
 
             // Hygiene (청결/위생) - 6 items
-            { id: 'h1', categoryId: 'hygiene', subcategory: '주방위생', name: '주방 바닥 및 배수구 청결', weight: 5, inputType: 'SCORE' },
-            { id: 'h2', categoryId: 'hygiene', subcategory: '개인위생', name: '근무자 보건증 유효성', weight: 5, inputType: 'SCORE', isRequired: true },
-            { id: 'h3', categoryId: 'hygiene', subcategory: '냉장냉동', name: '냉장고/냉동고 온도 적정성', weight: 5, inputType: 'SCORE' },
-            { id: 'h4', categoryId: 'hygiene', subcategory: '주방위생', name: '조리도구 및 기구 청결', weight: 5, inputType: 'SCORE' },
-            { id: 'h5', categoryId: 'hygiene', subcategory: '매장위생', name: '홀 및 테이블 청결 상태', weight: 5, inputType: 'SCORE' },
-            { id: 'h6', categoryId: 'hygiene', subcategory: '매장위생', name: '화장실 청결 및 관리 상태', weight: 5, inputType: 'SCORE' },
+            { templateItemId: 'h1', categoryId: 'hygiene', subcategory: '주방위생', itemName: '주방 바닥 및 배수구 청결', weight: 5, inputType: 'SCORE', sortOrder: 13 },
+            { templateItemId: 'h2', categoryId: 'hygiene', subcategory: '개인위생', itemName: '근무자 보건증 유효성', weight: 5, inputType: 'SCORE', isRequired: true, sortOrder: 14 },
+            { templateItemId: 'h3', categoryId: 'hygiene', subcategory: '냉장냉동', itemName: '냉장고/냉동고 온도 적정성', weight: 5, inputType: 'SCORE', sortOrder: 15 },
+            { templateItemId: 'h4', categoryId: 'hygiene', subcategory: '주방위생', itemName: '조리도구 및 기구 청결', weight: 5, inputType: 'SCORE', sortOrder: 16 },
+            { templateItemId: 'h5', categoryId: 'hygiene', subcategory: '매장위생', itemName: '홀 및 테이블 청결 상태', weight: 5, inputType: 'SCORE', sortOrder: 17 },
+            { templateItemId: 'h6', categoryId: 'hygiene', subcategory: '매장위생', itemName: '화장실 청결 및 관리 상태', weight: 5, inputType: 'SCORE', sortOrder: 18 },
 
             // Safety (안전) - 2 items
-            { id: 'sf1', categoryId: 'safety', subcategory: '화재/비상', name: '소화기 비치 및 점검 상태', weight: 5, inputType: 'SCORE', isRequired: true },
-            { id: 'sf2', categoryId: 'safety', subcategory: '화재/비상', name: '비상구 확보 및 안내 표지', weight: 5, inputType: 'SCORE' },
+            { templateItemId: 'sf1', categoryId: 'safety', subcategory: '화재/비상', itemName: '소화기 비치 및 점검 상태', weight: 5, inputType: 'SCORE', isRequired: true, sortOrder: 19 },
+            { templateItemId: 'sf2', categoryId: 'safety', subcategory: '화재/비상', itemName: '비상구 확보 및 안내 표지', weight: 5, inputType: 'SCORE', sortOrder: 20 },
         ]
     }
 ];
@@ -122,9 +122,9 @@ export const getMockInspectionDetails = (inspectionId: string) => {
             answers: MOCK_TEMPLATES[0].items.reduce((acc, item) => {
                 // Determine mock score
                 let score = 5;
-                if (item.id === 's1') score = 3; // Mock lower score for Service
+                if (item.templateItemId === 's1') score = 3; // Mock lower score for Service
 
-                acc[item.id] = {
+                acc[item.templateItemId as string] = {
                     score: score,
                     comment: score < 5 ? '활기찬 목소리로 인사 필요' : undefined,
                     photoUrl: score < 5 ? '/mock/service_issue.jpg' : undefined
@@ -139,7 +139,7 @@ export const getMockInspectionDetails = (inspectionId: string) => {
         overallComment: "특이사항 없음.",
         overallPhotos: [],
         answers: MOCK_TEMPLATES[0].items.reduce((acc, item) => {
-            acc[item.id] = { score: 5 };
+            acc[item.templateItemId as string] = { score: 5 };
             return acc;
         }, {} as Record<string, any>)
     };

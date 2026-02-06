@@ -1,5 +1,6 @@
 package com.franchise.backend.event.entity;
 
+import com.franchise.backend.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -58,4 +59,61 @@ public class EventLog {
 
     @Column(name = "last_notified_at")
     private OffsetDateTime lastNotifiedAt; // nullable
+
+    public void accumulate(OffsetDateTime occurredAt) {
+        this.lastOccurrenceAt = occurredAt;
+        this.occurrenceCount = (this.occurrenceCount == null ? 1 : this.occurrenceCount + 1);
+    }
+
+    public void accumulateOccurrence(OffsetDateTime occurredAt) {
+        this.lastOccurrenceAt = occurredAt;
+        this.occurrenceCount = (this.occurrenceCount == null ? 1 : this.occurrenceCount + 1);
+    }
+
+    public static EventLog create(
+            Long ruleId,
+            Long storeId,
+            Long assignedToUserId,     // nullable
+            String eventType,
+            String severity,           // INFO/WARNING/CRITICAL
+            String summary,
+            String relatedEntityType,  // nullable
+            Long relatedEntityId,      // nullable
+            OffsetDateTime occurredAt
+    ) {
+        EventLog e = new EventLog();
+
+        e.ruleId = ruleId;
+        e.storeId = storeId;
+        e.assignedToUserId = assignedToUserId;
+
+        e.eventType = eventType;
+        e.severity = severity;
+        e.summary = summary;
+
+        e.relatedEntityType = relatedEntityType;
+        e.relatedEntityId = relatedEntityId;
+
+        // ✅ 신규는 OPEN 고정
+        e.status = "OPEN";
+
+        // 발생 시각
+        e.occurredAt = occurredAt;
+
+        // Dedup 누적용 초기값
+        e.firstOccurredAt = occurredAt;
+        e.lastOccurrenceAt = occurredAt;
+        e.occurrenceCount = 1;
+
+        // 알림 발송시각은 "알림 보낼 때" 업데이트하므로 null로 시작
+        e.lastNotifiedAt = null;
+
+        return e;
+    }
+
+
+
+
+
+
 }

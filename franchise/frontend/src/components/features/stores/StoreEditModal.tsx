@@ -44,6 +44,7 @@ export function StoreEditModal({ isOpen, onClose, store, onSave }: StoreEditModa
         try {
             const updated = await StoreService.updateStore(store.id, formData);
             if (updated) {
+                alert('점포 정보가 수정되었습니다.');
                 onSave(updated);
             } else {
                 alert('저장 실패: 데이터를 불러올 수 없습니다.');

@@ -4,6 +4,8 @@ import com.franchise.backend.notification.dto.NotificationCountResponse;
 import com.franchise.backend.notification.dto.NotificationResponse;
 import com.franchise.backend.notification.entity.Notification;
 import com.franchise.backend.notification.repository.NotificationRepository;
+import com.franchise.backend.user.entity.User;
+import com.franchise.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,9 +18,11 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
-    public NotificationService(NotificationRepository notificationRepository) {
+    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
         this.notificationRepository = notificationRepository;
+        this.userRepository = userRepository;
     }
 
     // 알림 목록 (삭제 X, 읽음/안읽음 모두 내려줌)
@@ -28,10 +32,11 @@ public class NotificationService {
         LocalDate today = LocalDate.now();
         LocalDateTime start = today.atStartOfDay();          // 오늘 00:00:00
         LocalDateTime end = today.plusDays(1).atStartOfDay();// 내일 00:00:00
+        User user = getUser(userId);
 
         List<Notification> notifications =
-                notificationRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
-                        userId, start, end
+                notificationRepository.findByUserAndCreatedAtBetweenOrderByCreatedAtDesc(
+                        user, start, end
                 );
 
         return notifications.stream()
@@ -49,7 +54,8 @@ public class NotificationService {
     // 안 읽은 알림 개수 (종 아이콘 배지)
     @Transactional(readOnly = true)
     public NotificationCountResponse getUnreadCount(Long userId) {
-        long unread = notificationRepository.countByUserIdAndIsReadFalse(userId);
+        User user = getUser(userId);
+        long unread = notificationRepository.countByUserAndIsReadFalse(user);
         return new NotificationCountResponse(unread);
     }
 
@@ -57,7 +63,9 @@ public class NotificationService {
     @Transactional
     public void markAsRead(Long userId, Long notificationId) {
 
-        Notification n = notificationRepository.findByIdAndUserId(notificationId, userId)
+        User user = getUser(userId);
+
+        Notification n = notificationRepository.findByIdAndUser(notificationId, user)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "알림이 존재하지 않거나 권한이 없습니다. notificationId=" + notificationId
                 ));
@@ -68,5 +76,13 @@ public class NotificationService {
         }
 
         n.markAsRead();
+    }
+
+    // ===================== 내부 유틸 =====================
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("user not found. userId=" + userId)
+                );
     }
 }

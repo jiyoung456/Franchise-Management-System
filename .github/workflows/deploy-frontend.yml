@@ -1,0 +1,38 @@
+name: Deploy Frontend (EC2)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "franchise/frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.FRONTEND_EC2_HOST }}
+          username: ${{ secrets.FRONTEND_EC2_USER }}
+          key: ${{ secrets.FRONTEND_EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "==> Move to repo"
+            cd ~/Franchise-Management-System/franchise/frontend
+
+            echo "==> Pull latest main"
+            git fetch --all
+            git reset --hard origin/main
+
+            echo "==> Build & run containers"
+            docker compose -f docker-compose.frontend.yml up -d --build
+
+            echo "==> Show running containers"
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"

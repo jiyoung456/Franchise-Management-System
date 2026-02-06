@@ -18,9 +18,8 @@ public class PosKpiController {
     public ApiResponse<PosKpiDashboardResponse> kpi(
             @PathVariable Long storeId,
             @RequestParam(defaultValue = "WEEK") String periodType,
-            @RequestParam(defaultValue = "12") int limit,
-            @RequestParam(defaultValue = "true") boolean baseline
+            @RequestParam(defaultValue = "12") int limit
     ) {
-        return ApiResponse.ok(posKpiService.getDashboard(storeId, periodType, limit, baseline));
+        return ApiResponse.ok(posKpiService.getDashboard(storeId, periodType, limit));
     }
 }

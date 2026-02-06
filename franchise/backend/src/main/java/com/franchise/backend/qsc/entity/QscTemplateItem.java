@@ -42,15 +42,26 @@ public class QscTemplateItem {
 
     @PrePersist
     public void prePersist() {
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = com.franchise.backend.common.time.ServiceTime.nowOffset();
         this.createdAt = now;
         this.updatedAt = now;
     }
 
     @PreUpdate
     public void preUpdate() {
-        this.updatedAt = OffsetDateTime.now();
+        this.updatedAt = com.franchise.backend.common.time.ServiceTime.nowOffset();
     }
+    // QscTemplate 생성 및 수정
+    public static QscTemplateItem create(QscTemplate template, QscTemplateCategory category, String itemName, Boolean isRequired, Integer sortOrder) {
+        QscTemplateItem i = new QscTemplateItem();
+        i.template = template;
+        i.category = category;
+        i.itemName = itemName;
+        i.isRequired = (isRequired == null ? true : isRequired);
+        i.sortOrder = sortOrder;
+        return i;
+    }
+
 
 
 }

@@ -1,0 +1,76 @@
+package com.franchise.backend.briefing.entity;
+
+import com.franchise.backend.briefing.dto.*;
+import com.franchise.backend.user.entity.Role;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Entity
+@Table(name = "agent_briefings")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class AgentBriefings {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "briefing_id")
+    private Long briefingId;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audience_role", nullable = false)
+    private Role audienceRole;
+
+    @Column(name = "target_date", nullable = false)
+    private LocalDate targetDate;
+
+    @Column(name = "generate_at")
+    private LocalDateTime generateAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "top_store_json", columnDefinition = "jsonb")
+    private TopStoreJsonDto topStoreJson;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "focus_point_json", columnDefinition = "jsonb")
+    private List<FocusPointJsonDto> focusPointJson;
+
+    @Column(name = "summary_text", columnDefinition = "text")
+    private String summaryText;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "focus_point_json_checked", columnDefinition = "jsonb")
+    private List<FocusPointJsonCheckedDto> focusPointJsonChecked;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    public AgentBriefings(
+            BriefingRequest request,
+            BriefingResponse response
+    ) {
+        this.userId = request.getUserInfoDto().getUserId();
+        this.audienceRole = request.getUserInfoDto().getRole();
+        this.targetDate = LocalDate.now();
+        this.generateAt = response.getGenerateAt();
+        this.topStoreJson = response.getTopStoreJson();
+        this.focusPointJson = response.getFocusPointJson();
+        this.focusPointJsonChecked = response.getFocusPointJsonChecked();
+        this.summaryText = response.getSummaryText();
+        this.createdAt = LocalDateTime.now();
+    }
+
+}
+

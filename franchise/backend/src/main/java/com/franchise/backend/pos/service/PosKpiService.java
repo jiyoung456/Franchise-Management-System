@@ -20,7 +20,9 @@ public class PosKpiService {
     private final PosKpiQueryRepository posKpiQueryRepository;
 
     @Transactional(readOnly = true)
-    public PosKpiDashboardResponse getDashboard(Long storeId, String periodTypeRaw, int limit, boolean baselineOn) {
+    public PosKpiDashboardResponse getDashboard(Long storeId, String periodTypeRaw, int limit) {
+
+        LocalDate asOf = LocalDate.of(2025, 8, 25);
 
         String periodType = normalizePeriodType(periodTypeRaw);
         int safeLimit = Math.max(2, Math.min(limit, 24)); // 최소 2개는 있어야 증감률 계산 의미 있음
@@ -67,13 +69,12 @@ public class PosKpiService {
         // 3) 카드: “최근 기간” = 마지막 포인트
         PosKpiDashboardResponse.SummaryCard summaryCard = buildSummaryCard(rows);
 
-        // 4) 상태 요약(간단 규칙)
-        PosKpiDashboardResponse.StatusSummary statusSummary = buildStatusSummary(salesChangeTrend, baselineOn ? fetchSalesWarnRate(storeId, periodType) : null);
+        // 4) 상태 요약(추이 기반 간단 규칙) - baseline 제거
+        PosKpiDashboardResponse.StatusSummary statusSummary = buildStatusSummary(salesChangeTrend);
 
-        // 5) 기준선
-        PosKpiDashboardResponse.Baseline baseline = baselineOn ? fetchBaseline(storeId, periodType) : null;
-
+        // 5) baseline 제거한 생성자 호출 (DTO도 baseline 필드 제거 필요)
         return new PosKpiDashboardResponse(
+                asOf.toString(),
                 store.getId(),
                 store.getStoreName(),
                 (store.getCurrentState() != null ? store.getCurrentState().name() : null),
@@ -82,8 +83,7 @@ public class PosKpiService {
                 statusSummary,
                 salesTrend,
                 salesChangeTrend,
-                ordersAndAovTrend,
-                baseline
+                ordersAndAovTrend
         );
     }
 
@@ -124,8 +124,7 @@ public class PosKpiService {
     }
 
     private PosKpiDashboardResponse.StatusSummary buildStatusSummary(
-            List<PosKpiDashboardResponse.RatePoint> salesChangeTrend,
-            Double warnRatePct // -10.0 같은 값
+            List<PosKpiDashboardResponse.RatePoint> salesChangeTrend
     ) {
         // 최근 2개가 연속 음수면 "연속 2기간 하락"
         int n = salesChangeTrend.size();
@@ -141,22 +140,10 @@ public class PosKpiService {
         Double prev = salesChangeTrend.get(n - 2).getValue();
 
         if (last != null && prev != null && last < 0 && prev < 0) {
-
-            // 기준선 경고 임계치가 있으면 그 기준도 함께 표현
-            String detail;
-            String level = "WARN";
-
-            if (warnRatePct != null && last <= warnRatePct) {
-                level = "ALERT";
-                detail = String.format("기준선 대비 매출이 %.1f%% 이상 하락하여 경고 상태입니다. (최근 2기간 연속 하락)", Math.abs(warnRatePct));
-            } else {
-                detail = "최근 2기간 연속 하락세가 관측됩니다. 매출/주문/객단가 변화를 함께 점검하세요.";
-            }
-
             return new PosKpiDashboardResponse.StatusSummary(
                     "최근 연속 2기간 하락세",
-                    detail,
-                    level
+                    "최근 2기간 연속 하락세가 관측됩니다. 매출/주문/객단가 변화를 함께 점검하세요.",
+                    "WARN"
             );
         }
 
@@ -165,43 +152,6 @@ public class PosKpiService {
                 "최근 기간의 매출 변동이 기준 범위 내에서 움직이고 있습니다.",
                 "INFO"
         );
-    }
-
-    private PosKpiDashboardResponse.Baseline fetchBaseline(Long storeId, String periodType) {
-
-        // metric 값이 ERD와 다르면 여기만 바꾸면 됨
-        Long salesBaseline = toLongBaseline(storeId, periodType, "SALES");
-        Long ordersBaseline = toLongBaseline(storeId, periodType, "ORDER_COUNT");
-        Long aovBaseline = toLongBaseline(storeId, periodType, "AOV");
-
-        Double salesWarnRate = fetchSalesWarnRate(storeId, periodType);
-
-        return new PosKpiDashboardResponse.Baseline(
-                salesBaseline,
-                ordersBaseline,
-                aovBaseline,
-                salesWarnRate
-        );
-    }
-
-    private Double fetchSalesWarnRate(Long storeId, String periodType) {
-        // threshold_rate는 예: 0.10(=10%) 또는 -0.10 형태로 저장 가능
-        List<Object[]> r = posKpiQueryRepository.findBaseline(storeId, periodType, "SALES");
-        if (r.isEmpty()) return -10.0; // 없으면 기본 -10%를 UI 경고선으로
-        BigDecimal threshold = bd(r.get(0)[1]);
-
-        // 보통 "이하 하락" 기준이면 -10%로 쓰는 게 편함
-        // threshold가 0.10이면 -10으로 변환
-        double t = threshold.doubleValue();
-        if (t > 0) t = -t;
-        return t * 100.0;
-    }
-
-    private Long toLongBaseline(Long storeId, String periodType, String metric) {
-        List<Object[]> r = posKpiQueryRepository.findBaseline(storeId, periodType, metric);
-        if (r.isEmpty()) return null;
-        BigDecimal v = bd(r.get(0)[0]);
-        return v.longValue();
     }
 
     private String normalizePeriodType(String raw) {
@@ -214,7 +164,6 @@ public class PosKpiService {
     private String makeLabel(String periodType, int idx, LocalDate periodStart) {
         // 프론트 스샷처럼 "1주~12주" 형태로 주는 게 가장 안전
         if (periodType.equals("MONTH")) {
-            // "3월"처럼 보여주고 싶으면 아래로 변경해도 됨: periodStart.getMonthValue()+"월"
             return idx + "월";
         }
         return idx + "주";

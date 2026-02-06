@@ -30,7 +30,7 @@ export default function BriefingWidget({ data, userName }: BriefingWidgetProps) 
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col h-full">
                     <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 mb-4 pb-2 border-b border-gray-100">
                         <CheckCircle2 className="w-5 h-5 text-blue-600" />
-                        Checklist
+                        체크리스트 (Checklist)
                         <span className="text-xs bg-red-100 text-red-600 px-2.5 py-1 rounded-full font-bold ml-auto">
                             미완료 {todos.filter(t => !t.isCompleted).length}건
                         </span>
@@ -67,7 +67,7 @@ export default function BriefingWidget({ data, userName }: BriefingWidgetProps) 
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col h-full">
                     <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 mb-4 pb-2 border-b border-gray-100">
                         <FileText className="w-5 h-5 text-purple-600" />
-                        Summary
+                        운영 요약 (Summary)
                     </h3>
                     <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 flex-1 flex flex-col justify-center">
                         <div className="flex items-start gap-4 mb-4">
@@ -101,55 +101,6 @@ export default function BriefingWidget({ data, userName }: BriefingWidgetProps) 
                 </div>
             </div>
 
-            {/* 3. Priority Stores (Bottom) */}
-            <div className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">확인이 필요한 점포</h3>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase font-bold">
-                            <tr>
-                                <th className="px-6 py-4">점포명</th>
-                                <th className="px-6 py-4">이유</th>
-                                <th className="px-6 py-4 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {data.priorityStores.map((store, idx) => (
-                                <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                                    <td className="px-6 py-4 font-bold text-gray-900 text-base">
-                                        <Link href={`/stores/${store.storeId}`} className="hover:text-blue-600 hover:underline decoration-2 underline-offset-2">
-                                            {store.storeName}
-                                        </Link>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            {store.riskScore && store.riskScore >= 80 ? (
-                                                <span className="bg-red-50 text-red-600 px-2.5 py-1 rounded-lg text-xs font-bold border border-red-100">위험</span>
-                                            ) : (
-                                                <span className="bg-orange-50 text-orange-600 px-2.5 py-1 rounded-lg text-xs font-bold border border-orange-100">주의</span>
-                                            )}
-                                            <span className="text-gray-700 font-medium text-sm">{store.reason}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Link
-                                            href={store.eventId ? `/events/${store.eventId}` : `/stores/${store.storeId}`}
-                                            className="inline-flex items-center justify-center px-4 py-2 text-sm font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all border border-blue-100"
-                                        >
-                                            확인하기 <ArrowRight className="w-4 h-4 ml-1" />
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))}
-                            {data.priorityStores.length === 0 && (
-                                <tr><td colSpan={3} className="p-8 text-center text-gray-500">확인이 필요한 점포가 없습니다.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     );
 }

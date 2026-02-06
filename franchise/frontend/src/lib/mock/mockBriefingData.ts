@@ -1,7 +1,7 @@
 import { DailyBriefing } from '@/types';
 
 export const MOCK_BRIEFING: DailyBriefing = {
-    date: new Date().toISOString().split('T')[0],
+    date: '2025-09-01',
     summary: "오늘 강남권역의 리스크 점수가 전일 대비 15% 상승했습니다. 특히 '강남역점'의 위생 등급 하락 리스크가 감지되어 긴급 점검이 필요합니다. 2건의 템플릿 승인 요청이 대기 중입니다.",
     todoList: [
         { id: '1', text: '강남역점 긴급 위생 점검', isCompleted: false, type: 'CHECK', priority: 'HIGH' },

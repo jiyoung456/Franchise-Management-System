@@ -19,7 +19,7 @@ interface StoreKPICardProps {
 export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded = false }: StoreKPICardProps) {
     const router = useRouter();
     const [filter, setFilter] = useState<'WEEK' | 'MONTH'>('WEEK');
-    const [showBaseline, setShowBaseline] = useState(true);
+
     const [activeChartTab, setActiveChartTab] = useState<'SALES' | 'GROWTH' | 'ORDERS'>('SALES');
     const [dashboardData, setDashboardData] = useState<PosKpiDashboardResponse | null>(null);
     const [loading, setLoading] = useState(false);
@@ -53,11 +53,11 @@ export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded
     // Metrics Fallback (if loading or error)
     const metrics = dashboardData ? {
         sales: dashboardData.summary.totalSales,
-        salesGrowth: dashboardData.summary.totalSalesRate,
+        salesGrowth: dashboardData.summary.totalSalesRate ?? 0,
         atv: dashboardData.summary.aov,
-        atvGrowth: dashboardData.summary.aovRate,
+        atvGrowth: dashboardData.summary.aovRate ?? 0,
         orders: dashboardData.summary.totalOrders,
-        ordersGrowth: dashboardData.summary.totalOrdersRate
+        ordersGrowth: dashboardData.summary.totalOrdersRate ?? 0
     } : {
         sales: 0, salesGrowth: 0,
         atv: 0, atvGrowth: 0,
@@ -226,21 +226,7 @@ export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded
                             {activeChartTab === 'ORDERS' && '주문 건수 및 객단가 변화'}
                         </span>
 
-                        <label className="flex items-center cursor-pointer gap-3 select-none group">
-                            <span className={`text-sm font-medium transition-colors ${showBaseline ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}`}>
-                                기준선 보기
-                            </span>
-                            <div className="relative">
-                                <input
-                                    type="checkbox"
-                                    className="sr-only"
-                                    checked={showBaseline}
-                                    onChange={() => setShowBaseline(!showBaseline)}
-                                />
-                                <div className={`w-12 h-7 rounded-full transition-colors border-2 ${showBaseline ? 'bg-blue-600 border-blue-600' : 'bg-gray-200 border-gray-200'}`} />
-                                <div className={`absolute top-1 left-1 bg-white w-5 h-5 rounded-full shadow-sm transition-transform duration-200 transform ${showBaseline ? 'translate-x-5' : 'translate-x-0'}`} />
-                            </div>
-                        </label>
+
                     </div>
 
                     {/* Chart Area */}
@@ -270,7 +256,7 @@ export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded
                                                     <stop offset="95%" stopColor="#46B3E6" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            {showBaseline && baseline?.salesBaseline && (
+                                            {baseline?.salesBaseline && (
                                                 <ReferenceLine y={baseline.salesBaseline} stroke="#999" strokeDasharray="3 3" label={{ position: 'right', value: '기준선', fontSize: 10, fill: '#999' }} />
                                             )}
                                         </>
@@ -281,7 +267,7 @@ export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded
                                             <YAxis tickFormatter={(val) => `${val}% `} axisLine={false} tickLine={false} fontSize={12} />
                                             <ReferenceLine y={0} stroke="#666" />
                                             <Line type="monotone" dataKey="growth" stroke="#ff7300" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                                            {showBaseline && baseline?.salesWarnRate && (
+                                            {baseline?.salesWarnRate && (
                                                 <ReferenceLine y={baseline.salesWarnRate} stroke="#ff0000" strokeDasharray="3 3" label={{ position: 'right', value: '경고 기준', fontSize: 10, fill: '#f00' }} />
                                             )}
                                         </>
@@ -293,7 +279,7 @@ export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded
                                             <YAxis yAxisId="right" orientation="right" tickFormatter={(val) => `${val / 10000} 만`} axisLine={false} tickLine={false} fontSize={12} />
                                             <Bar yAxisId="left" dataKey="orders" fill="#82ca9d" radius={[4, 4, 0, 0]} barSize={30} name="orders" />
                                             <Line yAxisId="right" type="monotone" dataKey="atv" stroke="#8884d8" strokeWidth={3} name="atv" />
-                                            {showBaseline && baseline?.ordersBaseline && (
+                                            {baseline?.ordersBaseline && (
                                                 <ReferenceLine yAxisId="left" y={baseline.ordersBaseline} stroke="#999" strokeDasharray="3 3" label="기준 주문수" />
                                             )}
                                         </>

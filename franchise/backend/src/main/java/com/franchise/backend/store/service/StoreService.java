@@ -12,6 +12,7 @@ import com.franchise.backend.store.entity.StoreState;
 import com.franchise.backend.store.repository.StoreRepository;
 import com.franchise.backend.user.entity.User;
 import com.franchise.backend.user.repository.UserRepository;
+import com.franchise.backend.user.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.franchise.backend.store.entity.ContractType;
+import com.franchise.backend.store.entity.TradeAreaType;
+import com.franchise.backend.store.dto.StoreCreateRequest;
+import com.franchise.backend.store.entity.ContractType;
+import com.franchise.backend.store.entity.TradeAreaType;
+import com.franchise.backend.user.entity.User;
+
 
 @Service
 @RequiredArgsConstructor
@@ -295,5 +303,105 @@ public class StoreService {
         public Comparator<StoreListResponse> getComparator() {
             return comparator;
         }
+    }
+
+
+    //스토어 생성
+    @Transactional
+    public StoreDetailResponse createStore(
+            UserPrincipal principal,
+            StoreCreateRequest request
+    ) {
+        if (principal == null) {
+            throw new IllegalArgumentException("로그인이 필요합니다.");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("요청값이 비어있습니다.");
+        }
+
+        // ===== 생성자 (현재 로그인 사용자) =====
+        User createdBy = userRepository.findById(principal.getUserId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("로그인 사용자 정보를 찾을 수 없습니다.")
+                );
+
+        // ===== 담당 SV (loginId 기준) =====
+        String supervisorLoginId = request.getSupervisorLoginId();
+        if (supervisorLoginId == null || supervisorLoginId.isBlank()) {
+            throw new IllegalArgumentException("supervisorLoginId는 필수입니다.");
+        }
+
+        User supervisor = userRepository.findByLoginId(supervisorLoginId.trim())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "해당 loginId의 사용자가 없습니다. supervisorLoginId=" + supervisorLoginId
+                        )
+                );
+
+        // ===== 필수값 정리 =====
+        String storeName = trim(request.getStoreName());
+        String regionCode = trim(request.getRegionCode());
+        String address = trim(request.getAddress());
+        String tradeAreaType = upper(trim(request.getTradeAreaType()));
+        String contractType = upper(trim(request.getContractType()));
+
+        if (isBlank(storeName)) throw new IllegalArgumentException("storeName은 필수입니다.");
+        if (isBlank(regionCode)) throw new IllegalArgumentException("regionCode는 필수입니다.");
+        if (isBlank(address)) throw new IllegalArgumentException("address는 필수입니다.");
+        if (isBlank(tradeAreaType)) throw new IllegalArgumentException("tradeAreaType은 필수입니다.");
+        if (isBlank(contractType)) throw new IllegalArgumentException("contractType은 필수입니다.");
+        if (request.getOpenPlannedAt() == null)
+            throw new IllegalArgumentException("openPlannedAt은 필수입니다.");
+
+        // ===== enum 허용값 검증 =====
+        try {
+            TradeAreaType.valueOf(tradeAreaType);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("tradeAreaType 값이 올바르지 않습니다.");
+        }
+
+        try {
+            ContractType.valueOf(contractType);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("contractType 값이 올바르지 않습니다.");
+        }
+
+        // ===== 생성 =====
+        LocalDateTime now = LocalDateTime.now();
+
+        Store store = Store.create(
+                supervisor,
+                createdBy,
+                storeName,
+                address,
+                regionCode,
+                tradeAreaType,
+                request.getOpenPlannedAt(),
+
+                request.getOwnerName(),
+                request.getOwnerPhone(),
+
+                contractType,
+                request.getContractEndDate(),
+                now
+        );
+
+        storeRepository.save(store);
+
+        // ===== 기존 상세 응답 재사용 =====
+        return getStoreDetail(store.getId());
+    }
+
+    // ===== private util =====
+    private String trim(String v) {
+        return v == null ? null : v.trim();
+    }
+
+    private String upper(String v) {
+        return v == null ? null : v.toUpperCase();
+    }
+
+    private boolean isBlank(String v) {
+        return v == null || v.isBlank();
     }
 }

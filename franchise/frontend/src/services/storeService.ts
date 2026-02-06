@@ -8,28 +8,46 @@ import {
 
 // [권역 코드 매핑 로직]
 // 백엔드에서 넘어오는 region_code 앞자리를 보고 한글명으로 변환
-const getRegionName = (code: string): string => {
+export const getRegionName = (code: string): string => {
     if (!code) return '';
     const upperCode = code.toUpperCase();
 
-    if (upperCode.startsWith('SEOUL')) return '서울';
-    if (upperCode.startsWith('GYEONGGI') || upperCode.startsWith('GYEONGGL')) return '경기'; // 오타 대응
-    if (upperCode.startsWith('INCHEON')) return '인천';
-    if (upperCode.startsWith('CHUNGNAM')) return '충남';
-    if (upperCode.startsWith('CHUNGBUK')) return '충북';
-    if (upperCode.startsWith('GANGWON')) return '강원';
-    if (upperCode.startsWith('SEJONG')) return '세종';
-    if (upperCode.startsWith('BUSAN')) return '부산';
-    if (upperCode.startsWith('DAEGU')) return '대구';
-    if (upperCode.startsWith('ULSAN')) return '울산';
-    if (upperCode.startsWith('GWANGJU')) return '광주';
-    if (upperCode.startsWith('JEONNAM')) return '전남';
-    if (upperCode.startsWith('JEONBUK')) return '전북';
-    if (upperCode.startsWith('JEJU')) return '제주';
-    if (upperCode.startsWith('GYEONGNAM')) return '경남';
-    if (upperCode.startsWith('GYEONGBUK')) return '경북';
+    if (upperCode.startsWith('SEOUL') || upperCode.startsWith('GYEONGGI') || upperCode.startsWith('INCHEON') || upperCode.startsWith('GYEONGGL')) {
+        return '서울/경기';
+    }
+    if (upperCode.startsWith('BUSAN') || upperCode.startsWith('ULSAN') || upperCode.startsWith('GYEONGNAM')) {
+        return '부산/경남';
+    }
+    if (upperCode.startsWith('DAEGU') || upperCode.startsWith('GYEONGBUK') || upperCode.startsWith('대구') || upperCode.startsWith('경북')) {
+        return '대구/경북';
+    }
+    if (upperCode.startsWith('DAEJEON') || upperCode.startsWith('CHUNG') || upperCode.startsWith('GANGWON') || upperCode.startsWith('SEJONG') || upperCode.startsWith('대전') || upperCode.startsWith('충청') || upperCode.startsWith('강원')) {
+        return '대전/충청';
+    }
+    if (upperCode.startsWith('GWANGJU') || upperCode.startsWith('JEONLA') || upperCode.startsWith('JEOLLA') || upperCode.startsWith('JEON') || upperCode.startsWith('광주') || upperCode.startsWith('전라')) {
+        return '광주/전라';
+    }
+    if (upperCode.startsWith('JEJU') || upperCode.startsWith('제주')) {
+        return '제주';
+    }
 
     return code; // 매칭 안되면 원본 코드 반환
+};
+
+// 프론트엔드 한글 지역명 -> 백엔드용 코드 변환
+export const getBackendRegionCode = (name: string): string => {
+    switch (name) {
+        case '서울/경기': return 'SEOUL_GYEONGGI';
+        case '부산/경남': return 'BUSAN_GYEONGNAM';
+        case '대구/경북':
+        case '대구/울산/경북': return 'DAEGU_ULSAN_GYEONGBUK';
+        case '대전/충청':
+        case '강원/충청': return 'GANGWON_CHUNGCHEONG';
+        case '광주/전라':
+        case '전라/광주': return 'JEONLA_GWANGJU';
+        case '제주': return 'JEJU';
+        default: return name;
+    }
 };
 
 // 백엔드 데이터 -> 프론트엔드 모델 변환
@@ -149,12 +167,41 @@ export const StoreService = {
         }
     },
 
-    addStore: async (data: any): Promise<boolean> => {
+    addStore: async (formData: any): Promise<boolean> => {
         try {
+            // Map frontend formData to backend StoreCreateRequest format
+            const data = {
+                storeName: formData.name,
+                regionCode: getBackendRegionCode(formData.regionCode),
+                address: formData.address,
+                tradeAreaType: formData.tradeAreaType,
+                // Format date as ISO with time (e.g., 2026-02-03T00:00:00)
+                openPlannedAt: formData.openedAt ? `${formData.openedAt}T00:00:00` : null,
+                ownerName: formData.ownerName,
+                ownerPhone: formData.ownerPhone,
+                supervisorLoginId: formData.currentSupervisorId,
+                contractType: formData.contractType,
+                contractEndDate: formData.contractEndAt || null
+            };
+
+            // api instance handles JWT (Bearer token) via interceptors (using 'accessToken' key)
             await api.post('/stores', data);
             return true;
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Failed to add store:', error?.response?.data || error.message);
             return false;
         }
     },
+
+    getSupervisorsByRegion: async (region: string): Promise<any[]> => {
+        try {
+            const response = await api.get('/users/supervisors', {
+                params: { region }
+            });
+            return response.data.data || response.data || [];
+        } catch (error) {
+            console.error('Failed to fetch supervisors:', error);
+            return [];
+        }
+    }
 };
