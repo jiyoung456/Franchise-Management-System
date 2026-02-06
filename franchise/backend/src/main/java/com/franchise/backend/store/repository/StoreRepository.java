@@ -2,6 +2,7 @@ package com.franchise.backend.store.repository;
 
 import com.franchise.backend.store.entity.Store;
 import com.franchise.backend.store.entity.StoreState;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -56,13 +57,39 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
                 :keyword IS NULL
                 OR s.storeName LIKE %:keyword%
           )
-        ORDER BY s.updatedAt DESC
-    """)
+        ORDER BY
+      (CASE WHEN s.currentStateScore IS NULL THEN 1 ELSE 0 END) ASC,
+      s.currentStateScore DESC,
+      s.updatedAt DESC
+""")
     List<Store> searchStoresForSupervisor(
             @Param("loginId") String loginId,
             @Param("state") StoreState state,
             @Param("keyword") String keyword
     );
+
+    @Query("""
+    SELECT s
+    FROM Store s
+    JOIN s.supervisor u
+    WHERE u.loginId = :loginId
+      AND (:state IS NULL OR s.currentState = :state)
+      AND (
+            :keyword IS NULL
+            OR s.storeName LIKE %:keyword%
+      )
+    ORDER BY
+      (CASE WHEN s.currentStateScore IS NULL THEN 1 ELSE 0 END) ASC,
+      s.currentStateScore DESC,
+      s.updatedAt DESC
+""")
+    List<Store> searchStoresForSupervisorOrderByRisk(
+            @Param("loginId") String loginId,
+            @Param("state") StoreState state,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
+
 
     // sv 기준 : 본인이 담당하는 점포 ID들
     @Query("""
@@ -125,6 +152,7 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     //  open한 매장 수
     long countByStoreOperationStatus(String storeOperationStatus);
+
 }
 
 

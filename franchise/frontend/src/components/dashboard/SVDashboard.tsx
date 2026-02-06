@@ -26,19 +26,16 @@ import { SupervisorDashboardSummary, User as UserType } from '@/types';
 
 // --- Types (Local) ---
 interface SvRiskStore {
-    id: number;
-    name: string;
-    riskLevel: 'HIGH' | 'MEDIUM' | 'LOW';
-    reason: string;
-    action: string;
-    lastVisit?: string;
-    score?: number;
-    category?: string;
-    // Mock details
-    owner?: string;
-    openDate?: string;
-    address?: string;
+  storeId: number;
+  storeName: string;
+  state: 'NORMAL' | 'WATCHLIST' | 'RISK';
+  region: string;
+  supervisor: string;
+  qscScore: number;
+  lastInspectionDate: string | null;
+  currentStateScore: number;
 }
+
 
 interface ChecklistItem {
     id: string;
@@ -125,12 +122,14 @@ const RiskStoreCard = ({ store, onOpenReport }: { store: SvRiskStore; onOpenRepo
                 </div>
 
                 {/* Body: Store Name & Reason */}
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{store.name}</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{store.storeName}</h3>
 
                 {/* Content Box */}
                 <div className="bg-gray-50 rounded-xl p-4 mb-4">
                     <p className="text-sm font-semibold text-gray-700 leading-relaxed">
-                        {store.reason}
+                      위험점수 {store.currentStateScore}점
+                      <br />
+                      최근점검 {store.lastInspectionDate ?? '-'}
                     </p>
                 </div>
 
@@ -333,7 +332,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
     const [data, setData] = useState<SupervisorDashboardSummary | null>(null);
 
     // Local UI State
-    const [riskStores, setRiskStores] = useState<SvRiskStore[]>(MOCK_RISK_STORES);
+    const [riskStores, setRiskStores] = useState<SvRiskStore[]>([]);
     const [checklist, setChecklist] = useState<ChecklistItem[]>(MOCK_CHECKLIST);
     const [summaryCounts, setSummaryCounts] = useState(MOCK_SUMMARY_COUNTS);
 
@@ -346,6 +345,8 @@ export default function SVDashboard({ user }: { user: UserType }) {
             try {
                 setLoading(true);
                 const dashboardSummary = await DashboardService.getSvDashboard(user.loginId);
+                const stores = await DashboardService.getSvRiskStores(3);
+                setRiskStores(stores);
                 setData(dashboardSummary);
             } catch (err) {
                 console.error("Failed to fetch SV dashboard data, using full mock", err);
@@ -356,10 +357,18 @@ export default function SVDashboard({ user }: { user: UserType }) {
         fetchData();
     }, [user]);
 
-    const handleOpenReport = (store: SvRiskStore) => {
-        setSelectedDrawerStore(store);
-        setIsDrawerOpen(true);
+    const handleOpenReport = async (store: SvRiskStore) => {
+      const report = await DashboardService.getRiskReport(store.storeId);
+      console.log(report); // ← 먼저 콘솔 확인
+
+      setSelectedDrawerStore({
+        ...store,
+        report // 나중에 Drawer에서 사용
+      });
+
+      setIsDrawerOpen(true);
     };
+
 
     const handleCloseReport = () => {
         setIsDrawerOpen(false);
@@ -424,7 +433,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {riskStores.map((store) => (
                             <RiskStoreCard
-                                key={store.id}
+                                key={store.storeId}
                                 store={store}
                                 onOpenReport={handleOpenReport}
                             />
