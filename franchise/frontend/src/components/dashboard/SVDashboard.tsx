@@ -113,17 +113,17 @@ const MOCK_RISK_STORES: SvRiskStore[] = [
 ];
 
 const MOCK_CHECKLIST: ChecklistItem[] = [
-    { id: 'c1', label: '강남역점 긴급 위생 점검', risk: 'HIGH', priority: 'HIGH', checked: false },
-    { id: 'c2', label: '2025 상반기 정기 점검 템플릿 승인', risk: 'HIGH', priority: 'HIGH', checked: false },
-    { id: 'c3', label: '역삼점 매출 하락 원인 분석 리포트 확인', risk: 'MEDIUM', priority: 'MEDIUM', checked: false },
-    { id: 'c4', label: '부산 지역 신규 매장 방문 일정 조율', risk: 'LOW', priority: 'LOW', checked: true },
+    { id: 'c1', label: '망원점 매출 급락 원인 파악', risk: 'HIGH', priority: 'HIGH', checked: false },
+    { id: 'c2', label: '신촌역점 위생/청결 재점검 일정 확인', risk: 'HIGH', priority: 'HIGH', checked: false },
+    { id: 'c3', label: '망원점 이번 주 방문 계획 수립', risk: 'MEDIUM', priority: 'MEDIUM', checked: false },
+    { id: 'c4', label: '점포별 "리스크 원인 요약" 팀장 공유', risk: 'LOW', priority: 'LOW', checked: false },
 ];
 
 const MOCK_SUMMARY_COUNTS = {
-    totalIssues: 5,
+    totalIssues: 4,
     urgent: 2,
     waiting: 2,
-    riskStoreToday: 4
+    riskStoreToday: 2
 };
 
 // --- SUBSIDIARY COMPONENTS ---
@@ -438,7 +438,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
                         {/* Title matching BriefingWidget style */}
                         <div className="flex items-center gap-2 mb-2">
                             <h2 className="text-xl font-bold text-gray-900">오늘의 할 일</h2>
-                            <span className="text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-lg">2026-02-06</span>
+                            <span className="text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-lg">2025-09-01</span>
                         </div>
 
                         {/* Two Columns */}
@@ -500,10 +500,10 @@ export default function SVDashboard({ user }: { user: UserType }) {
                                             <User className="w-6 h-6 text-gray-600" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-bold text-gray-900 mb-1">{user.userName} SV님,</p>
+                                            <p className="text-base font-bold text-gray-900 mb-1">{user.userName}님,</p>
                                             <p className="text-base text-gray-700 leading-relaxed font-medium">
-                                                오늘 강남권역의 리스크 점수가 전일 대비 <span className="font-bold text-red-600">15% 상승</span>했습니다.
-                                                특히 '강남역점'의 위생 등급 하락 리스크가 감지되어 긴급 점검이 필요합니다.
+                                                담당 점포 중 <span className="font-bold text-red-600">리스크 상승 점포 2곳</span>이 확인되었습니다.
+                                                오늘은 신촌역점 재점검 일정 확정, 망원점 매출 급락 원인 1차 확인이 우선입니다.
                                             </p>
                                         </div>
                                     </div>
@@ -519,7 +519,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
                                             <div className="text-xl font-extrabold text-red-600">{summaryCounts.urgent}</div>
                                         </div>
                                         <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
-                                            <div className="text-xs font-bold text-gray-500 mb-1">승인 대기</div>
+                                            <div className="text-xs font-bold text-gray-500 mb-1">오늘 처리 권장</div>
                                             <div className="text-xl font-extrabold text-blue-600">{summaryCounts.waiting}</div>
                                         </div>
                                     </div>
