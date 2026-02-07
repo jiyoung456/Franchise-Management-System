@@ -22,8 +22,8 @@ public class AdminActionDashboardService {
 
     public AdminActionTopSummaryResponse getTopSummary() {
 
-        // 기준일 고정 (오늘 = 2025-08-25)
-        LocalDate today = LocalDate.of(2025, 8, 25);
+        // 기준일 고정
+        LocalDate today = LocalDate.of(2025, 9, 1);
 
         List<String> statuses = List.of("OPEN", "IN_PROGRESS");
 
