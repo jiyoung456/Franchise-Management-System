@@ -3,13 +3,12 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Store, ClipboardCheck, BarChart3, BrainCircuit, Settings, Users, TrendingUp, Megaphone, Calendar, CheckSquare, Hammer, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Store, ClipboardCheck, BarChart3, Settings, Users, TrendingUp, Megaphone, Calendar, CheckSquare, Hammer, AlertTriangle } from 'lucide-react';
 import { AuthService } from '@/services/authService';
 import { Logo } from '@/components/common/Logo';
 
 const navigation = [
     { name: '홈', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'SUPERVISOR'], section: 1 },
-    { name: '오늘의 할일', href: '/briefing', icon: BrainCircuit, roles: ['SUPERVISOR'], section: 1 },
     { name: '점포 관리', href: '/stores/my', icon: Store, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: 'QSC 관리', href: '/qsc', icon: ClipboardCheck, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },
     { name: 'POS 관리', href: '/performance', icon: BarChart3, roles: ['ADMIN', 'SUPERVISOR'], section: 2 },

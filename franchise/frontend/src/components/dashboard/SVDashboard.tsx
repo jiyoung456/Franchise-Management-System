@@ -129,47 +129,48 @@ const MOCK_SUMMARY_COUNTS = {
 // --- SUBSIDIARY COMPONENTS ---
 
 const RiskStoreCard = ({ store, onOpenReport }: { store: SvRiskStore; onOpenReport: (s: SvRiskStore) => void }) => {
-    // Risk Badge Colors matches the reference image style
-    const badgeColor = store.riskLevel === 'HIGH' ? 'bg-red-50 text-red-600' :
-        store.riskLevel === 'MEDIUM' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600';
+    // Risk Badge Colors matched with 'state' from backend
+    // Risk Badge Styles matched with StatusBadge component colors in the Report Drawer
+    const badgeStyle = store.state === 'RISK' ? 'bg-red-100 text-red-700 border-red-200' :
+        store.state === 'WATCHLIST' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+            'bg-blue-100 text-blue-700 border-blue-200'; // NORMAL (success type)
+
+    const badgeText = store.state === 'RISK' ? '위험' :
+        store.state === 'WATCHLIST' ? '관찰' : '정상';
 
     const Icon = store.category === 'QSC' ? ClipboardCheck : store.category === 'POS' ? TrendingDown : Siren;
+    const iconBg = store.category === 'QSC' ? 'bg-green-50 text-green-600' : store.category === 'POS' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600';
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow h-full">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow h-full">
             <div>
                 {/* Header: Risk Badge & Icon */}
                 <div className="flex justify-between items-start mb-4">
-                    <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${badgeColor}`}>
-                        {store.riskLevel === 'HIGH' ? '심각' : store.riskLevel === 'MEDIUM' ? '주의' : '관찰'}
+                    <span className={`px-3 py-1 text-[11px] font-bold rounded-full border ${badgeStyle}`}>
+                        {badgeText}
                     </span>
-                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500">
+                    <div className={`p-2 rounded-xl ${iconBg}`}>
                         <Icon className="w-4 h-4" />
                     </div>
                 </div>
 
                 {/* Body: Store Name & Reason */}
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{store.storeName}</h3>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-3">{store.storeName}</h3>
 
                 {/* Content Box */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                    <p className="text-sm font-semibold text-gray-700 leading-relaxed">
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 mb-6">
+                    <p className="text-[13px] font-bold text-slate-700 leading-snug">
                         위험점수 {store.currentStateScore}점
                         <br />
                         최근점검 {store.lastInspectionDate ?? '-'}
                     </p>
-                </div>
-
-                <div className="flex items-center text-xs font-bold text-gray-400 mb-6 uppercase tracking-wider">
-                    <span className="mr-2">CATEGORY</span>
-                    <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{store.category || 'OPERATION'}</span>
                 </div>
             </div>
 
             {/* Footer: Action Button (Blue) */}
             <button
                 onClick={() => onOpenReport(store)}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-colors"
+                className="w-full py-2.5 bg-[#1a73e8] text-white rounded-xl text-[11px] font-bold hover:bg-[#1557b0] shadow-md shadow-blue-100 transition-colors"
             >
                 리포트 보기
             </button>
@@ -399,12 +400,9 @@ export default function SVDashboard({ user }: { user: UserType }) {
           `}} />
 
             {/* Header Area Matched with ManagerDashboard */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-13">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-                        슈퍼바이저 대시보드
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xl text-gray-700">
                         반갑습니다, <span className="text-[#1a73e8] font-bold">{user.userName}</span> SV님. 오늘의 핵심 매장 지표를 분석했습니다.
                     </p>
                 </div>
@@ -421,7 +419,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
                 {/* 1. Today's Urgent Stores (Matched Animation Section) */}
                 <section className="animate-in fade-in slide-in-from-top-4 duration-700">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900">오늘 확인이 필요한 매장</h2>
+                        <h2 className="text-xl font-bold text-slate-900 tracking-tight px-1">오늘 확인이 필요한 매장</h2>
                     </div>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {riskStores.map((store) => (
