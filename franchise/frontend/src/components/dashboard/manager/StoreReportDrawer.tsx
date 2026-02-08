@@ -23,7 +23,7 @@ export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT'
     const [actionType, setActionType] = useState('VISIT');
     const [targetMetric, setTargetMetric] = useState('QSC');
     const [dueDate, setDueDate] = useState(() => {
-        const d = new Date();
+        const d = new Date('2025-09-01');
         d.setDate(d.getDate() + 3);
         return d.toISOString().split('T')[0];
     });
@@ -37,7 +37,7 @@ export function StoreReportDrawer({ isOpen, onClose, storeId, viewType = 'EVENT'
             setActionType('VISIT');
             setPriority('HIGH');
             setDueDate(() => {
-                const d = new Date();
+                const d = new Date('2025-09-01');
                 d.setDate(d.getDate() + 3);
                 return d.toISOString().split('T')[0];
             });

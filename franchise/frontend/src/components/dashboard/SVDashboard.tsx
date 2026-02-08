@@ -113,63 +113,64 @@ const MOCK_RISK_STORES: SvRiskStore[] = [
 ];
 
 const MOCK_CHECKLIST: ChecklistItem[] = [
-    { id: 'c1', label: '강남역점 긴급 위생 점검', risk: 'HIGH', priority: 'HIGH', checked: false },
-    { id: 'c2', label: '2025 상반기 정기 점검 템플릿 승인', risk: 'HIGH', priority: 'HIGH', checked: false },
-    { id: 'c3', label: '역삼점 매출 하락 원인 분석 리포트 확인', risk: 'MEDIUM', priority: 'MEDIUM', checked: false },
-    { id: 'c4', label: '부산 지역 신규 매장 방문 일정 조율', risk: 'LOW', priority: 'LOW', checked: true },
+    { id: 'c1', label: '망원점 매출 급락 원인 파악', risk: 'HIGH', priority: 'HIGH', checked: false },
+    { id: 'c2', label: '신촌역점 위생/청결 재점검 일정 확인', risk: 'HIGH', priority: 'HIGH', checked: false },
+    { id: 'c3', label: '망원점 이번 주 방문 계획 수립', risk: 'MEDIUM', priority: 'MEDIUM', checked: false },
+    { id: 'c4', label: '점포별 "리스크 원인 요약" 팀장 공유', risk: 'LOW', priority: 'LOW', checked: false },
 ];
 
 const MOCK_SUMMARY_COUNTS = {
-    totalIssues: 5,
+    totalIssues: 4,
     urgent: 2,
     waiting: 2,
-    riskStoreToday: 4
+    riskStoreToday: 2
 };
 
 // --- SUBSIDIARY COMPONENTS ---
 
 const RiskStoreCard = ({ store, onOpenReport }: { store: SvRiskStore; onOpenReport: (s: SvRiskStore) => void }) => {
-    // Risk Badge Colors matches the reference image style
-    const badgeColor = store.riskLevel === 'HIGH' ? 'bg-red-50 text-red-600' :
-        store.riskLevel === 'MEDIUM' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600';
+    // Risk Badge Colors matched with 'state' from backend
+    // Risk Badge Styles matched with StatusBadge component colors in the Report Drawer
+    const badgeStyle = store.state === 'RISK' ? 'bg-red-100 text-red-700 border-red-200' :
+        store.state === 'WATCHLIST' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+            'bg-blue-100 text-blue-700 border-blue-200'; // NORMAL (success type)
+
+    const badgeText = store.state === 'RISK' ? '위험' :
+        store.state === 'WATCHLIST' ? '관찰' : '정상';
 
     const Icon = store.category === 'QSC' ? ClipboardCheck : store.category === 'POS' ? TrendingDown : Siren;
+    const iconBg = store.category === 'QSC' ? 'bg-green-50 text-green-600' : store.category === 'POS' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600';
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow h-full">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow h-full">
             <div>
                 {/* Header: Risk Badge & Icon */}
                 <div className="flex justify-between items-start mb-4">
-                    <span className={`px-2.5 py-1 text-xs font-bold rounded-lg ${badgeColor}`}>
-                        {store.riskLevel === 'HIGH' ? '심각' : store.riskLevel === 'MEDIUM' ? '주의' : '관찰'}
+                    <span className={`px-3 py-1 text-[11px] font-bold rounded-full border ${badgeStyle}`}>
+                        {badgeText}
                     </span>
-                    <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500">
+                    <div className={`p-2 rounded-xl ${iconBg}`}>
                         <Icon className="w-4 h-4" />
                     </div>
                 </div>
 
                 {/* Body: Store Name & Reason */}
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{store.storeName}</h3>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-3">{store.storeName}</h3>
 
                 {/* Content Box */}
-                <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                    <p className="text-sm font-semibold text-gray-700 leading-relaxed">
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 mb-6">
+                    <p className="text-[13px] font-bold text-slate-700 leading-snug">
                         위험점수 {store.currentStateScore}점
                         <br />
                         최근점검 {store.lastInspectionDate ?? '-'}
                     </p>
-                </div>
-
-                <div className="flex items-center text-xs font-bold text-gray-400 mb-6 uppercase tracking-wider">
-                    <span className="mr-2">CATEGORY</span>
-                    <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{store.category || 'OPERATION'}</span>
                 </div>
             </div>
 
             {/* Footer: Action Button (Blue) */}
             <button
                 onClick={() => onOpenReport(store)}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-sm transition-colors"
+                className="w-full py-2.5 bg-[#1a73e8] text-white rounded-xl text-[11px] font-bold hover:bg-[#1557b0] shadow-md shadow-blue-100 transition-colors"
             >
                 리포트 보기
             </button>
@@ -399,12 +400,9 @@ export default function SVDashboard({ user }: { user: UserType }) {
           `}} />
 
             {/* Header Area Matched with ManagerDashboard */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-13">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-                        슈퍼바이저 대시보드
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xl text-gray-700">
                         반갑습니다, <span className="text-[#1a73e8] font-bold">{user.userName}</span> SV님. 오늘의 핵심 매장 지표를 분석했습니다.
                     </p>
                 </div>
@@ -421,7 +419,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
                 {/* 1. Today's Urgent Stores (Matched Animation Section) */}
                 <section className="animate-in fade-in slide-in-from-top-4 duration-700">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900">오늘 확인이 필요한 매장</h2>
+                        <h2 className="text-xl font-bold text-slate-900 tracking-tight px-1">오늘 확인이 필요한 매장</h2>
                     </div>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {riskStores.map((store) => (
@@ -440,7 +438,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
                         {/* Title matching BriefingWidget style */}
                         <div className="flex items-center gap-2 mb-2">
                             <h2 className="text-xl font-bold text-gray-900">오늘의 할 일</h2>
-                            <span className="text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-lg">2026-02-06</span>
+                            <span className="text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-lg">2025-09-01</span>
                         </div>
 
                         {/* Two Columns */}
@@ -502,10 +500,10 @@ export default function SVDashboard({ user }: { user: UserType }) {
                                             <User className="w-6 h-6 text-gray-600" />
                                         </div>
                                         <div>
-                                            <p className="text-base font-bold text-gray-900 mb-1">{user.userName} SV님,</p>
+                                            <p className="text-base font-bold text-gray-900 mb-1">{user.userName}님,</p>
                                             <p className="text-base text-gray-700 leading-relaxed font-medium">
-                                                오늘 강남권역의 리스크 점수가 전일 대비 <span className="font-bold text-red-600">15% 상승</span>했습니다.
-                                                특히 '강남역점'의 위생 등급 하락 리스크가 감지되어 긴급 점검이 필요합니다.
+                                                담당 점포 중 <span className="font-bold text-red-600">리스크 상승 점포 2곳</span>이 확인되었습니다.
+                                                오늘은 신촌역점 재점검 일정 확정, 망원점 매출 급락 원인 1차 확인이 우선입니다.
                                             </p>
                                         </div>
                                     </div>
@@ -521,7 +519,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
                                             <div className="text-xl font-extrabold text-red-600">{summaryCounts.urgent}</div>
                                         </div>
                                         <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
-                                            <div className="text-xs font-bold text-gray-500 mb-1">승인 대기</div>
+                                            <div className="text-xs font-bold text-gray-500 mb-1">오늘 처리 권장</div>
                                             <div className="text-xl font-extrabold text-blue-600">{summaryCounts.waiting}</div>
                                         </div>
                                     </div>

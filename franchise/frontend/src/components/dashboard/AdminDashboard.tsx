@@ -423,19 +423,18 @@ export default function AdminDashboard({ user }: { user: any }) {
     );
 
     return (
-        <div className="max-w-[1600px] mx-auto p-8 space-y-10 animate-in fade-in duration-500 pb-20">
-            {/* 0. HEADER */}
-            <div className="flex items-center justify-between">
+        <div className="pb-24 space-y-10">
+            {/* 0. HEADER Matched with SVDashboard/ManagerDashboard style */}
+            <div className="flex items-center justify-between mb-13">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">본사관리자 대시보드</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        반갑습니다, <span className="text-[#1a73e8] font-bold">{user?.userName || '관리자'}</span>님. 브랜드 전체 운영 지표를 한눈에 확인하세요.
+                    <p className="text-xl text-gray-700">
+                        반갑습니다, <span className="text-[#1a73e8] font-bold">{user?.userName}</span> 관리자님. 브랜드 전체 운영 지표를 한눈에 확인하세요.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 shadow-sm">
                         <Calendar className="w-4 h-4 text-gray-400" />
-                        <span>2026년 2월 6일 (금)</span>
+                        <span>2025년 9월 1일 (월)</span>
                     </div>
                 </div>
             </div>

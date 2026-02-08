@@ -83,7 +83,7 @@ export default function BriefingWidget({ data, userName }: BriefingWidgetProps) 
                         </div>
 
                         {/* Mini Metrics */}
-                        <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200/50">
+                        <div className="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-200/50">
                             <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
                                 <div className="text-xs font-bold text-gray-500 mb-1">총 이슈</div>
                                 <div className="text-xl font-extrabold text-gray-900">{data.keyMetrics.totalIssues}</div>
@@ -91,6 +91,10 @@ export default function BriefingWidget({ data, userName }: BriefingWidgetProps) 
                             <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
                                 <div className="text-xs font-bold text-gray-500 mb-1">심각</div>
                                 <div className="text-xl font-extrabold text-red-600">{data.keyMetrics.criticalIssues}</div>
+                            </div>
+                            <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                                <div className="text-xs font-bold text-gray-500 mb-1">진행중</div>
+                                <div className="text-xl font-extrabold text-orange-600">{data.keyMetrics.inProgressActions}</div>
                             </div>
                             <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
                                 <div className="text-xs font-bold text-gray-500 mb-1">승인 대기</div>

@@ -343,6 +343,7 @@ export interface DailyBriefing {
     keyMetrics: {
         totalIssues: number;
         criticalIssues: number;
+        inProgressActions: number;
         pendingApprovals: number;
     };
 }
