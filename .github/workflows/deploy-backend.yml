@@ -1,4 +1,4 @@
-name: Build & Push Backend Image (GHCR)
+name: Deploy Backend (Build+Push+Deploy)
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push (Backend)
+      - name: Build & Push Backend Image
         uses: docker/build-push-action@v6
         with:
           context: ./franchise/backend
@@ -37,3 +37,21 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/franchise-backend:latest
             ghcr.io/${{ github.repository_owner }}/franchise-backend:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/deploy
+            docker compose pull
+            docker compose up -d
+            docker ps
