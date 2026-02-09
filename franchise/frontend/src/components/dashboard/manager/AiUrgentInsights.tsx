@@ -12,6 +12,30 @@ interface UrgentEvent {
     supervisorName?: string;
 }
 
+const MOCK_EVENTS: UrgentEvent[] = [
+    {
+        id: 'EV-001',
+        storeName: '강남역점',
+        category: 'POS',
+        eventName: '마진율 하락(-15% 이하) 감지',
+        riskLevel: 'CRITICAL'
+    },
+    {
+        id: 'EV-002',
+        storeName: '미아점',
+        category: 'OPERATION',
+        eventName: 'SV 방문 공백 60일 이상 감지',
+        riskLevel: 'CRITICAL'
+    },
+    {
+        id: 'EV-003',
+        storeName: '논현점',
+        category: 'QSC',
+        eventName: 'QSC 총점 하락(>= 5점) - WATCH 등급',
+        riskLevel: 'WARNING'
+    }
+];
+
 interface UrgentEventCardsProps {
     onViewReport: (id: string, type: 'EVENT' | 'ACTION', svName?: string, summary?: string, eventId?: string) => void;
 }
