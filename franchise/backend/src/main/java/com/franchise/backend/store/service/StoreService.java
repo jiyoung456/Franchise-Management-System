@@ -148,6 +148,18 @@ public class StoreService {
         // 1) DB에서 후보 점포 조회 (내 담당 + 상태 + 키워드)
         List<Store> stores = storeRepository.searchStoresForSupervisor(loginId, state, keyword);
 
+        String sortParam = (condition != null ? condition.getSort() : null);
+        if (sortParam != null && sortParam.equalsIgnoreCase("risk")) {
+            stores = stores.stream()
+                    .filter(s -> s.getCurrentState() == StoreState.RISK || s.getCurrentState() == StoreState.WATCHLIST)
+                    .sorted(Comparator.comparing(
+                            Store::getCurrentStateScore,
+                            Comparator.nullsLast(Comparator.naturalOrder())
+                    ).reversed())
+                    .limit(Math.min(safeLimit, 3))
+                    .toList();
+        }
+
         // 2) storeIds
         List<Long> storeIds = stores.stream().map(Store::getId).toList();
 
