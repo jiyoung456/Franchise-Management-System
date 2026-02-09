@@ -29,7 +29,6 @@ import com.franchise.backend.store.entity.ContractType;
 import com.franchise.backend.store.entity.TradeAreaType;
 import com.franchise.backend.user.entity.User;
 
-
 @Service
 @RequiredArgsConstructor
 public class StoreService {
@@ -50,11 +49,9 @@ public class StoreService {
         LocalDate today = LocalDate.now();
         LocalDate from = today.minusDays(6);
 
-        BigDecimal recent7dBd =
-                posDailyRepository.sumSalesBetween(storeId, from, today);
+        BigDecimal recent7dBd = posDailyRepository.sumSalesBetween(storeId, from, today);
 
-        Long recent7dSales =
-                (recent7dBd == null ? 0L : recent7dBd.longValue());
+        Long recent7dSales = (recent7dBd == null ? 0L : recent7dBd.longValue());
 
         return toDetailResponse(store, recent7dSales);
     }
@@ -106,8 +103,7 @@ public class StoreService {
             } else {
                 User supervisor = userRepository.findByLoginId(loginId)
                         .orElseThrow(() -> new IllegalArgumentException(
-                                "해당 loginId의 사용자가 없습니다. supervisorLoginId=" + loginId
-                        ));
+                                "해당 loginId의 사용자가 없습니다. supervisorLoginId=" + loginId));
                 store.changeSupervisor(supervisor);
             }
         }
@@ -154,8 +150,7 @@ public class StoreService {
                     .filter(s -> s.getCurrentState() == StoreState.RISK || s.getCurrentState() == StoreState.WATCHLIST)
                     .sorted(Comparator.comparing(
                             Store::getCurrentStateScore,
-                            Comparator.nullsLast(Comparator.naturalOrder())
-                    ).reversed())
+                            Comparator.nullsLast(Comparator.naturalOrder())).reversed())
                     .limit(Math.min(safeLimit, 3))
                     .toList();
         }
@@ -167,16 +162,17 @@ public class StoreService {
         Map<Long, QscMaster> latestQscMap = storeIds.isEmpty()
                 ? Map.of()
                 : qscMasterRepository.findLatestCompletedByStoreIds(storeIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        QscMaster::getStoreId,
-                        q -> q,
-                        (a, b) -> {
-                            if (a.getInspectedAt() == null) return b;
-                            if (b.getInspectedAt() == null) return a;
-                            return a.getInspectedAt().isAfter(b.getInspectedAt()) ? a : b;
-                        }
-                ));
+                        .stream()
+                        .collect(Collectors.toMap(
+                                QscMaster::getStoreId,
+                                q -> q,
+                                (a, b) -> {
+                                    if (a.getInspectedAt() == null)
+                                        return b;
+                                    if (b.getInspectedAt() == null)
+                                        return a;
+                                    return a.getInspectedAt().isAfter(b.getInspectedAt()) ? a : b;
+                                }));
 
         // 4) DTO 변환
         List<StoreListResponse> rows = stores.stream()
@@ -184,17 +180,17 @@ public class StoreService {
                     QscMaster q = latestQscMap.get(s.getId());
 
                     Integer qscScore = (q != null ? q.getTotalScore() : 0);
-                    LocalDate lastInspectionDate =
-                            (q != null && q.getInspectedAt() != null)
-                                    ? q.getInspectedAt().toLocalDate()
-                                    : null;
+                    LocalDate lastInspectionDate = (q != null && q.getInspectedAt() != null)
+                            ? q.getInspectedAt().toLocalDate()
+                            : null;
 
                     // UI 지역: users.region(담당 SV 기준)을 우선 사용 (없으면 store.regionCode)
                     String regionDisplay = (s.getSupervisor() != null
                             && s.getSupervisor().getRegion() != null
                             && !s.getSupervisor().getRegion().isBlank())
-                            ? s.getSupervisor().getRegion().trim()
-                            : (s.getRegionCode() == null || s.getRegionCode().isBlank() ? "-" : s.getRegionCode());
+                                    ? s.getSupervisor().getRegion().trim()
+                                    : (s.getRegionCode() == null || s.getRegionCode().isBlank() ? "-"
+                                            : s.getRegionCode());
 
                     // 담당 SV: 이름 우선, 없으면 loginId
                     String supervisorDisplay = "-";
@@ -216,8 +212,7 @@ public class StoreService {
                             supervisorDisplay,
                             qscScore,
                             lastInspectionDate,
-                            s.getCurrentStateScore()
-                    );
+                            s.getCurrentStateScore());
                 })
                 .collect(Collectors.toList());
 
@@ -231,7 +226,6 @@ public class StoreService {
         }
         return rows;
     }
-
 
     // DTO 변환 (생성자 시그니처 정확히 맞춤)
     private StoreDetailResponse toDetailResponse(Store store, Long weeklyAvgSalesAmount) {
@@ -250,7 +244,7 @@ public class StoreService {
                 store.getCurrentState().name(),
                 store.getCurrentStateScore(),
 
-                null,                   // qscScore (아직 점포 상세에 안 쓰면 null)
+                null, // qscScore (아직 점포 상세에 안 쓰면 null)
                 weeklyAvgSalesAmount,
 
                 store.getOpenedAt() != null ? store.getOpenedAt().toLocalDate() : null,
@@ -261,13 +255,13 @@ public class StoreService {
                 store.getAddress(),
 
                 store.getContractType(),
-                store.getContractEndDate()
-        );
+                store.getContractEndDate());
     }
 
     // nomalize + sort
     private String normalizeKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) return null;
+        if (keyword == null || keyword.isBlank())
+            return null;
         return keyword.trim();
     }
 
@@ -278,17 +272,23 @@ public class StoreService {
 
     private StoreSort normalizeSort(String sort) {
         if (sort == null || sort.isBlank()) {
-            // SV 화면 기본값이 "QSC 점수 높은순"이라면 이게 더 자연스러움
             return StoreSort.QSC_SCORE_DESC;
         }
+        String s = sort.trim().toUpperCase();
+        if (s.equals("RISK"))
+            return StoreSort.RISK_SCORE_DESC;
         try {
-            return StoreSort.valueOf(sort.trim().toUpperCase());
+            return StoreSort.valueOf(s);
         } catch (Exception e) {
             return StoreSort.QSC_SCORE_DESC;
         }
     }
 
     private enum StoreSort {
+        RISK_SCORE_DESC(Comparator
+                .comparing(StoreListResponse::getCurrentStateScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed()
+                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
         QSC_SCORE_DESC(Comparator
                 .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
                 .reversed()
@@ -318,13 +318,11 @@ public class StoreService {
         }
     }
 
-
-    //스토어 생성
+    // 스토어 생성
     @Transactional
     public StoreDetailResponse createStore(
             UserPrincipal principal,
-            StoreCreateRequest request
-    ) {
+            StoreCreateRequest request) {
         if (principal == null) {
             throw new IllegalArgumentException("로그인이 필요합니다.");
         }
@@ -334,9 +332,7 @@ public class StoreService {
 
         // ===== 생성자 (현재 로그인 사용자) =====
         User createdBy = userRepository.findById(principal.getUserId())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("로그인 사용자 정보를 찾을 수 없습니다.")
-                );
+                .orElseThrow(() -> new IllegalArgumentException("로그인 사용자 정보를 찾을 수 없습니다."));
 
         // ===== 담당 SV (loginId 기준) =====
         String supervisorLoginId = request.getSupervisorLoginId();
@@ -345,11 +341,8 @@ public class StoreService {
         }
 
         User supervisor = userRepository.findByLoginId(supervisorLoginId.trim())
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "해당 loginId의 사용자가 없습니다. supervisorLoginId=" + supervisorLoginId
-                        )
-                );
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "해당 loginId의 사용자가 없습니다. supervisorLoginId=" + supervisorLoginId));
 
         // ===== 필수값 정리 =====
         String storeName = trim(request.getStoreName());
@@ -358,11 +351,16 @@ public class StoreService {
         String tradeAreaType = upper(trim(request.getTradeAreaType()));
         String contractType = upper(trim(request.getContractType()));
 
-        if (isBlank(storeName)) throw new IllegalArgumentException("storeName은 필수입니다.");
-        if (isBlank(regionCode)) throw new IllegalArgumentException("regionCode는 필수입니다.");
-        if (isBlank(address)) throw new IllegalArgumentException("address는 필수입니다.");
-        if (isBlank(tradeAreaType)) throw new IllegalArgumentException("tradeAreaType은 필수입니다.");
-        if (isBlank(contractType)) throw new IllegalArgumentException("contractType은 필수입니다.");
+        if (isBlank(storeName))
+            throw new IllegalArgumentException("storeName은 필수입니다.");
+        if (isBlank(regionCode))
+            throw new IllegalArgumentException("regionCode는 필수입니다.");
+        if (isBlank(address))
+            throw new IllegalArgumentException("address는 필수입니다.");
+        if (isBlank(tradeAreaType))
+            throw new IllegalArgumentException("tradeAreaType은 필수입니다.");
+        if (isBlank(contractType))
+            throw new IllegalArgumentException("contractType은 필수입니다.");
         if (request.getOpenPlannedAt() == null)
             throw new IllegalArgumentException("openPlannedAt은 필수입니다.");
 
@@ -396,8 +394,7 @@ public class StoreService {
 
                 contractType,
                 request.getContractEndDate(),
-                now
-        );
+                now);
 
         storeRepository.save(store);
 

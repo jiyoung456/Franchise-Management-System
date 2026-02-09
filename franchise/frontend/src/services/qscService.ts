@@ -125,7 +125,7 @@ export const QscService = {
                 isPassed: item.isPassed,
                 isReinspectionNeeded: item.needsReinspection,
                 inspector: item.inspectorId.toString(),
-                status: item.status === 'CONFIRMED' ? '완료' : '작성중',
+                status: item.status === 'CONFIRMED' ? '완료' : '완료',
                 templateId: item.templateId.toString(),
                 summaryComment: item.summaryComment
             })).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
