@@ -276,7 +276,7 @@ public class StoreService {
         }
         String s = sort.trim().toUpperCase();
         if (s.equals("RISK"))
-            return StoreSort.RISK_SCORE_DESC;
+            return StoreSort.RISK;
         try {
             return StoreSort.valueOf(s);
         } catch (Exception e) {
@@ -285,10 +285,21 @@ public class StoreService {
     }
 
     private enum StoreSort {
-        RISK_SCORE_DESC(Comparator
-                .comparing(StoreListResponse::getCurrentStateScore, Comparator.nullsLast(Comparator.naturalOrder()))
-                .reversed()
-                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+        RISK((a, b) -> {
+            Integer s1 = a.getCurrentStateScore();
+            Integer s2 = b.getCurrentStateScore();
+            if (s1 == null && s2 == null)
+                return 0;
+            if (s1 == null)
+                return 1;
+            if (s2 == null)
+                return -1;
+            int cmp = s2.compareTo(s1);
+            if (cmp != 0)
+                return cmp;
+            return (a.getStoreName() != null ? a.getStoreName() : "")
+                    .compareTo(b.getStoreName() != null ? b.getStoreName() : "");
+        }),
         QSC_SCORE_DESC(Comparator
                 .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
                 .reversed()

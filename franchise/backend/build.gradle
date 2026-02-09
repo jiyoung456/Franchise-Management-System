@@ -55,6 +55,10 @@ dependencies {
 	// Webflux - fast api 호출을 위해 필요한 프레임워크
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
+	// 이미지분석
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-json'
+
 
 }
 
