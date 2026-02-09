@@ -24,7 +24,7 @@ export const QscService = {
     getActiveTemplates: async (): Promise<QSCTemplate[]> => {
         try {
             // QscTemplateController is at /qsc/inspection/new (Bypassing /api)
-            const response = await api.get('/qsc/inspection/new', { baseURL: 'http://localhost:8080' });
+            const response = await api.get('/qsc/inspection/new', { baseURL: 'http://43.200.3.26:8080' });
             const data = response.data || [];
 
             return data.map((item: any) => ({
@@ -47,7 +47,7 @@ export const QscService = {
     getTemplateDetail: async (templateId: string): Promise<QSCTemplate | undefined> => {
         try {
             // QscTemplateDetailController is at /qsc/templates/{id} (Bypassing /api)
-            const response = await api.get(`/qsc/templates/${templateId}`, { baseURL: 'http://localhost:8080' });
+            const response = await api.get(`/qsc/templates/${templateId}`, { baseURL: 'http://43.200.3.26:8080' });
             const data = response.data;
 
             if (!data) return undefined;
@@ -149,7 +149,7 @@ export const QscService = {
             // QscStoreController is @RequestMapping("/qsc/stores").
             // Default api baseURL is '/api', so we need to override it to hit root if controller lacks /api prefix.
             // Following pattern from getActiveTemplates:
-            const response = await api.get(`/qsc/stores/test/${svId}`, { baseURL: 'http://localhost:8080' });
+            const response = await api.get(`/qsc/stores/test/${svId}`, { baseURL: 'http://43.200.3.26:8080' });
             return response.data || [];
         } catch (error) {
             console.error('Failed to fetch stats by supervisor:', error);
@@ -311,7 +311,7 @@ export const QscService = {
         try {
             // Use explicit baseURL if needed, or default api.
             // Based on user snippet: @GetMapping("/{inspectionId}") in a controller (likely /qsc/inspections)
-            const response = await api.get(`/qsc/inspections/${inspectionId}`, { baseURL: 'http://localhost:8080' });
+            const response = await api.get(`/qsc/inspections/${inspectionId}`, { baseURL: 'http://43.200.3.26:8080' });
             const data = response.data;
 
             if (!data) return undefined;
@@ -415,7 +415,7 @@ export const QscService = {
             };
 
             // Call Backend (Bypassing /api as controller is at /qsc/inspections)
-            await api.post('/qsc/inspections', payload, { baseURL: 'http://localhost:8080' });
+            await api.post('/qsc/inspections', payload, { baseURL: 'http://43.200.3.26:8080' });
             return true;
         } catch (error) {
             console.error('Failed to save inspection:', error);

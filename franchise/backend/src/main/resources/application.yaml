@@ -13,6 +13,7 @@ spring:
     locations: classpath:db/migration
 
 app:
+  fixed-date: 2025-09-01
   jwt:
     secret: "CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY_32BYTES_MINIMUM"
     access-token-exp-minutes: 60
@@ -20,6 +21,7 @@ app:
       name: "ACCESS_TOKEN"
       secure: false      # 로컬 http면 false, 배포 https면 true
       same-site: "Lax"   # SPA+서버 분리 + https 배포면 "None" 고려(그땐 secure=true 필수)
+
 
 logging:
   level:

@@ -127,7 +127,7 @@ export default function StoreDetailContent() {
         context: [],
         anomaly: {
             isAnomaly: (store?.currentStateScore || 0) > 80,
-            detectedAt: new Date().toISOString(),
+            detectedAt: '2025-09-01T10:00:00.000Z',
             severity: (store?.currentStateScore || 0) > 90 ? 'HIGH' : 'MEDIUM',
             summary: '특이사항 없습니다.',
             features: []
@@ -311,7 +311,7 @@ export default function StoreDetailContent() {
                                     <FileText className="w-5 h-5 text-gray-500" /> 기본 정보
                                 </h3>
                                 <div className="divide-y divide-gray-100 border-t border-b border-gray-100">
-                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">오픈일</span><span className="col-span-2 text-gray-900">{store.openedAt?.split('T')[0]}<span className="text-blue-600 ml-2 font-medium text-sm">(D+{Math.floor((new Date().getTime() - new Date(store.openedAt || new Date()).getTime()) / (1000 * 3600 * 24))}일)</span></span></div>
+                                    <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">오픈일</span><span className="col-span-2 text-gray-900">{store.openedAt?.split('T')[0]}<span className="text-blue-600 ml-2 font-medium text-sm">(D+{Math.floor((new Date('2025-09-01').getTime() - new Date(store.openedAt || '2025-09-01').getTime()) / (1000 * 3600 * 24))}일)</span></span></div>
                                     <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">마지막 상태 변경일</span><span className="col-span-2 text-gray-900">{store.statusHistory?.[0]?.date || '-'}</span></div>
                                     <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">점주명</span><span className="col-span-2 text-gray-900">{store.ownerName}</span></div>
                                     <div className="grid grid-cols-3 gap-4 py-4"><span className="font-bold text-gray-600">점주 연락처</span><span className="col-span-2 text-gray-900">{store.ownerPhone || '-'}</span></div>

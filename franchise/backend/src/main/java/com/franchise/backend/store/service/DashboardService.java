@@ -263,7 +263,8 @@ public class DashboardService {
                             regionDisplay,
                             supervisorDisplay,
                             qscScore,
-                            lastInspectionDate
+                            lastInspectionDate,
+                            s.getCurrentStateScore()
                     );
                 })
                 .collect(Collectors.toList());
@@ -331,7 +332,8 @@ public class DashboardService {
                             regionDisplay,
                             supervisorDisplay,
                             qscScore,
-                            lastInspectionDate
+                            lastInspectionDate,
+                            s.getCurrentStateScore()
                     );
                 })
                 .toList();

@@ -1,0 +1,541 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import {
+    ChevronRight,
+    X,
+    AlertCircle,
+    ClipboardCheck,
+    Building2,
+    TrendingDown,
+    Siren,
+    MoreHorizontal,
+    FileText,
+    UserCircle,
+    CheckCircle2,
+    Calendar as CalendarIcon,
+    Zap,
+    MapPin,
+    ArrowLeft,
+    LayoutDashboard,
+    Calendar,
+    User,
+    Activity,
+    Info,
+    Bell,
+    ClipboardList
+} from 'lucide-react';
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+    ResponsiveContainer, Cell, LineChart, Line, Legend, ComposedChart, ReferenceLine
+} from 'recharts';
+import { ScoreBar } from '@/components/common/ScoreBar';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { DashboardService } from '@/services/dashboardService';
+import { StoreService } from '@/services/storeService';
+import { QscService } from '@/services/qscService';
+import { ActionService } from '@/services/actionService';
+import { SupervisorDashboardSummary, User as UserType, ActionItem } from '@/types';
+
+// --- Types (Local) ---
+interface SvRiskStore {
+    storeId?: number;
+    storeName?: string;
+    state?: 'NORMAL' | 'WATCHLIST' | 'RISK';
+    riskLevel?: 'HIGH' | 'MEDIUM' | 'LOW' | string; // mock compatibility
+    id?: number; // mock compatibility
+    name?: string; // mock compatibility
+    score?: number; // mock compatibility
+    region?: string;
+    supervisor?: string;
+    qscScore?: number;
+    lastInspectionDate?: string | null;
+    currentStateScore?: number;
+    category?: string;
+    reason?: string;
+    action?: any; // mock compatibility
+    report?: any;
+    events?: any[];
+    actions?: ActionItem[];
+    qscInspections?: any[];
+    owner?: string;
+    address?: string;
+    openDate?: string;
+}
+
+
+interface ChecklistItem {
+    id: string;
+    label: string;
+    risk: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+    checked: boolean;
+    priority?: 'HIGH' | 'MEDIUM' | 'LOW'; // Added to match Manager Briefing style
+}
+
+// --- MOCK DATA ---
+const MOCK_RISK_STORES: SvRiskStore[] = [
+    {
+        id: 101,
+        name: '강남구청점',
+        riskLevel: 'HIGH',
+        reason: '매출 급락 (-25%) 및 위생 점검 미흡',
+        action: '긴급 방문',
+        score: 65,
+        category: 'OPERATION',
+        owner: '김지훈',
+        openDate: '2021-01-10',
+        address: '서울 강남구 학동로 343'
+    },
+    {
+        id: 102,
+        name: '역삼2호점',
+        riskLevel: 'HIGH',
+        reason: '고객 클레임 3건 발생 (품질 불만)',
+        action: '재점검',
+        score: 72,
+        category: 'QSC',
+        owner: '이민수',
+        openDate: '2022-05-15',
+        address: '서울 강남구 테헤란로 212'
+    },
+    {
+        id: 103,
+        name: '삼성중앙점',
+        riskLevel: 'MEDIUM',
+        reason: '재고 관리 데이터 이상 감지',
+        action: '유선 확인',
+        score: 78,
+        category: 'POS',
+        owner: '박서연',
+        openDate: '2020-11-20',
+        address: '서울 강남구 봉은사로 404'
+    },
+];
+
+const MOCK_CHECKLIST: ChecklistItem[] = [
+    { id: 'c1', label: '망원점 매출 급락 원인 파악', risk: 'HIGH', priority: 'HIGH', checked: false },
+    { id: 'c2', label: '신촌역점 위생/청결 재점검 일정 확인', risk: 'HIGH', priority: 'HIGH', checked: false },
+    { id: 'c3', label: '망원점 이번 주 방문 계획 수립', risk: 'MEDIUM', priority: 'MEDIUM', checked: false },
+    { id: 'c4', label: '점포별 "리스크 원인 요약" 팀장 공유', risk: 'LOW', priority: 'LOW', checked: false },
+];
+
+const MOCK_SUMMARY_COUNTS = {
+    totalIssues: 4,
+    urgent: 2,
+    waiting: 2,
+    riskStoreToday: 2
+};
+
+// --- SUBSIDIARY COMPONENTS ---
+
+const RiskStoreCard = ({ store, onOpenReport }: { store: SvRiskStore; onOpenReport: (s: SvRiskStore) => void }) => {
+    // Risk Badge Colors matched with 'state' from backend
+    // Risk Badge Styles matched with StatusBadge component colors in the Report Drawer
+    const badgeStyle = store.state === 'RISK' ? 'bg-red-100 text-red-700 border-red-200' :
+        store.state === 'WATCHLIST' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+            'bg-blue-100 text-blue-700 border-blue-200'; // NORMAL (success type)
+
+    const badgeText = store.state === 'RISK' ? '위험' :
+        store.state === 'WATCHLIST' ? '관찰' : '정상';
+
+    const Icon = store.category === 'QSC' ? ClipboardCheck : store.category === 'POS' ? TrendingDown : Siren;
+    const iconBg = store.category === 'QSC' ? 'bg-green-50 text-green-600' : store.category === 'POS' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600';
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:shadow-md transition-shadow h-full">
+            <div>
+                {/* Header: Risk Badge & Icon */}
+                <div className="flex justify-between items-start mb-4">
+                    <span className={`px-3 py-1 text-[11px] font-bold rounded-full border ${badgeStyle}`}>
+                        {badgeText}
+                    </span>
+                    <div className={`p-2 rounded-xl ${iconBg}`}>
+                        <Icon className="w-4 h-4" />
+                    </div>
+                </div>
+
+                {/* Body: Store Name & Reason */}
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-3">{store.storeName}</h3>
+
+                {/* Content Box */}
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 mb-6">
+                    <p className="text-[13px] font-bold text-slate-700 leading-snug">
+                        위험점수 {store.currentStateScore}점
+                        <br />
+                        최근점검 {store.lastInspectionDate ?? '-'}
+                    </p>
+                </div>
+            </div>
+
+            {/* Footer: Action Button (Blue) */}
+            <button
+                onClick={() => onOpenReport(store)}
+                className="w-full py-2.5 bg-[#1a73e8] text-white rounded-xl text-[11px] font-bold hover:bg-[#1557b0] shadow-md shadow-blue-100 transition-colors"
+            >
+                리포트 보기
+            </button>
+        </div>
+    );
+};
+
+// Report Drawer Component (Matched with StoreDetailContent)
+const ReportDrawer = ({
+    isOpen,
+    onClose,
+    store
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    store: SvRiskStore | null
+}) => {
+    if (!isOpen || !store) return null;
+
+    // Timeline data mapped from store status history or mock
+    const timelineData = store.report?.statusHistory?.map((h: any) => ({
+        date: h.date,
+        score: h.score,
+        level: h.status === 'RISK' ? 3 : h.status === 'WATCHLIST' ? 2 : 1
+    })) || [
+            { date: '2025-12', level: 1 },
+            { date: '2026-01', level: 2 },
+            { date: 'Today', level: store.state === 'RISK' ? 3 : store.state === 'WATCHLIST' ? 2 : 1 }
+        ];
+
+    return (
+        <div className="fixed inset-0 z-50 flex justify-end">
+            <div
+                className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity"
+                onClick={onClose}
+            />
+            <div className="relative w-full max-w-lg bg-gray-50 h-full shadow-2xl overflow-y-auto animate-slide-in-right flex flex-col">
+                {/* 1. Header Row */}
+                <div className="bg-white px-6 py-4 flex items-center border-b border-gray-100">
+                    <button
+                        onClick={onClose}
+                        className="flex items-center text-gray-500 hover:text-gray-900 transition-colors text-sm font-medium"
+                    >
+                        <ArrowLeft className="w-5 h-5 mr-1" />
+                        목록으로
+                    </button>
+                    <div className="flex-1" />
+                    <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                    {/* Store Title & Status */}
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex justify-between items-center">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900">{store.storeName || store.name}</h2>
+                            <p className="text-xs text-gray-400 font-bold mt-1 uppercase">
+                                {store.region || '서울'} / {store.supervisor || 'sv01'}
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                            <StatusBadge
+                                status={store.state === 'NORMAL' ? '정상' : store.state === 'WATCHLIST' ? '관찰' : '위험'}
+                                type={store.state === 'NORMAL' ? 'success' : store.state === 'WATCHLIST' ? 'warning' : 'danger'}
+                            />
+                        </div>
+                    </div>
+
+                    {/* AI Report Summary */}
+                    <div className="bg-white rounded-xl p-4 border border-blue-100 shadow-sm flex items-center relative overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                        <div className="pl-3">
+                            <p className="text-[10px] font-black text-blue-500 mb-1 uppercase tracking-tight">AI 요약 리포트</p>
+                            <p className="text-sm text-gray-700 font-medium leading-relaxed">
+                                {store.report?.reason || store.reason || "종합적인 위험 점검 결과 특이사항이 없습니다."}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Metrics Row */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm text-center">
+                            <h3 className="text-xs font-bold text-gray-500 mb-3 flex items-center justify-center gap-1">
+                                종합 위험 점수
+                                {(store.currentStateScore || 0) > 80 && <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
+                            </h3>
+                            <div className="flex items-end justify-center gap-1 mb-3">
+                                <span className={`text-4xl font-extrabold ${(store.currentStateScore || 0) > 80 ? 'text-red-600' : 'text-green-600'}`}>
+                                    {store.currentStateScore || 0}
+                                </span>
+                                <span className="text-gray-400 text-sm font-medium mb-1">/ 100</span>
+                            </div>
+                            <ScoreBar value={store.currentStateScore || 0} />
+                        </div>
+                        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex flex-col items-center justify-center">
+                            <p className="text-xs font-bold text-gray-500 mb-1">최근 QSC 점수</p>
+                            <span className="text-2xl font-black text-blue-600">{store.report?.qscScore || store.qscScore || 0}점</span>
+                        </div>
+                    </div>
+
+                    {/* Timeline Chart */}
+                    <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                        <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-gray-400" />
+                            상태 변경 타임라인
+                        </h3>
+                        <div className="h-32 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={timelineData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                                    <YAxis domain={[0, 4]} ticks={[1, 2, 3]} hide />
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '12px' }} />
+                                    <Line type="stepAfter" dataKey="level" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: '#3b82f6' }} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN COMPONENT ---
+export default function SVDashboard({ user }: { user: UserType }) {
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<SupervisorDashboardSummary | null>(null);
+
+    // Local UI State
+    const [riskStores, setRiskStores] = useState<SvRiskStore[]>([]);
+    const [checklist, setChecklist] = useState<ChecklistItem[]>(MOCK_CHECKLIST);
+    const [summaryCounts, setSummaryCounts] = useState(MOCK_SUMMARY_COUNTS);
+
+    // Drawer State
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [selectedDrawerStore, setSelectedDrawerStore] = useState<SvRiskStore | null>(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const dashboardSummary = await DashboardService.getSvDashboard(user.loginId);
+                const stores = await DashboardService.getSvRiskStores(3);
+                setRiskStores(stores);
+                setData(dashboardSummary);
+            } catch (err) {
+                console.error("Failed to fetch SV dashboard data, using full mock", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [user]);
+
+    const handleOpenReport = async (store: SvRiskStore) => {
+        try {
+            const sid = store.storeId || store.id;
+            if (!sid) return;
+
+            setLoading(true);
+            const [report, events, qscData, actionData] = await Promise.all([
+                DashboardService.getRiskReport(Number(sid)),
+                StoreService.getStoreEvents(sid.toString(), 10),
+                QscService.getStoreQscList(Number(sid)),
+                ActionService.getActions()
+            ]);
+
+            setSelectedDrawerStore({
+                ...store,
+                storeId: Number(sid),
+                storeName: store.storeName || store.name || '',
+                state: store.state || (store.riskLevel === 'HIGH' ? 'RISK' : store.riskLevel === 'MEDIUM' ? 'WATCHLIST' : 'NORMAL'),
+                currentStateScore: store.currentStateScore || store.score || 0,
+                report,
+                events,
+                qscInspections: qscData,
+                actions: actionData.filter((a: ActionItem) => a.storeId?.toString() === sid.toString())
+            });
+            setIsDrawerOpen(true);
+        } catch (error) {
+            console.error("Failed to load report data", error);
+            // Fallback to what we have
+            setSelectedDrawerStore(store);
+            setIsDrawerOpen(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    const handleCloseReport = () => {
+        setIsDrawerOpen(false);
+        setTimeout(() => setSelectedDrawerStore(null), 300);
+    };
+
+    const toggleCheck = (id: string) => {
+        setChecklist(prev => prev.map(item =>
+            item.id === id ? { ...item, checked: !item.checked } : item
+        ));
+    };
+
+    // Calculate unchecked count
+    const uncheckedCount = checklist.filter(c => !c.checked).length;
+
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="pb-24 space-y-10"> {/* Updated Container to match ManagerDashboard */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+            @keyframes slide-in-right {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+            .animate-slide-in-right {
+              animation: slide-in-right 0.3s ease-out forwards;
+            }
+          `}} />
+
+            {/* Header Area Matched with ManagerDashboard */}
+            <div className="flex items-center justify-between mb-13">
+                <div>
+                    <p className="text-xl text-gray-700">
+                        반갑습니다, <span className="text-[#1a73e8] font-bold">{user.userName}</span> SV님. 오늘의 핵심 매장 지표를 분석했습니다.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 shadow-sm">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span>2025년 9월 1일 (월)</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content Section Matched with ManagerDashboard structure */}
+            <div className="space-y-12">
+                {/* 1. Today's Urgent Stores (Matched Animation Section) */}
+                <section className="animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-slate-900 tracking-tight px-1">오늘 확인이 필요한 매장</h2>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {riskStores.map((store) => (
+                            <RiskStoreCard
+                                key={store.storeId}
+                                store={store}
+                                onOpenReport={handleOpenReport}
+                            />
+                        ))}
+                    </div>
+                </section>
+
+                {/* 2. Bottom Area: Wrapped in the exact same container as ManagerDashboard's BriefingWidget */}
+                <section className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                    <div className="w-full space-y-6">
+                        {/* Title matching BriefingWidget style */}
+                        <div className="flex items-center gap-2 mb-2">
+                            <h2 className="text-xl font-bold text-gray-900">오늘의 할 일</h2>
+                            <span className="text-sm text-gray-500 font-medium px-2 py-1 bg-gray-100 rounded-lg">2025-09-01</span>
+                        </div>
+
+                        {/* Two Columns */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                            {/* Left: Checklist */}
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col h-full">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 mb-4 pb-2 border-b border-gray-100">
+                                    <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                                    체크리스트 (Checklist)
+                                    <span className="text-xs bg-red-100 text-red-600 px-2.5 py-1 rounded-full font-bold ml-auto">
+                                        미완료 {uncheckedCount}건
+                                    </span>
+                                </h3>
+
+                                <div className="space-y-3 flex-1 overflow-y-auto">
+                                    {checklist.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => toggleCheck(item.id)}
+                                            className={`flex items-start gap-3 p-4 rounded-xl border transition-all cursor-pointer group hover:shadow-md ${item.checked
+                                                ? 'bg-gray-50 border-gray-100'
+                                                : 'bg-white border-gray-200 hover:border-blue-400'
+                                                }`}
+                                        >
+                                            <button className={`mt-0.5 flex-shrink-0 transition-colors ${item.checked ? 'text-gray-400' : 'text-gray-300 group-hover:text-blue-600'}`}>
+                                                <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${item.checked ? 'border-gray-400 bg-gray-400 text-white' : 'border-gray-300'}`}>
+                                                    {item.checked && <CheckCircle2 className="w-4 h-4 text-white" />}
+                                                </div>
+                                            </button>
+                                            <div className="flex-1">
+                                                <p className={`text-base font-bold leading-tight ${item.checked ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                                                    {item.label}
+                                                </p>
+                                                {/* Priority/Risk Badge matching Manager Briefing */}
+                                                <div className="flex gap-2 mt-2.5">
+                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded border ${item.risk === 'HIGH' ? 'border-red-100 text-red-600 bg-red-50' :
+                                                        item.risk === 'MEDIUM' ? 'border-orange-100 text-orange-600 bg-orange-50' :
+                                                            'border-blue-100 text-blue-600 bg-blue-50'
+                                                        }`}>
+                                                        {item.risk}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Right: Summary */}
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col h-full">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-gray-900 mb-4 pb-2 border-b border-gray-100">
+                                    <FileText className="w-5 h-5 text-purple-600" />
+                                    운영 요약 (Summary)
+                                </h3>
+
+                                <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 flex-1 flex flex-col justify-center">
+                                    <div className="flex items-start gap-4 mb-4">
+                                        <div className="p-3 bg-white rounded-full shadow-sm">
+                                            <User className="w-6 h-6 text-gray-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-bold text-gray-900 mb-1">{user.userName}님,</p>
+                                            <p className="text-base text-gray-700 leading-relaxed font-medium">
+                                                담당 점포 중 <span className="font-bold text-red-600">리스크 상승 점포 2곳</span>이 확인되었습니다.
+                                                오늘은 신촌역점 재점검 일정 확정, 망원점 매출 급락 원인 1차 확인이 우선입니다.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Mini Metrics */}
+                                    <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200/50">
+                                        <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                                            <div className="text-xs font-bold text-gray-500 mb-1">총 이슈</div>
+                                            <div className="text-xl font-extrabold text-gray-900">{summaryCounts.totalIssues}</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                                            <div className="text-xs font-bold text-gray-500 mb-1">심각</div>
+                                            <div className="text-xl font-extrabold text-red-600">{summaryCounts.urgent}</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100">
+                                            <div className="text-xs font-bold text-gray-500 mb-1">오늘 처리 권장</div>
+                                            <div className="text-xl font-extrabold text-blue-600">{summaryCounts.waiting}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            {/* Drawer Overlay */}
+            <ReportDrawer
+                isOpen={isDrawerOpen}
+                onClose={handleCloseReport}
+                store={selectedDrawerStore}
+            />
+        </div>
+    );
+}

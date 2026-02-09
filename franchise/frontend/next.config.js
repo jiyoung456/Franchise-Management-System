@@ -15,16 +15,18 @@ const nextConfig = {
         return [
             {
                 source: '/api/actions/:id/execution',
-                destination: 'http://localhost:8080/actions/:id/execution',
+                destination: 'http://43.200.3.26:8080/actions/:id/execution',
             },
             {
                 source: '/api/actions/summary',
-                destination: 'http://localhost:8080/actions/summary',
+                destination: 'http://43.200.3.26:8080/actions/summary',
             },
             {
                 source: '/api/:path*',
-                destination: 'http://localhost:8080/api/:path*',
+                destination: 'http://43.200.3.26:8080/api/:path*',
             },
+
+
         ];
     },
 };

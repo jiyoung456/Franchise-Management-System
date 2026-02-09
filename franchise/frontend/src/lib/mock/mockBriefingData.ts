@@ -2,12 +2,12 @@ import { DailyBriefing } from '@/types';
 
 export const MOCK_BRIEFING: DailyBriefing = {
     date: '2025-09-01',
-    summary: "오늘 강남권역의 리스크 점수가 전일 대비 15% 상승했습니다. 특히 '강남역점'의 위생 등급 하락 리스크가 감지되어 긴급 점검이 필요합니다. 2건의 템플릿 승인 요청이 대기 중입니다.",
+    summary: "오늘 담당 권역에서 CRITICAL 이벤트 2건이 발생했습니다. 특히 망원점과 청량리점의 위험도가 상승하여 즉시 조치 생성 및 재점검 승인이 필요합니다.",
     todoList: [
-        { id: '1', text: '강남역점 긴급 위생 점검', isCompleted: false, type: 'CHECK', priority: 'HIGH' },
-        { id: '2', text: '2025 상반기 정기 점검 템플릿 승인', isCompleted: false, type: 'APPROVE', priority: 'HIGH' },
-        { id: '3', text: '역삼점 매출 하락 원인 분석 리포트 확인', isCompleted: false, type: 'REVIEW', priority: 'MEDIUM' },
-        { id: '4', text: '부산 지역 신규 매장 방문 일정 조율', isCompleted: true, type: 'CHECK', priority: 'LOW' }
+        { id: '1', text: '망원점 주의/심각 이벤트 조치 생성', isCompleted: false, type: 'CHECK', priority: 'HIGH' },
+        { id: '2', text: '리스크 상위 2개 점포 SV 리소스 재배치 지시', isCompleted: false, type: 'APPROVE', priority: 'HIGH' },
+        { id: '3', text: '고진아 SV 진행 조치 3건 상태 점검', isCompleted: false, type: 'REVIEW', priority: 'MEDIUM' },
+        { id: '4', text: '이번 주 방문 계획 승인', isCompleted: true, type: 'APPROVE', priority: 'LOW' }
     ],
     priorityStores: [
         { storeId: '1', storeName: '강남역점', reason: '위생 리스크 급증 (85점)', riskScore: 85, eventId: '1' },
@@ -15,8 +15,9 @@ export const MOCK_BRIEFING: DailyBriefing = {
         { storeId: '5', storeName: '광주수완점', reason: '3일 연속 매출 하락', riskScore: 68, eventId: '5' }
     ],
     keyMetrics: {
-        totalIssues: 5,
+        totalIssues: 7,
         criticalIssues: 2,
+        inProgressActions: 3,
         pendingApprovals: 2
     }
 };

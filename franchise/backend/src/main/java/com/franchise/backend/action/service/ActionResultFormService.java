@@ -18,6 +18,7 @@ import com.franchise.backend.store.repository.StoreRepository;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.time.Clock;
 
 @Service
 @RequiredArgsConstructor

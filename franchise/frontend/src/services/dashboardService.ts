@@ -35,5 +35,30 @@ export const DashboardService = {
             console.error('Failed to fetch admin summary:', error);
             throw error;
         }
+    },
+    // 4. SV 위험 점포 TOP
+    getSvRiskStores: async (limit: number = 3) => {
+        try {
+            const response = await api.get(`/stores/supervisor?sort=risk&limit=${limit}`);
+            return response.data.data || response.data;
+        } catch (error) {
+            console.error('Failed to fetch SV risk stores:', error);
+            throw error;
+        }
+
+
+    },
+    getRiskReport: async (storeId: number) => {
+        try {
+            const response = await api.get(`/risk/report/${storeId}`);
+            return response.data.data || response.data;
+        } catch (error) {
+            console.error('Failed to fetch risk report:', error);
+            throw error;
+        }
     }
+
+
+
+
 };
