@@ -147,7 +147,6 @@ const TopRiskListDrawer = ({ isOpen, onClose, stores, onSelectStore }: any) => {
                             <Siren className="w-5 h-5 text-red-500" />
                             위험 점포 TOP 5
                         </h2>
-                        <p className="text-xs text-gray-400 font-bold mt-1 uppercase">REAL-TIME RISK MONITORING</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
                         <X className="w-6 h-6" />
@@ -158,8 +157,7 @@ const TopRiskListDrawer = ({ isOpen, onClose, stores, onSelectStore }: any) => {
                     {stores.map((store: any, i: number) => (
                         <div
                             key={store.storeId || store.id}
-                            onClick={() => onSelectStore(store)}
-                            className="group p-5 bg-gray-50 rounded-2xl border border-transparent hover:border-red-100 hover:bg-red-50/50 transition-all cursor-pointer flex items-center justify-between"
+                            className="group p-5 bg-gray-50 rounded-2xl border border-transparent transition-all flex items-center justify-between"
                         >
                             <div className="flex items-center gap-4">
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${i === 0 ? 'bg-red-100 text-red-600' : 'bg-white text-gray-400 shadow-sm border border-gray-100'}`}>
@@ -167,18 +165,11 @@ const TopRiskListDrawer = ({ isOpen, onClose, stores, onSelectStore }: any) => {
                                 </div>
                                 <div>
                                     <p className="text-base font-bold text-gray-900 group-hover:text-red-700">{store.storeName || store.name}</p>
-                                    <p className="text-xs text-gray-400 font-bold mt-0.5">Risk Score: <span className="text-red-500">{store.riskScore || store.currentStateScore || store.score}점</span></p>
+                                    <p className="text-xs text-gray-400 font-bold mt-0.5">위험 점수: <span className="text-red-500">{store.riskScore || store.currentStateScore || store.score}점</span></p>
                                 </div>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-red-400" />
                         </div>
                     ))}
-                </div>
-
-                <div className="p-6 border-t border-gray-50 bg-gray-50/50">
-                    <p className="text-[11px] text-gray-400 font-medium leading-relaxed">
-                        * 해당 리스트는 실시간 AI 분석 결과에 따라 자동으로 업데이트됩니다. 점포를 클릭하여 상세 위험 분석 내용을 확인하세요.
-                    </p>
                 </div>
             </div>
         </div>

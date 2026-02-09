@@ -24,7 +24,7 @@ export const QscService = {
     getActiveTemplates: async (): Promise<QSCTemplate[]> => {
         try {
             // QscTemplateController is at /qsc/inspection/new (Bypassing /api)
-            const response = await api.get('/qsc/inspection/new', { baseURL: 'http://43.200.3.26:8080' });
+            const response = await api.get('/qsc/inspection/new');
             const data = response.data || [];
 
             return data.map((item: any) => ({
@@ -47,7 +47,7 @@ export const QscService = {
     getTemplateDetail: async (templateId: string): Promise<QSCTemplate | undefined> => {
         try {
             // QscTemplateDetailController is at /qsc/templates/{id} (Bypassing /api)
-            const response = await api.get(`/qsc/templates/${templateId}`, { baseURL: 'http://43.200.3.26:8080' });
+            const response = await api.get(`/qsc/templates/${templateId}`);
             const data = response.data;
 
             if (!data) return undefined;
@@ -56,29 +56,27 @@ export const QscService = {
             const allItems: QSCItem[] = [];
             const categories = data.categories.map((cat: any) => {
                 const catItems = cat.items.map((item: any) => ({
+                    ...item,
                     id: item.templateItemId.toString(),
-                    categoryId: cat.templateCategoryId.toString(),
+                    templateItemId: item.templateItemId.toString(),
                     name: item.itemName,
-                    weight: 5, // Default weight as not in DTO
-                    inputType: 'SCORE',
-                    isRequired: item.isRequired,
-                    sortOrder: item.sortOrder
+                    weight: 5,
+                    inputType: 'SCORE'
                 }));
                 allItems.push(...catItems);
                 return {
+                    ...cat,
                     id: cat.templateCategoryId.toString(),
-                    code: cat.categoryCode,
                     name: cat.categoryName,
+                    code: cat.categoryCode,
                     weight: cat.categoryWeight,
                     items: catItems
                 };
             });
 
             return {
+                ...data,
                 templateId: data.templateId.toString(),
-                templateName: data.templateName,
-                version: data.version,
-                inspectionType: data.inspectionType,
                 items: allItems,
                 categories: categories
             } as any; // Cast to bypass strict legacy structure if needed, but matching DTO is primary
@@ -127,7 +125,7 @@ export const QscService = {
                 isPassed: item.isPassed,
                 isReinspectionNeeded: item.needsReinspection,
                 inspector: item.inspectorId.toString(),
-                status: item.status === 'CONFIRMED' ? '완료' : '작성중',
+                status: item.status === 'CONFIRMED' ? '완료' : '완료',
                 templateId: item.templateId.toString(),
                 summaryComment: item.summaryComment
             })).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -149,7 +147,7 @@ export const QscService = {
             // QscStoreController is @RequestMapping("/qsc/stores").
             // Default api baseURL is '/api', so we need to override it to hit root if controller lacks /api prefix.
             // Following pattern from getActiveTemplates:
-            const response = await api.get(`/qsc/stores/test/${svId}`, { baseURL: 'http://43.200.3.26:8080' });
+            const response = await api.get(`/qsc/stores/test/${svId}`);
             return response.data || [];
         } catch (error) {
             console.error('Failed to fetch stats by supervisor:', error);
@@ -311,7 +309,7 @@ export const QscService = {
         try {
             // Use explicit baseURL if needed, or default api.
             // Based on user snippet: @GetMapping("/{inspectionId}") in a controller (likely /qsc/inspections)
-            const response = await api.get(`/qsc/inspections/${inspectionId}`, { baseURL: 'http://43.200.3.26:8080' });
+            const response = await api.get(`/qsc/inspections/${inspectionId}`);
             const data = response.data;
 
             if (!data) return undefined;
@@ -415,7 +413,7 @@ export const QscService = {
             };
 
             // Call Backend (Bypassing /api as controller is at /qsc/inspections)
-            await api.post('/qsc/inspections', payload, { baseURL: 'http://43.200.3.26:8080' });
+            await api.post('/qsc/inspections', payload);
             return true;
         } catch (error) {
             console.error('Failed to save inspection:', error);

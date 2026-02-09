@@ -98,24 +98,43 @@ export default function NewInspectionPage() {
         setScores(prev => ({ ...prev, [itemId]: value }));
     };
 
-    const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        setOverallComment("AI가 이미지를 분석중입니다...");
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        // Convert uploaded files to Base64 for LocalStorage persistence (Demo)
-        // In real backend integration, we would use FormData to send files.
-        Array.from(files).forEach(file => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setOverallPhotos(prev => [...prev, base64String]);
-            };
-            reader.readAsDataURL(file);
-        });
+        const file = files[0]; // 첫 사진만 GPT 분석
 
-        // Reset input
+        // 1. 화면에 미리보기용 base64 저장
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result as string;
+            setOverallPhotos(prev => [...prev, base64String]);
+        };
+        reader.readAsDataURL(file);
+
+        // 2. GPT 서버로 전송
+        try {
+            const formData = new FormData();
+            formData.append("photo", file);
+
+            const res = await fetch("/api/analyze-photo", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await res.json();
+
+            //GPT 결과를 종합 의견에 자동 입력
+            setOverallComment(data.comment);
+
+        } catch (err) {
+            console.error("GPT 분석 실패", err);
+        }
+
         e.target.value = '';
     };
+
 
     const removeOverallPhoto = (idx: number) => {
         setOverallPhotos(prev => prev.filter((_, i) => i !== idx));

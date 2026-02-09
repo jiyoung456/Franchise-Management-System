@@ -329,39 +329,53 @@ export default function SVDashboard({ user }: { user: UserType }) {
     }, [user]);
 
     const handleOpenReport = async (store: SvRiskStore) => {
-        try {
-            const sid = store.storeId || store.id;
-            if (!sid) return;
+      try {
+        const sid = store.storeId || store.id;
+        if (!sid) return;
 
-            setLoading(true);
-            const [report, events, qscData, actionData] = await Promise.all([
-                DashboardService.getRiskReport(Number(sid)),
-                StoreService.getStoreEvents(sid.toString(), 10),
-                QscService.getStoreQscList(Number(sid)),
-                ActionService.getActions()
-            ]);
+        setLoading(true);
 
-            setSelectedDrawerStore({
-                ...store,
-                storeId: Number(sid),
-                storeName: store.storeName || store.name || '',
-                state: store.state || (store.riskLevel === 'HIGH' ? 'RISK' : store.riskLevel === 'MEDIUM' ? 'WATCHLIST' : 'NORMAL'),
-                currentStateScore: store.currentStateScore || store.score || 0,
-                report,
-                events,
-                qscInspections: qscData,
-                actions: actionData.filter((a: ActionItem) => a.storeId?.toString() === sid.toString())
-            });
-            setIsDrawerOpen(true);
-        } catch (error) {
-            console.error("Failed to load report data", error);
-            // Fallback to what we have
-            setSelectedDrawerStore(store);
-            setIsDrawerOpen(true);
-        } finally {
-            setLoading(false);
-        }
+        // 상세페이지와 동일
+        const [storeInfo, events, qscData, actionData] = await Promise.all([
+          StoreService.getStore(sid.toString()),
+          StoreService.getStoreEvents(sid.toString(), 20),
+          QscService.getStoreQscList(Number(sid)),
+          ActionService.getActions(),
+        ]);
+
+        const latestQscScore =
+          storeInfo?.qscScore ??
+          qscData?.[0]?.score ??
+          0;
+
+        setSelectedDrawerStore({
+          ...store,
+          ...storeInfo,
+          storeId: Number(sid),
+          storeName: storeInfo?.name,
+          state: storeInfo?.currentState,
+          currentStateScore: storeInfo?.currentStateScore ?? 0,
+
+          report: {
+            qscScore: latestQscScore
+          },
+
+          events,
+          qscInspections: qscData,
+          actions: actionData.filter(
+            (a: ActionItem) => a.storeId?.toString() === sid.toString()
+          )
+        });
+
+        setIsDrawerOpen(true);
+      } catch (error) {
+        console.error("drawer load fail", error);
+      } finally {
+        setLoading(false);
+      }
     };
+
+
 
 
     const handleCloseReport = () => {
