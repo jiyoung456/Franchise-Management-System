@@ -22,13 +22,12 @@ public class QscStoreController {
 
     @GetMapping("/me")
     public List<QscStoreSearchResponse> getMyStores(
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
-        return qscStoreQueryService.getStoresForSupervisorLoginId( userDetails.getUsername());
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return qscStoreQueryService.getStoresForSupervisorLoginId(userDetails.getUsername());
     }
 
-    //sv 권한 오류 계속 발생해서
-    //임시로 해당 sv 매장 불러올 수 있는지 테스트하는 용도
+    // sv 권한 오류 계속 발생해서
+    // 임시로 해당 sv 매장 불러올 수 있는지 테스트하는 용도
     @GetMapping("/test/{supervisorId}")
     public List<QscStoreSearchResponse> testStores(@PathVariable Long supervisorId) {
         return qscStoreQueryService.getStoresForSupervisor(supervisorId);

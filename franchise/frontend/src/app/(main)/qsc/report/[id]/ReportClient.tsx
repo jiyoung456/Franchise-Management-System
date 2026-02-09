@@ -156,9 +156,9 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                 </div>
             </div>
 
-            {/* Score Summary / Navigation */}
+            {/* Score Summary */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">영역별 점수 (클릭하여 이동)</h3>
+                <h3 className="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wider">영역별 점수</h3>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     {template?.categories?.map((cat: any) => {
                         const catItems = cat.items || [];
@@ -176,24 +176,20 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                         }
 
                         return (
-                            <button
+                            <div
                                 key={cat.id}
-                                onClick={() => {
-                                    const el = document.getElementById(`category-${cat.id}`);
-                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }}
-                                className="flex flex-col p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-100 text-left group"
+                                className="flex flex-col p-4 rounded-lg bg-gray-50 border border-gray-100 text-left"
                             >
-                                <span className={`text-base font-bold mb-2 ${cat.code === 'QUALITY' ? 'text-blue-600' :
-                                    cat.code === 'SERVICE' ? 'text-green-600' :
-                                        cat.code === 'CLEANLINESS' ? 'text-purple-600' :
-                                            cat.code === 'SAFETY' ? 'text-orange-600' : 'text-red-600'
-                                    }`}>{cat.name}</span>
+                                <span className={`text-base font-bold mb-2 ${cat.code === 'QUALITY' || cat.categoryCode === 'QUALITY' ? 'text-blue-600' :
+                                    cat.code === 'SERVICE' || cat.categoryCode === 'SERVICE' ? 'text-green-600' :
+                                        cat.code === 'CLEANLINESS' || cat.categoryCode === 'CLEANLINESS' ? 'text-purple-600' :
+                                            cat.code === 'SAFETY' || cat.categoryCode === 'SAFETY' ? 'text-orange-600' : 'text-red-600'
+                                    }`}>{cat.name || cat.categoryName}</span>
                                 <div className="flex items-end gap-1">
                                     <span className="text-3xl font-extrabold text-gray-900">{catScore}</span>
-                                    {catMaxScore && <span className="text-sm text-gray-400 mb-1.5">/ {catMaxScore}</span>}
+                                    <span className="text-sm text-gray-400 mb-1.5">/ {cat.weight || cat.categoryWeight || 0}</span>
                                 </div>
-                            </button>
+                            </div>
                         );
                     })}
                 </div>

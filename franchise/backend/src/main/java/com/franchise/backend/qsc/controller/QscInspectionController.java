@@ -24,8 +24,7 @@ public class QscInspectionController {
     @PostMapping
     public Map<String, Long> save(
             @AuthenticationPrincipal UserPrincipal principal,
-            @RequestBody QscInspectionSaveRequest req
-    ) {
+            @RequestBody QscInspectionSaveRequest req) {
         Long inspectionId = commandService.save(principal.getUserId(), req);
         return Map.of("inspectionId", inspectionId);
     }
@@ -44,7 +43,7 @@ public class QscInspectionController {
     @GetMapping
     public List<QscInspectionListResponse> getList(
             @RequestParam(required = false) String region, // Store.regionCode
-            @RequestParam(required = false) String status  // QscMaster.status (COMPLETED/CONFIRMED)
+            @RequestParam(required = false) String status // QscMaster.status (COMPLETED/CONFIRMED)
     ) {
         return queryService.getList(region, status);
     }
