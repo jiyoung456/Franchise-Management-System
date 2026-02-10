@@ -254,7 +254,7 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
             FROM qsc_master qm
             JOIN stores s ON s.store_id = qm.store_id
             WHERE s.store_operation_status = 'OPEN'
-              AND qm.status = 'CONFIRMED'
+              AND qm.status IN ( 'COMPLETED' , 'CONFIRMED')
               AND COALESCE(qm.confirmed_at, qm.inspected_at) >= :startInclusive
               AND COALESCE(qm.confirmed_at, qm.inspected_at) <  :endExclusive
         ),
@@ -303,7 +303,7 @@ public interface QscMasterRepository extends JpaRepository<QscMaster, Long> {
             FROM qsc_master qm
             JOIN stores s ON s.store_id = qm.store_id
             WHERE s.store_operation_status = 'OPEN'
-              AND qm.status = 'CONFIRMED'
+              AND qm.status IN ( 'COMPLETED' , 'CONFIRMED')
               AND COALESCE(qm.confirmed_at, qm.inspected_at) >= :startInclusive
               AND COALESCE(qm.confirmed_at, qm.inspected_at) <  :endExclusive
         ),
