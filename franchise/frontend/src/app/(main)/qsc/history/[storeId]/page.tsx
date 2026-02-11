@@ -176,8 +176,8 @@ export default function QscHistoryPage() {
                                 </div>
 
                                 {/* Right: CTA Text */}
-                                <div className="text-sm text-blue-500 font-medium group-hover:underline hidden md:block">
-                                    리스트 클릭시 QSC 점검 이력 조회 상세 페이지로
+                                <div className="text-sm text-blue-500 font-medium group-hover:underline hidden md:block text-right">
+                                    점검 이력 상세 조회
                                 </div>
                             </div>
                         </div>

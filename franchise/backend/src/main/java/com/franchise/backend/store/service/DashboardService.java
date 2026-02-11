@@ -355,6 +355,7 @@ public class DashboardService {
             return emptySupervisorSummary();
         }
 
+
         // 1) SV 담당 점포
         List<Store> stores = storeRepository.findBySupervisorLoginId(loginId);
         List<Long> storeIds = stores.stream().map(Store::getId).toList();
@@ -678,23 +679,33 @@ public class DashboardService {
 
     // Sort enum (서버에서 강제)
     private enum StoreSort {
-        QSC_SCORE_DESC(Comparator
-                .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
-                .reversed()
-                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
 
-        QSC_SCORE_ASC(Comparator
-                .comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+        QSC_SCORE_DESC(
+                Comparator.comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .reversed()
+                        .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))
+        ),
 
-        INSPECTED_AT_DESC(Comparator
-                .comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
-                .reversed()
-                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))),
+        QSC_SCORE_ASC(
+                Comparator.comparing(StoreListResponse::getQscScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))
+        ),
 
-        INSPECTED_AT_ASC(Comparator
-                .comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder())));
+        INSPECTED_AT_DESC(
+                Comparator.comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .reversed()
+                        .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))
+        ),
+
+        INSPECTED_AT_ASC(
+                Comparator.comparing(StoreListResponse::getLastInspectionDate, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))
+        ),
+
+        RISK(
+                Comparator.comparing(StoreListResponse::getCurrentStateScore, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(StoreListResponse::getStoreName, Comparator.nullsLast(Comparator.naturalOrder()))
+        );
 
         private final Comparator<StoreListResponse> comparator;
 
@@ -706,4 +717,5 @@ public class DashboardService {
             return comparator;
         }
     }
+
 }

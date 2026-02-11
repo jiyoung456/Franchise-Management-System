@@ -59,6 +59,9 @@ public class StoreScopeService {
 
     public List<StoreListResponse> getStoresForSupervisor(String supervisorLoginId, StoreSearchRequest condition) {
 
+
+
+
         int limit = condition.getLimit() > 0 ? condition.getLimit() : 50;
 
         Sort sort = resolveSort(condition.getSort());
@@ -80,6 +83,7 @@ public class StoreScopeService {
                     condition.getKeyword()
             );
         }
+
 
 
         return stores.stream()
