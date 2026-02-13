@@ -10,31 +10,8 @@ interface UrgentEvent {
     summary: string;
     riskLevel?: 'CRITICAL' | 'WARNING';
     supervisorName?: string;
+    hasAction?: boolean; // 이미 조치가 생성되었는지 여부
 }
-
-const MOCK_EVENTS: UrgentEvent[] = [
-    {
-        id: 'EV-001',
-        storeName: '강남역점',
-        category: 'POS',
-        eventName: '마진율 하락(-15% 이하) 감지',
-        riskLevel: 'CRITICAL'
-    },
-    {
-        id: 'EV-002',
-        storeName: '미아점',
-        category: 'OPERATION',
-        eventName: 'SV 방문 공백 60일 이상 감지',
-        riskLevel: 'CRITICAL'
-    },
-    {
-        id: 'EV-003',
-        storeName: '논현점',
-        category: 'QSC',
-        eventName: 'QSC 총점 하락(>= 5점) - WATCH 등급',
-        riskLevel: 'WARNING'
-    }
-];
 
 interface UrgentEventCardsProps {
     onViewReport: (id: string, type: 'EVENT' | 'ACTION', svName?: string, summary?: string, eventId?: string) => void;
@@ -49,22 +26,38 @@ export function UrgentEventCards({ onViewReport }: UrgentEventCardsProps) {
         const fetchEvents = async () => {
             try {
                 setIsLoading(true);
-                const response = await api.get('/events');
+
+                // 이벤트와 액션을 동시에 가져오기
+                const [eventsResponse, actionsResponse] = await Promise.all([
+                    api.get('/events'),
+                    api.get('/actions')
+                ]);
 
                 // API 응답 형식이 { data: [...] } 인지 아니면 바로 [...] 인지 확인
-                const rawData = response.data.data || response.data;
+                const rawData = eventsResponse.data.data || eventsResponse.data;
+                const actionsData = actionsResponse.data.data || actionsResponse.data;
 
                 if (Array.isArray(rawData)) {
                     // 최신 이벤트 3개만 추출
-                    const latestEvents = rawData.slice(0, 3).map((item: any) => ({
-                        id: String(item.id || item.eventId),
-                        storeId: item.storeId,
-                        storeName: item.storeName,
-                        issueType: item.issueType || item.type,
-                        summary: item.summary || item.message,
-                        riskLevel: item.riskLevel || (item.severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING'),
-                        supervisorName: item.assignedToUserName || item.supervisorName || item.supervisor || ''
-                    }));
+                    const latestEvents = rawData.slice(0, 3).map((item: any) => {
+                        const eventId = String(item.id || item.eventId);
+
+                        // 이 이벤트에 대한 액션이 있는지 확인
+                        const hasRelatedAction = Array.isArray(actionsData) && actionsData.some((action: any) =>
+                            String(action.relatedEventId || action.eventId) === eventId
+                        );
+
+                        return {
+                            id: eventId,
+                            storeId: item.storeId,
+                            storeName: item.storeName,
+                            issueType: item.issueType || item.type,
+                            summary: item.summary || item.message,
+                            riskLevel: item.riskLevel || (item.severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING'),
+                            supervisorName: item.assignedToUserName || item.supervisorName || item.supervisor || '',
+                            hasAction: hasRelatedAction || item.hasAction || item.actionCreated || false
+                        };
+                    });
                     setEvents(latestEvents);
                 } else {
                     console.error('Expected array but got:', rawData);
@@ -138,12 +131,18 @@ export function UrgentEventCards({ onViewReport }: UrgentEventCardsProps) {
                         </div>
 
                         <div className="mt-auto">
-                            <button
-                                onClick={() => onViewReport(String(event.storeId), 'ACTION', event.supervisorName, event.summary, event.id)}
-                                className="w-full py-2.5 bg-[#1a73e8] text-white rounded-xl text-[11px] font-bold hover:bg-[#1557b0] shadow-md shadow-blue-100"
-                            >
-                                조치 생성
-                            </button>
+                            {event.hasAction ? (
+                                <div className="w-full py-2.5 bg-slate-100 text-slate-500 rounded-xl text-[11px] font-bold text-center border border-slate-200">
+                                    조치 완료
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => onViewReport(String(event.storeId), 'ACTION', event.supervisorName, event.summary, event.id)}
+                                    className="w-full py-2.5 bg-[#1a73e8] text-white rounded-xl text-[11px] font-bold hover:bg-[#1557b0] shadow-md shadow-blue-100"
+                                >
+                                    조치 생성
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}

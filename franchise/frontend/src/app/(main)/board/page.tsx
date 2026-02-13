@@ -59,7 +59,7 @@ export default function BoardListPage() {
     if (loading) return <div className="p-8 text-center text-gray-500">게시물을 불러오는 중...</div>;
 
     return (
-        <div className="space-y-6">
+        <div className="pb-24 space-y-8">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">공지사항 및 게시판</h1>

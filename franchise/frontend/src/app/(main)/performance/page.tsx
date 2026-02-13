@@ -83,11 +83,11 @@ function AdminPerformanceView() {
     const displayRanking = rankSort === 'top' ? ranking : lowRanking;
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="pb-24 space-y-8">
             {/* Header & Global Filters */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                         성과 분석 대시보드
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
@@ -364,11 +364,11 @@ function SvPerformanceView() {
     const displayRanking = rankSort === 'top' ? ranking : lowRanking;
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="pb-24 space-y-8">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">
                         성과 분석 대시보드
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">

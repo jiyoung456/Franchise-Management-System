@@ -36,6 +36,7 @@ import { StoreService } from '@/services/storeService';
 import { QscService } from '@/services/qscService';
 import { ActionService } from '@/services/actionService';
 import { SupervisorDashboardSummary, User as UserType, ActionItem } from '@/types';
+import { maskName } from '@/utils/maskName';
 
 // --- Types (Local) ---
 interface SvRiskStore {
@@ -329,50 +330,50 @@ export default function SVDashboard({ user }: { user: UserType }) {
     }, [user]);
 
     const handleOpenReport = async (store: SvRiskStore) => {
-      try {
-        const sid = store.storeId || store.id;
-        if (!sid) return;
+        try {
+            const sid = store.storeId || store.id;
+            if (!sid) return;
 
-        setLoading(true);
+            setLoading(true);
 
-        // 상세페이지와 동일
-        const [storeInfo, events, qscData, actionData] = await Promise.all([
-          StoreService.getStore(sid.toString()),
-          StoreService.getStoreEvents(sid.toString(), 20),
-          QscService.getStoreQscList(Number(sid)),
-          ActionService.getActions(),
-        ]);
+            // 상세페이지와 동일
+            const [storeInfo, events, qscData, actionData] = await Promise.all([
+                StoreService.getStore(sid.toString()),
+                StoreService.getStoreEvents(sid.toString(), 20),
+                QscService.getStoreQscList(Number(sid)),
+                ActionService.getActions(),
+            ]);
 
-        const latestQscScore =
-          storeInfo?.qscScore ??
-          qscData?.[0]?.score ??
-          0;
+            const latestQscScore =
+                storeInfo?.qscScore ??
+                qscData?.[0]?.score ??
+                0;
 
-        setSelectedDrawerStore({
-          ...store,
-          ...storeInfo,
-          storeId: Number(sid),
-          storeName: storeInfo?.name,
-          state: storeInfo?.currentState,
-          currentStateScore: storeInfo?.currentStateScore ?? 0,
+            setSelectedDrawerStore({
+                ...store,
+                ...storeInfo,
+                storeId: Number(sid),
+                storeName: storeInfo?.name,
+                state: storeInfo?.currentState,
+                currentStateScore: storeInfo?.currentStateScore ?? 0,
 
-          report: {
-            qscScore: latestQscScore
-          },
+                report: {
+                    qscScore: latestQscScore
+                },
 
-          events,
-          qscInspections: qscData,
-          actions: actionData.filter(
-            (a: ActionItem) => a.storeId?.toString() === sid.toString()
-          )
-        });
+                events,
+                qscInspections: qscData,
+                actions: actionData.filter(
+                    (a: ActionItem) => a.storeId?.toString() === sid.toString()
+                )
+            });
 
-        setIsDrawerOpen(true);
-      } catch (error) {
-        console.error("drawer load fail", error);
-      } finally {
-        setLoading(false);
-      }
+            setIsDrawerOpen(true);
+        } catch (error) {
+            console.error("drawer load fail", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
 
@@ -417,7 +418,7 @@ export default function SVDashboard({ user }: { user: UserType }) {
             <div className="flex items-center justify-between mb-13">
                 <div>
                     <p className="text-xl text-gray-700">
-                        반갑습니다, <span className="text-[#1a73e8] font-bold">{user.userName}</span> SV님. 오늘의 핵심 매장 지표를 분석했습니다.
+                        반갑습니다, <span className="text-[#1a73e8] font-bold">{maskName(user.userName)}</span> SV님. 오늘의 핵심 매장 지표를 분석했습니다.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -36,26 +36,24 @@ export default function TemplateListPage() {
     }, [searchTerm, typeFilter, statusFilter]);
 
     return (
-        <div className="space-y-8 mx-auto w-full pb-20">
+        <div className="pb-24 space-y-8">
             {/* Header Section */}
-            <div className="flex flex-col gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">점검 템플릿 관리</h1>
-                <p className="text-sm text-gray-500 mt-1">점검 템플릿은 점검 기준과 점수 산출의 기준이 되며, 활성화된 최신 버전만 신규 점검에 사용됩니다.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">점검 템플릿 관리</h1>
+                    <p className="text-sm text-gray-500 mt-1">점검 템플릿은 점검 기준과 점수 산출의 기준이 되며, 활성화된 최신 버전만 신규 점검에 사용됩니다.</p>
+                </div>
+                <Link
+                    href="/qsc/templates/new"
+                    className="flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                >
+                    <Plus className="w-5 h-5 mr-1.5" />
+                    새 점검 템플릿 등록
+                </Link>
             </div>
 
             {/* Actions & Content Container */}
             <div className="flex flex-col space-y-4">
-
-                {/* Top Action Bar */}
-                <div className="flex justify-end">
-                    <Link
-                        href="/qsc/templates/new"
-                        className="flex items-center justify-center px-5 py-2.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
-                    >
-                        <Plus className="w-5 h-5 mr-1.5" />
-                        새 점검 템플릿 등록
-                    </Link>
-                </div>
 
                 {/* Main Content Card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden min-h-[600px] flex flex-col">

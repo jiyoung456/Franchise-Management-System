@@ -70,7 +70,7 @@ export function Header() {
     };
 
     return (
-        <header className="h-16 bg-[#46B3E6] border-b border-[#3AA0D0] fixed w-full top-0 right-0 z-10 pl-64">
+        <header className="h-16 bg-[#46B3E6] border-b border-[#3AA0D0] fixed w-full top-0 right-0 z-10 lg:pl-64">
             <div className="h-full px-6 flex items-center justify-end">
                 <div className="flex items-center gap-4">
                     {/* Notification Bell - Hide for ADMIN */}

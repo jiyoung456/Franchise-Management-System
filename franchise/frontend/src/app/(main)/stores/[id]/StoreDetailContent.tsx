@@ -151,11 +151,11 @@ export default function StoreDetailContent() {
         }
 
         return [
-            { date: '2025-12-01', level: 1, status: 'NORMAL' },
-            { date: '2025-12-15', level: 1, status: 'NORMAL' },
-            { date: '2026-01-01', level: 2, status: 'WATCHLIST' },
-            { date: '2026-01-08', level: 2, status: 'WATCHLIST' },
-            { date: '2026-01-15', level: store.currentState === 'RISK' ? 3 : store.currentState === 'WATCHLIST' ? 2 : 1, status: store.currentState }
+            { date: '2025-07-01', level: 1, status: 'NORMAL' },
+            { date: '2025-07-15', level: 1, status: 'NORMAL' },
+            { date: '2025-08-01', level: 2, status: 'WATCHLIST' },
+            { date: '2025-08-08', level: 2, status: 'WATCHLIST' },
+            { date: '2025-08-31', level: store.currentState === 'RISK' ? 3 : store.currentState === 'WATCHLIST' ? 2 : 1, status: store.currentState }
         ];
     }, [store]);
 

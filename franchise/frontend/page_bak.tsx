@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/common/Logo';
-import Footer from '@/components/layout/Footer';
 import { ArrowRight, BarChart3, CheckCircle2, LayoutDashboard, Siren } from 'lucide-react';
 
 export default function LandingPage() {
@@ -162,36 +161,54 @@ export default function LandingPage() {
 
                         <div className="grid md:grid-cols-2 gap-8">
                             {/* Dashboard Preview Placeholder */}
-                            <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white group">
+                            <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-slate-100 group">
                                 <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-red-400"></div>
                                     <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                                     <span className="ml-2 text-xs text-slate-400 font-mono">Dashboard View</span>
                                 </div>
-                                <div className="relative w-full bg-white" style={{ paddingBottom: '75%' }}>
-                                    <img
-                                        src="/risk.png"
-                                        alt="운영 대시보드 화면"
-                                        className="absolute top-0 left-0 w-full h-full object-contain p-2"
-                                    />
+                                <div className="p-8 flex items-center justify-center min-h-[300px] bg-slate-50 group-hover:bg-slate-100 transition-colors">
+                                    {/* Mock UI Structure */}
+                                    <div className="w-full space-y-4 opacity-60">
+                                        <div className="grid grid-cols-4 gap-4">
+                                            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-white rounded-lg shadow-sm"></div>)}
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <div className="h-64 col-span-2 bg-white rounded-lg shadow-sm"></div>
+                                            <div className="h-64 bg-white rounded-lg shadow-sm"></div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute font-bold text-slate-400 pointer-events-none">
+                                        운영 대시보드 화면
+                                    </div>
                                 </div>
                             </div>
 
                             {/* QSC Report Preview Placeholder */}
-                            <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white group">
+                            <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-slate-100 group">
                                 <div className="bg-white p-4 border-b border-slate-100 flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full bg-red-400"></div>
                                     <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                                     <div className="w-3 h-3 rounded-full bg-green-400"></div>
                                     <span className="ml-2 text-xs text-slate-400 font-mono">QSC Report View</span>
                                 </div>
-                                <div className="relative w-full bg-white" style={{ paddingBottom: '75%' }}>
-                                    <img
-                                        src="/qsc.png"
-                                        alt="QSC 점검 리포트 화면"
-                                        className="absolute top-0 left-0 w-full h-full object-contain p-2"
-                                    />
+                                <div className="p-8 flex items-center justify-center min-h-[300px] bg-slate-50 group-hover:bg-slate-100 transition-colors">
+                                    {/* Mock UI Structure */}
+                                    <div className="w-full space-y-4 opacity-60">
+                                        <div className="h-12 w-1/3 bg-white rounded mb-8"></div>
+                                        <div className="space-y-2">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <div key={i} className="h-12 bg-white rounded shadow-sm flex items-center px-4 justify-between">
+                                                    <div className="w-1/2 h-4 bg-slate-100 rounded"></div>
+                                                    <div className="w-8 h-8 bg-blue-100 rounded-full"></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="absolute font-bold text-slate-400 pointer-events-none">
+                                        QSC 점검 리포트 화면
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -210,7 +227,32 @@ export default function LandingPage() {
                 </section>
             </main>
 
-            <Footer />
+            {/* Footer */}
+            <footer className="bg-white text-slate-500 py-12 px-6 border-t border-slate-100 text-sm">
+                <div className="max-w-4xl mx-auto text-center space-y-6">
+                    {/* Links */}
+                    <div className="flex justify-center gap-6 font-bold text-slate-700">
+                        <Link href="#">개인정보 처리방침</Link>
+                        <span className="text-slate-300">|</span>
+                        <Link href="#">이용약관</Link>
+                    </div>
+
+                    {/* Company Info */}
+                    <div className="space-y-1 text-xs text-slate-500">
+                        <p>
+                            (주)알피자 <span className="mx-1">|</span> 경기도 성남시 분당구 불정로 90 (정자동) <span className="mx-1">|</span> 대표자명 : 김피자
+                        </p>
+                        <p>
+                            사업자등록번호 : 102-81-42945 <span className="mx-1">|</span> 통신판매업신고 : 2026-경기성남-0048
+                        </p>
+                    </div>
+
+                    {/* Copyright */}
+                    <div className="text-xs text-slate-400">
+                        © 2026 Alpizza Corp. All rights reserved.
+                    </div>
+                </div>
+            </footer>
         </div>
     );
 }

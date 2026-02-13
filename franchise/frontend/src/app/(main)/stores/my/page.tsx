@@ -38,7 +38,30 @@ export default function MyStoresPage() {
                 } else {
                     data = await StoreService.getStores(params);
                 }
-                setMyStores(data);
+
+                // 특정 점포들을 맨 위에 고정
+                const pinnedStoreNames = ['신촌역점', '망원점', '홍대1호점'];
+
+                const pinnedStores = data.filter(store =>
+                    pinnedStoreNames.includes(store.name)
+                );
+
+                const otherStores = data.filter(store =>
+                    !pinnedStoreNames.includes(store.name)
+                );
+
+                // 나머지 점포들은 상태별로 정렬: RISK > WATCHLIST > NORMAL
+                const sortedOtherStores = otherStores.sort((a, b) => {
+                    const stateOrder = { 'RISK': 0, 'WATCHLIST': 1, 'NORMAL': 2 };
+                    const aOrder = stateOrder[a.currentState as keyof typeof stateOrder] ?? 3;
+                    const bOrder = stateOrder[b.currentState as keyof typeof stateOrder] ?? 3;
+                    return aOrder - bOrder;
+                });
+
+                // 고정된 점포들을 맨 위에, 나머지는 그 아래에
+                const finalSortedData = [...pinnedStores, ...sortedOtherStores];
+
+                setMyStores(finalSortedData);
             } else {
                 setMyStores([]);
             }
@@ -60,11 +83,13 @@ export default function MyStoresPage() {
     if (loading && myStores.length === 0) return <div className="p-12 text-center">Loading...</div>;
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto pb-20">
-            <div className="flex items-center justify-between border-b border-gray-300 pb-4">
-                <h1 className="text-2xl font-bold text-gray-900 w-fit px-2">
-                    {role === 'SUPERVISOR' ? '내 담당 점포 목록' : role === 'ADMIN' ? '전체 점포 목록' : '내 부서 점포 목록'}
-                </h1>
+        <div className="pb-24 space-y-8">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                        {role === 'SUPERVISOR' ? '내 담당 점포 목록' : role === 'ADMIN' ? '전체 점포 목록' : '내 부서 점포 목록'}
+                    </h1>
+                </div>
                 {role === 'ADMIN' && (
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
@@ -115,10 +140,26 @@ export default function MyStoresPage() {
                         <div key={store.id} className="border border-gray-300 p-4 flex items-center justify-between hover:shadow-md transition-shadow">
                             {/* Left Info */}
                             <div className="flex flex-col gap-1">
-                                <div className="flex items-center">
-                                    <span className="font-bold text-gray-900 text-lg mr-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-gray-900 text-lg">
                                         {store.name}
                                     </span>
+                                    {/* 상태 배지 */}
+                                    {store.currentState === 'RISK' && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200">
+                                            위험
+                                        </span>
+                                    )}
+                                    {store.currentState === 'WATCHLIST' && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                                            관찰
+                                        </span>
+                                    )}
+                                    {store.currentState === 'NORMAL' && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                                            정상
+                                        </span>
+                                    )}
                                     {/* [변경] 지역명 배지 스타일 적용 */}
                                     {store.region && (
                                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">

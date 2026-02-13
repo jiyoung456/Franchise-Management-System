@@ -5,6 +5,7 @@ import { StoreReportDrawer } from './StoreReportDrawer';
 import BriefingWidget from '@/components/dashboard/BriefingWidget';
 import { MOCK_BRIEFING } from '@/lib/mock/mockBriefingData';
 import { Calendar, Download } from 'lucide-react';
+import { maskName } from '@/utils/maskName';
 
 interface ManagerDashboardProps {
     user: User;
@@ -42,7 +43,7 @@ export function ManagerDashboard({ user }: ManagerDashboardProps) {
             <div className="flex items-center justify-between mb-13">
                 <div>
                     <p className="text-xl text-gray-700">
-                        반갑습니다, <span className="text-[#1a73e8] font-bold">{user.userName}</span> 팀장님. 오늘의 핵심 매장 지표를 분석했습니다.
+                        반갑습니다, <span className="text-[#1a73e8] font-bold">{maskName(user.userName)}</span> 팀장님. 오늘의 핵심 매장 지표를 분석했습니다.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">

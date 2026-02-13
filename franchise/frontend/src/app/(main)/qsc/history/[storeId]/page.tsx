@@ -45,8 +45,9 @@ export default function QscHistoryPage() {
         let filtered = [...inspections];
 
         // Date Logic for Period (Simplified)
-        const now = new Date();
-        const cutoffDate = new Date();
+        // Use fixed 'today' as 2025-09-01 for demo consistency as requested by user
+        const now = new Date('2025-09-01');
+        const cutoffDate = new Date('2025-09-01');
         if (period === '3M') cutoffDate.setMonth(now.getMonth() - 3);
         else if (period === '6M') cutoffDate.setMonth(now.getMonth() - 6);
         else cutoffDate.setFullYear(now.getFullYear() - 1);

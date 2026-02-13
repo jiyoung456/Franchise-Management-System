@@ -33,7 +33,8 @@ export default function QscMyStoresPage() {
             const storesForStats = myStores.map((s: any) => ({ id: s.storeId, name: s.storeName, region: s.regionCode }));
             const latestInspections = await QscService.getDashboardStats(storesForStats);
 
-            const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+            // Use fixed 'today' month as '2025-09' for demo consistency as requested by user
+            const currentMonth = '2025-09';
 
             // 3. Merge Data
             const storesWithStatus = myStores.map((store: any) => {
@@ -82,11 +83,13 @@ export default function QscMyStoresPage() {
     if (loading) return <div className="p-20 text-center">로딩중...</div>;
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto pb-20">
+        <div className="pb-24 space-y-8">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900">내 담당 점포 QSC 현황</h1>
-                <p className="text-sm text-gray-500 mt-1">담당 점포의 위생 상태와 점검 일정을 관리합니다.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">내 담당 점포 QSC 현황</h1>
+                    <p className="text-sm text-gray-500 mt-1">담당 점포의 위생 상태와 점검 일정을 관리합니다.</p>
+                </div>
             </div>
 
             {/* Search & Filter */}

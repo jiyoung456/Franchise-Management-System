@@ -42,7 +42,8 @@ function SvQscDashboard() {
             const user = await AuthService.getCurrentUser();
             if (!user) return;
 
-            const now = new Date();
+            // Use fixed 'today' as 2025-09-01 for demo consistency as requested by user
+            const now = new Date('2025-09-01');
             const currentMonthStr = now.toISOString().slice(0, 7); // yyyy-MM
 
             // Parallel Fetch
@@ -83,7 +84,7 @@ function SvQscDashboard() {
             // 2. Timeline
             if (trend && trend.rows) {
                 const chartData = trend.rows.map((row: any) => ({
-                    month: row.month.substring(5) + '월', // 2026-01 -> 01월
+                    month: row.month.substring(5) + '월', // 2025-03 -> 03월
                     score: row.avgScore || 0
                 }));
                 setTimelineData(chartData);
@@ -112,11 +113,13 @@ function SvQscDashboard() {
     if (loading) return <div className="p-10 text-center">데이터 로딩중...</div>;
 
     return (
-        <div className="space-y-6">
+        <div className="pb-24 space-y-8">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">QSC 대시보드 (담당 점포)</h1>
-                <p className="text-sm text-gray-500 mt-1">담당 점포의 QSC 성과 및 리스크를 한눈에 파악하세요.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">QSC 대시보드 (담당 점포)</h1>
+                    <p className="text-sm text-gray-500 mt-1">담당 점포의 QSC 성과 및 리스크를 한눈에 파악하세요.</p>
+                </div>
             </div>
 
             {/* 1. Stats Row */}
@@ -451,11 +454,13 @@ function AdminQscDashboard({ user }: { user: any }) {
     );
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="pb-24 space-y-8 animate-in fade-in duration-500">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">QSC 품질 관리</h1>
-                <p className="text-md text-gray-500 mt-2">전체 가맹점의 QSC 점검 현황 및 등급별 분포를 모니터링합니다.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">QSC 점검 결과</h1>
+                    <p className="text-sm text-gray-500 mt-1">전체 가맹점의 QSC 점검 현황 및 등급별 분포를 모니터링합니다.</p>
+                </div>
             </div>
 
             {/* Admin KPI Cards */}
@@ -612,7 +617,7 @@ function AdminQscDashboard({ user }: { user: any }) {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <Link
-                                            href={`/qsc/report/${item.id}?storeId=${item.storeId}`}
+                                            href={`/qsc/report/latest?storeId=${item.storeId}`}
                                             className="inline-flex items-center justify-center px-4 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all opacity-0 group-hover:opacity-100"
                                         >
                                             상세 보기
@@ -677,7 +682,7 @@ export default function QscDashboardPage() {
     if (!role) return <div className="flex h-screen items-center justify-center">Loading...</div>;
 
     return (
-        <div className="pb-20">
+        <div>
             {role === 'SUPERVISOR' ? <SvQscDashboard /> : <AdminQscDashboard user={user} />}
         </div>
     );

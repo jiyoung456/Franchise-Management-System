@@ -17,6 +17,7 @@ import { QscService } from '@/services/qscService';
 import { AuthService } from '@/services/authService';
 import { DashboardService } from '@/services/dashboardService';
 import { useEffect } from 'react';
+import { maskName } from '@/utils/maskName';
 
 // --- MOCK DATA ---
 const MOCK_KPI_DATA = {
@@ -419,7 +420,7 @@ export default function AdminDashboard({ user }: { user: any }) {
             <div className="flex items-center justify-between mb-13">
                 <div>
                     <p className="text-xl text-gray-700">
-                        반갑습니다, <span className="text-[#1a73e8] font-bold">{user?.userName}</span> 관리자님. 브랜드 전체 운영 지표를 한눈에 확인하세요.
+                        반갑습니다, <span className="text-[#1a73e8] font-bold">{maskName(user?.userName)}</span> 관리자님. 브랜드 전체 운영 지표를 한눈에 확인하세요.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">

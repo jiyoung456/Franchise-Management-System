@@ -234,12 +234,12 @@ export const QscService = {
             endMonth: endMonth,
             months: months,
             rows: [
-                { month: '2025-08', avgScore: 82.0, inspectionCount: 18 },
-                { month: '2025-09', avgScore: 83.5, inspectionCount: 19 },
-                { month: '2025-10', avgScore: 84.0, inspectionCount: 20 },
-                { month: '2025-11', avgScore: 83.8, inspectionCount: 19 },
-                { month: '2025-12', avgScore: 84.5, inspectionCount: 20 },
-                { month: '2026-01', avgScore: 85.5, inspectionCount: 15 }
+                { month: '2025-03', avgScore: 82.0, inspectionCount: 18 },
+                { month: '2025-04', avgScore: 83.5, inspectionCount: 19 },
+                { month: '2025-05', avgScore: 84.0, inspectionCount: 20 },
+                { month: '2025-06', avgScore: 83.8, inspectionCount: 19 },
+                { month: '2025-07', avgScore: 84.5, inspectionCount: 20 },
+                { month: '2025-08', avgScore: 85.5, inspectionCount: 15 }
             ]
         };
     },
@@ -307,42 +307,60 @@ export const QscService = {
     // 상세 조회 (Backend Integrated)
     getInspectionDetail: async (storeId: number, inspectionId: string): Promise<any | undefined> => {
         try {
-            // Use explicit baseURL if needed, or default api.
-            // Based on user snippet: @GetMapping("/{inspectionId}") in a controller (likely /qsc/inspections)
-            const response = await api.get(`/qsc/inspections/${inspectionId}`);
-            const data = response.data;
+            let targetId = inspectionId;
+
+            // 1. If 'latest', identify the real inspection ID first
+            if (inspectionId === 'latest') {
+                const latestRes = await api.get(`/qsc/stores/${storeId}/latest`);
+                const latestSummary = latestRes.data?.data || latestRes.data;
+                const foundId = latestSummary?.inspectionId || latestSummary?.id;
+
+                if (!foundId) return undefined;
+                targetId = foundId.toString();
+            }
+
+            // 2. Load the actual CONTENT using the inspection ID
+            const response = await api.get(`/qsc/inspections/${targetId}`);
+
+            // Extract plain data object
+            let data = response.data;
+            if (data?.data) data = data.data;
+            if (Array.isArray(data)) data = data[0];
 
             if (!data) return undefined;
 
-            // Map backend response -> Frontend structure
-            // Assuming backend returns flat structure similar to save payload or list item but with details
-            return {
-                id: data.inspectionId.toString(),
-                date: data.inspectedAt ? data.inspectedAt.split('T')[0] : '',
-                storeId: data.storeId ? data.storeId.toString() : storeId.toString(),
-                storeName: data.storeName || '',
+            // 2. Map backend response (handle snake_case & multiple variants)
+            const mapped = {
+                id: (data.inspectionId || data.id || inspectionId).toString(),
+                date: (data.inspectedAt || data.inspected_at || '').split('T')[0],
+                storeId: (data.storeId || data.store_id || storeId).toString(),
+                storeName: data.storeName || data.store_name || '',
                 region: data.region || '',
-                sv: data.supervisorName || '', // Check if backend provides this
-                type: inspectionTypeMap[data.inspectionType] || '정기',
-                score: data.totalScore,
-                grade: data.grade,
-                isPassed: data.isPassed,
-                isReinspectionNeeded: data.needsReinspection,
-                inspector: data.inspectorName || data.inspectorId,
-                status: data.status === 'CONFIRMED' ? '완료' : '작성중',
-                templateId: data.templateId.toString(),
-                summaryComment: data.summaryComment,
+                sv: data.supervisorName || data.inspectorName || data.inspector_name || '',
+                type: inspectionTypeMap[data.inspectionType || data.inspection_code] || '정기',
+                score: data.totalScore || data.total_score || 0,
+                grade: data.grade || '',
+                isPassed: data.isPassed !== undefined ? data.isPassed : (data.passed !== undefined ? data.passed : true),
+                isReinspectionNeeded: data.needsReinspection || data.needs_reinspection || false,
+                inspector: data.inspectorName || data.inspectorName || data.inspector_id || '',
+                status: data.status === 'CONFIRMED' || data.status === 'COMPLETED' ? '완료' : '작성중',
+                templateId: (data.templateId || data.template_id || '').toString(),
+                summaryComment: data.summaryComment || data.summary_comment || '',
 
-                // Map answers: Backend likely returns list of ItemScore objects or similar
-                // We need to map it to Record<itemId, score> for ReportClient
-                answers: data.itemScores ? data.itemScores.reduce((acc: any, curr: any) => {
-                    acc[curr.templateItemId] = curr.score;
+                // Answers mapping: handle both itemScores and item_scores
+                answers: (data.itemScores || data.item_scores || []).reduce((acc: any, curr: any) => {
+                    const itemId = (curr.templateItemId || curr.template_item_id || curr.itemId)?.toString();
+                    if (itemId) {
+                        acc[itemId] = curr.score;
+                    }
                     return acc;
-                }, {}) : {},
+                }, {}),
 
-                overallPhotos: (data.photos || []).map((p: any) => p.photoUrl || p),
-                overallComment: data.summaryComment || ''
+                overallPhotos: (data.photos || []).map((p: any) => p.photoUrl || p.photo_url || p),
+                overallComment: data.summaryComment || data.summary_comment || ''
             };
+
+            return mapped;
         } catch (error) {
             console.error('Failed to fetch inspection detail:', error);
             return undefined;

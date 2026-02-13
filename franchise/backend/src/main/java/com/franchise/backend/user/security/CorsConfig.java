@@ -16,7 +16,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         // 프론트 주소 (로컬)
-        config.setAllowedOrigins(List.of("https://frimaai.p-e.kr","http://43.201.73.158:3000","http://localhost:3000"));
+        config.setAllowedOrigins(List.of("http://localhost:3000"));
 
         // 쿠키 포함 요청 허용
         config.setAllowCredentials(true);

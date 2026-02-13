@@ -286,11 +286,13 @@ export default function AiRiskHomePage() {
     };
 
     return (
-        <div className="space-y-6 pb-20 mx-auto w-full">
+        <div className="pb-24 space-y-8">
             {/* Header */}
-            <div className="mb-2">
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">위험 현황 (AI Insight)</h1>
-                <p className="text-sm text-gray-500 mt-1">AI가 분석한 가맹점별 리스크 등급과 주요 위험 요인을 진단합니다.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">위험 현황 (AI Insight)</h1>
+                    <p className="text-sm text-gray-500 mt-1">AI가 분석한 가맹점별 리스크 등급과 주요 위험 요인을 진단합니다.</p>
+                </div>
             </div>
 
             {/* Top Section: Statistics */}

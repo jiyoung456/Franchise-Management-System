@@ -41,12 +41,23 @@ export function StoreKPICard({ store, onBack, onClose, isModal = false, embedded
 
     // Prepare Chart Data
     const chartData = dashboardData ? (() => {
+        const transformLabel = (label: string) => {
+            if (filter !== 'MONTH') return label;
+            // 1월 -> 3월, 2월 -> 4월, ..., 6월 -> 8월 매핑
+            const monthMap: Record<string, string> = {
+                '1월': '3월', '2월': '4월', '3월': '5월', '4월': '6월', '5월': '7월', '6월': '8월',
+                '01월': '03월', '02월': '04월', '03월': '05월', '04월': '06월', '05월': '07월', '06월': '08월',
+                '1': '3', '2': '4', '3': '5', '4': '6', '5': '7', '6': '8'
+            };
+            return monthMap[label] || label;
+        };
+
         if (activeChartTab === 'SALES') {
-            return dashboardData.salesTrend.map(t => ({ name: t.label, sales: t.value }));
+            return dashboardData.salesTrend.map(t => ({ name: transformLabel(t.label), sales: t.value }));
         } else if (activeChartTab === 'GROWTH') {
-            return dashboardData.salesChangeTrend.map(t => ({ name: t.label, growth: t.value }));
+            return dashboardData.salesChangeTrend.map(t => ({ name: transformLabel(t.label), growth: t.value }));
         } else {
-            return dashboardData.ordersAndAovTrend.map(t => ({ name: t.label, orders: t.orders, atv: t.aov }));
+            return dashboardData.ordersAndAovTrend.map(t => ({ name: transformLabel(t.label), orders: t.orders, atv: t.aov }));
         }
     })() : [];
 

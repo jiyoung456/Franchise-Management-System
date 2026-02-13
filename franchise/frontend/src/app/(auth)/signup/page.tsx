@@ -218,11 +218,11 @@ function SignupContent() {
                     </button>
                     <button
                         type="button"
-                        className={`flex-1 pb-3 text-lg font-center transition-colors relative ${activeTab === 'ADMIN' ? 'text-[#2b3580]' : 'text-gray-400'}`}
+                        className={`flex-1 pb-3 text-lg font-center transition-colors relative ${activeTab === 'ADMIN' ? 'text-[#3E4CB5]' : 'text-gray-400'}`}
                         onClick={() => setActiveTab('ADMIN')}
                     >
                         관리자
-                        {activeTab === 'ADMIN' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[#2b3580]" />}
+                        {activeTab === 'ADMIN' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-[#3E4CB5]" />}
                     </button>
                 </div>
             )}
@@ -493,7 +493,7 @@ export default function SignupPage() {
 }
 
 const TERMA_TEXT = `제1조 (목적)
-본 약관은 알피자(이하 "회사")가 제공하는 프랜차이즈 관리 시스템 및 관련 제반 서비스(이하 "서비스")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
+본 약관은 Frima(이하 "회사")가 제공하는 프랜차이즈 관리 시스템 및 관련 제반 서비스(이하 "서비스")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
 
 제2조 (용어의 정의)
 1. "회원"이라 함은 회사의 서비스에 접속하여 본 약관에 따라 회사와 이용계약을 체결하고 회사가 제공하는 서비스를 이용하는 고객을 말합니다.

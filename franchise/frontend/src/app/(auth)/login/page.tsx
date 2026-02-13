@@ -21,6 +21,31 @@ export default function LoginPage() {
     const recaptchaRef = useRef<ReCAPTCHA>(null);
     // Tab State: 'MANAGER' | 'SUPERVISOR' | 'ADMIN'
     const [activeTab, setActiveTab] = useState<'MANAGER' | 'SUPERVISOR' | 'ADMIN'>('SUPERVISOR');
+    const [isAccountLocked, setIsAccountLocked] = useState(false);
+    const [failedAttempts, setFailedAttempts] = useState(0);
+
+    // Check if account is locked when ID changes
+    const checkAccountLock = (loginId: string) => {
+        if (!loginId) {
+            setIsAccountLocked(false);
+            setFailedAttempts(0);
+            return;
+        }
+
+        const lockKey = `login_lock_${loginId}`;
+        const attemptsKey = `login_attempts_${loginId}`;
+        const locked = localStorage.getItem(lockKey);
+        const attempts = parseInt(localStorage.getItem(attemptsKey) || '0');
+
+        setFailedAttempts(attempts);
+        setIsAccountLocked(locked === 'true');
+    };
+
+    // Update lock check when ID changes
+    const handleIdChange = (newId: string) => {
+        setId(newId);
+        checkAccountLock(newId);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,18 +55,33 @@ export default function LoginPage() {
             return;
         }
 
+        // Check if account is locked
+        const lockKey = `login_lock_${id}`;
+        const attemptsKey = `login_attempts_${id}`;
+        const locked = localStorage.getItem(lockKey);
+
+        if (locked === 'true') {
+            alert('계정이 잠겼습니다. 관리자에게 문의하세요.');
+            return;
+        }
+
         // 1. Login attempt
         // Use AuthService instead of StorageService
         try {
             const result = await AuthService.login(id, password, activeTab);
 
             if (result.success && result.user) {
+                // Clear failed attempts on successful login
+                localStorage.removeItem(lockKey);
+                localStorage.removeItem(attemptsKey);
+                setFailedAttempts(0);
+                setIsAccountLocked(false);
+
                 // Check for Warnings (Expired Password)
                 if (result.code === 'EXPIRED') {
                     alert(result.message);
                 }
 
-                // 2. Validate Role based on Active Tab
                 // 2. Validate Role based on Active Tab
                 const userRole = result.user.role;
 
@@ -58,11 +98,25 @@ export default function LoginPage() {
 
                 router.push('/dashboard');
             } else {
-                if (result.code === 'LOCKED') {
-                    alert(result.message);
+                // Increment failed attempts
+                const currentAttempts = parseInt(localStorage.getItem(attemptsKey) || '0');
+                const newAttempts = currentAttempts + 1;
+                localStorage.setItem(attemptsKey, newAttempts.toString());
+                setFailedAttempts(newAttempts);
+
+                // Lock account after 5 failed attempts
+                if (newAttempts >= 5) {
+                    localStorage.setItem(lockKey, 'true');
+                    setIsAccountLocked(true);
+                    alert('로그인 5회 실패로 계정이 잠겼습니다. 관리자에게 문의하세요.');
                 } else {
-                    alert(result.message || '로그인에 실패했습니다.');
+                    if (result.code === 'LOCKED') {
+                        alert(result.message);
+                    } else {
+                        alert(`${result.message || '로그인에 실패했습니다.'}\n(${newAttempts}/5회 실패)`);
+                    }
                 }
+
                 // Reset Captcha on failure
                 recaptchaRef.current?.reset();
                 setCaptchaValue(null);
@@ -90,7 +144,7 @@ export default function LoginPage() {
                     <div className="text-center space-y-2">
                         <h2 className="text-2xl font-bold text-gray-800">환영합니다!</h2>
                         <p className="text-gray-500">
-                            알피자 프랜차이즈 관리 시스템입니다.<br />
+                            프랜차이즈 AI 위험 진단 서비스 Frima입니다.<br />
                             로그인하여 서비스를 이용하세요.
                         </p>
                     </div>
@@ -106,6 +160,39 @@ export default function LoginPage() {
                             {activeTab === 'SUPERVISOR' && 'SV 회원가입'}
                             {activeTab === 'ADMIN' && '관리자 회원가입'}
                         </Link>
+                    </div>
+
+                    {/* Test Accounts Memo */}
+                    <div className="w-full mt-8 p-6 bg-white rounded-2xl border border-gray-100 flex flex-col gap-4 shadow-sm">
+                        <div className="text-gray-800 font-bold text-sm px-1">
+                            테스트 계정 안내
+                        </div>
+                        <div className="flex flex-col gap-3 text-xs">
+                            {/* SV */}
+                            <div className="flex items-center justify-between bg-gray-50/50 px-4 py-3 rounded-xl border border-gray-50">
+                                <span className="font-semibold text-gray-700 w-16">SV</span>
+                                <div className="flex gap-4 text-gray-500">
+                                    <span>ID <b className="font-bold text-[#2CA4D9] ml-1">sv02</b></span>
+                                    <span>PW <b className="font-bold text-[#2CA4D9] ml-1">1234</b></span>
+                                </div>
+                            </div>
+                            {/* Leader */}
+                            <div className="flex items-center justify-between bg-gray-50/50 px-4 py-3 rounded-xl border border-gray-50">
+                                <span className="font-semibold text-gray-700 w-16">팀장</span>
+                                <div className="flex gap-4 text-gray-500">
+                                    <span>ID <b className="font-bold text-[#2CA4D9] ml-1">leader01</b></span>
+                                    <span>PW <b className="font-bold text-[#2CA4D9] ml-1">1234</b></span>
+                                </div>
+                            </div>
+                            {/* Admin */}
+                            <div className="flex items-center justify-between bg-gray-50/50 px-4 py-3 rounded-xl border border-gray-50">
+                                <span className="font-semibold text-gray-700 w-16">관리자</span>
+                                <div className="flex gap-4 text-gray-500">
+                                    <span>ID <b className="font-bold text-[#2CA4D9] ml-1">admin01</b></span>
+                                    <span>PW <b className="font-bold text-[#2CA4D9] ml-1">1234</b></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -136,7 +223,7 @@ export default function LoginPage() {
                     </button>
                     <button
                         type="button"
-                        className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'ADMIN' ? 'text-[#2b3580] border-b-2 border-[#2b3580] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex-1 pb-4 text-lg font-bold text-center transition-all relative ${activeTab === 'ADMIN' ? 'text-[#2CA4D9] border-b-2 border-[#2CA4D9] -mb-[2px]' : 'text-gray-400 hover:text-gray-600'}`}
                         onClick={() => setActiveTab('ADMIN')}
                     >
                         관리자
@@ -154,7 +241,7 @@ export default function LoginPage() {
                             type="text"
                             required
                             value={id}
-                            onChange={(e) => setId(e.target.value)}
+                            onChange={(e) => handleIdChange(e.target.value)}
                             className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2CA4D9] focus:ring-2 focus:ring-[#2CA4D9]/20 text-gray-900 placeholder-gray-400 transition-all font-medium"
                             placeholder="아이디를 입력해주세요."
                         />
@@ -188,6 +275,42 @@ export default function LoginPage() {
                             </button>
                         </div>
                     </div>
+
+                    {/* Account Lock Warning */}
+                    {isAccountLocked && (
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center mt-0.5">
+                                    <span className="text-white text-xs font-bold">!</span>
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-bold text-red-800 mb-1">계정이 잠겼습니다</h4>
+                                    <p className="text-xs text-red-600">
+                                        로그인 5회 실패로 계정이 잠겼습니다.<br />
+                                        관리자에게 문의하여 계정 잠금을 해제하세요.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Failed Attempts Warning */}
+                    {!isAccountLocked && failedAttempts > 0 && (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center mt-0.5">
+                                    <span className="text-white text-xs font-bold">!</span>
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-bold text-yellow-800 mb-1">로그인 실패 경고</h4>
+                                    <p className="text-xs text-yellow-600">
+                                        현재 {failedAttempts}회 로그인에 실패했습니다.<br />
+                                        5회 실패 시 계정이 잠깁니다. (남은 시도: {5 - failedAttempts}회)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
 
 

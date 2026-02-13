@@ -24,8 +24,13 @@ export default function AnalysisLayout({
                     <p className="text-sm text-gray-500 mt-1">매출, 주문 수, 객단가 등 핵심 지표(KPI) 통합 분석</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <select className="border border-gray-200 rounded-md text-sm px-2 py-1.5 bg-white">
-                        <option>2026년 1월</option>
+                    <select className="border border-gray-200 rounded-md text-sm px-2 py-1.5 bg-white" defaultValue="2025년 8월">
+                        <option>2025년 3월</option>
+                        <option>2025년 4월</option>
+                        <option>2025년 5월</option>
+                        <option>2025년 6월</option>
+                        <option>2025년 7월</option>
+                        <option>2025년 8월</option>
                     </select>
                 </div>
             </div>

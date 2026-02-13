@@ -1,4 +1,4 @@
-import { Pizza } from 'lucide-react';
+import { Siren } from 'lucide-react';
 
 interface LogoProps {
     variant?: 'white' | 'color';
@@ -12,11 +12,12 @@ export function Logo({ variant = 'color', className = '' }: LogoProps) {
     return (
         <div className={`flex items-center gap-2 ${className}`}>
             <div className={`flex items-center ${colorClass}`}>
-                <Pizza className="w-8 h-8 -rotate-12" strokeWidth={1.5} />
-                <div className={`text-xl font-bold tracking-widest ${colorClass} ml-2`}>
-                    알피자
+                <Siren className="w-8 h-8" strokeWidth={2} />
+                <div className={`text-xl font-bold tracking-widest ${colorClass} ml-2 uppercase`}>
+                    Frima
                 </div>
             </div>
         </div>
     );
 }
+

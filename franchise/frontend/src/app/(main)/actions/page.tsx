@@ -54,11 +54,13 @@ export default function ActionsListPage() {
 
 
     return (
-        <div className="space-y-8 pb-20 mx-auto w-full">
+        <div className="pb-24 space-y-8">
             {/* Header Title */}
-            <div className="mb-2">
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">조치 관리</h1>
-                <p className="text-sm text-gray-500 mt-1">점포별 개선 조치 현황과 이행 여부를 추적 관리합니다.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900">조치 관리</h1>
+                    <p className="text-sm text-gray-500 mt-1">점포별 개선 조치 현황과 이행 여부를 추적 관리합니다.</p>
+                </div>
             </div>
 
             {/* Dashboard Widgets (Admin Only) */}
