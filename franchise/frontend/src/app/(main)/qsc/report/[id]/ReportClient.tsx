@@ -302,11 +302,12 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                                     ) : (
                                         <div className="space-y-3">
                                             {reportData.overallPhotos.map((photo: string, idx: number) => (
-                                                <div key={idx} className="relative aspect-video bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
-                                                    <div className="text-gray-400 text-xs text-center">
-                                                        <span className="block font-bold mb-1">원본 사진 {idx + 1}</span>
-                                                        (이미지 미리보기)
-                                                    </div>
+                                                <div key={idx} className="relative aspect-video bg-gray-100 rounded border border-gray-200 flex items-center justify-center overflow-hidden">
+                                                    <img
+                                                        src={photo}
+                                                        alt={`점검 사진 ${idx + 1}`}
+                                                        className="w-full h-full object-cover"
+                                                    />
                                                 </div>
                                             ))}
                                         </div>
