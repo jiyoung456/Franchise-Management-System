@@ -30,6 +30,9 @@ export default function ReportClient({ id, storeId }: { id: string, storeId?: st
                 data = await QscService.getInspectionDetail(Number(storeId) || 0, id);
 
                 if (data) {
+                    // Demo: Hardcode the image as requested by user
+                    // Please save the user provided image to public/qsc_failure_sample.png
+                    data.overallPhotos = ['/qsc_failure_sample.png'];
                     setReportData(data);
                 }
             } catch (error) {
