@@ -23,7 +23,7 @@ jobs:
           key: ${{ secrets.FRONTEND_EC2_SSH_KEY }}
           script: |
             set -e
-
+            
             echo "==> Move to repo"
             cd ~/Franchise-Management-System/franchise/frontend
 
@@ -31,8 +31,19 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
+            echo "==> Stop old containers"
+            docker compose -f docker-compose.frontend.yml down || true
+
+            echo "==> Docker cleanup (before build)"
+            docker container prune -f || true
+            docker image prune -af || true
+            docker builder prune -af || true
+
             echo "==> Build & run containers"
             docker compose -f docker-compose.frontend.yml up -d --build
+
+            echo "==> Docker cleanup (after deploy)"
+            docker image prune -af || true
 
             echo "==> Show running containers"
             docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
