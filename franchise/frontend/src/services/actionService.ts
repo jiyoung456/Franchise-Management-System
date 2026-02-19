@@ -99,20 +99,25 @@ export const ActionService = {
             postActionValue: 88.5,
             improvementRate: 18.0,
             analysisComment: '조치 수행 후 QSC 점수가 유의미하게 상승했습니다.',
-            storeSeries: [
+            beforeExecution: [
                 { date: '2025-01-01', value: 74 },
-                { date: '2025-01-08', value: 75 },
-                { date: '2025-01-15', value: 76 },
-                { date: '2025-01-22', value: 85 }, // Action Taken
-                { date: '2025-01-29', value: 88 }
+                { date: '2025-01-02', value: 73 },
+                { date: '2025-01-03', value: 75 },
+                { date: '2025-01-04', value: 72 },
+                { date: '2025-01-05', value: 74 },
+                { date: '2025-01-06', value: 76 },
+                { date: '2025-01-07', value: 75 }
             ],
-            baselineSeries: [
-                { date: '2025-01-01', value: 80 },
-                { date: '2025-01-08', value: 80 },
-                { date: '2025-01-15', value: 80 },
-                { date: '2025-01-22', value: 80 },
-                { date: '2025-01-29', value: 80 }
-            ]
+            afterExecution: [
+                { date: '2025-01-08', value: 82 }, // Action Taken
+                { date: '2025-01-09', value: 85 },
+                { date: '2025-01-10', value: 84 },
+                { date: '2025-01-11', value: 86 },
+                { date: '2025-01-12', value: 88 },
+                { date: '2025-01-13', value: 87 },
+                { date: '2025-01-14', value: 89 }
+            ],
+            metricLabel: 'QSC 점수'
         };
     },
 

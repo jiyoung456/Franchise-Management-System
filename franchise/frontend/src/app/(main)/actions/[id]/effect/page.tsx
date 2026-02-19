@@ -52,18 +52,38 @@ export default function ActionEffectPage({ params }: { params: Promise<{ id: str
     if (!action || !effect) return <div className="p-12 text-center text-red-500 font-bold">데이터를 불러오는 데 실패했습니다.</div>;
 
     // Map backend effect data to graphData
-    // Backend return format (from ActionEffectResponse.java):
-    // List<TimeSeriesData> beforeExecution;
-    // List<TimeSeriesData> afterExecution;
-    // double baseline;
+    // Support both Legacy (before/after lists) and New (storeSeries flat list) formats
 
-    const beforeData = effect.beforeExecution || [];
-    const afterData = effect.afterExecution || [];
+    const executionDateStr = action.completedAt?.split('T')[0] || action.updatedAt?.split('T')[0] || '';
 
-    const graphData = [
-        ...beforeData.map((d: any) => ({ day: d.dateLabel || d.date, before: d.value, after: null })),
-        ...afterData.map((d: any) => ({ day: d.dateLabel || d.date, before: null, after: d.value }))
-    ];
+    let graphData: any[] = [];
+
+    if (effect.storeSeries) {
+        // New Format: storeSeries list
+        graphData = effect.storeSeries.map((d: any) => {
+            const isAfter = d.date >= executionDateStr;
+            return {
+                day: d.dateLabel || d.date,
+                before: isAfter ? null : d.value,
+                after: isAfter ? d.value : null,
+                // Optional: valid baseline if needed
+                // baseline: effect.baselineSeries?.find(...)
+            };
+        });
+
+        // Connect the lines? 
+        // If we want a gap, fine. If we want connection, the transition point might need double entry or custom handling.
+        // For now, simple split.
+    } else {
+        // Legacy Format: beforeExecution + afterExecution
+        const beforeData = effect.beforeExecution || [];
+        const afterData = effect.afterExecution || [];
+
+        graphData = [
+            ...beforeData.map((d: any) => ({ day: d.dateLabel || d.date, before: d.value, after: null })),
+            ...afterData.map((d: any) => ({ day: d.dateLabel || d.date, before: null, after: d.value }))
+        ];
+    }
 
     const actionData = {
         title: action.title,
@@ -129,9 +149,9 @@ export default function ActionEffectPage({ params }: { params: Promise<{ id: str
                 </div>
 
                 <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8">
-                    <div style={{ width: '100%', height: '400px' }}>
+                    <div style={{ width: '100%', height: '500px' }}>
                         <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
-                            <LineChart data={graphData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                            <LineChart data={graphData} margin={{ top: 80, right: 40, left: 30, bottom: 130 }}>
                                 <defs>
                                     <linearGradient id="colorBefore" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
@@ -142,18 +162,34 @@ export default function ActionEffectPage({ params }: { params: Promise<{ id: str
                                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                                 <XAxis
                                     dataKey="day"
-                                    stroke="#6b7280"
+                                    stroke="#9ca3af"
                                     tick={{ fill: '#6b7280', fontSize: 12 }}
-                                    label={{ value: '2주 기간', position: 'insideBottom', offset: -10, style: { fill: '#374151', fontWeight: 'bold' } }}
+                                    tickMargin={10}
+                                    tickLine={false}
+                                    axisLine={{ stroke: '#e5e7eb' }}
+                                    tickFormatter={(value) => value.substring(5)}
+                                    // dy: 40 pushes it down to give breathing room from ticks
+                                    label={{ value: '2주 기간 (Time)', position: 'insideBottom', offset: 0, dy: 50, style: { fill: '#374151', fontWeight: 'bold', fontSize: 13 } }}
                                 />
                                 <YAxis
-                                    stroke="#6b7280"
+                                    stroke="#9ca3af"
                                     tick={{ fill: '#6b7280', fontSize: 12 }}
-                                    domain={[60, 100]}
-                                    label={{ value: actionData.metric, angle: -90, position: 'insideLeft', style: { fill: '#374151', fontWeight: 'bold' } }}
+                                    tickMargin={10}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    domain={['auto', 'auto']}
+                                    label={{
+                                        value: `${actionData.metric} (단위: 점)`,
+                                        angle: 0,
+                                        position: 'top',
+                                        offset: 20,
+                                        style: { fill: '#374151', fontWeight: 'bold', fontSize: 13, textAnchor: 'start' },
+                                        dy: -30,
+                                        dx: -20
+                                    }}
                                 />
                                 <Tooltip
                                     contentStyle={{
@@ -164,7 +200,8 @@ export default function ActionEffectPage({ params }: { params: Promise<{ id: str
                                     }}
                                 />
                                 <Legend
-                                    wrapperStyle={{ paddingTop: '20px' }}
+                                    // position: absolute ensures it sticks to the bottom of the container, avoiding flexible layout conflicts
+                                    wrapperStyle={{ position: 'absolute', bottom: 40, left: 0, right: 0 }}
                                     iconType="line"
                                 />
                                 <Line
